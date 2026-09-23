@@ -1,0 +1,26 @@
+{
+  "name": "KavachSaathi",
+  "short_name": "KavachSaathi",
+  "description": "India's first smart PVC health card — instant emergency medical access.",
+  "start_url": "/activate",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#D4AF37",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "medical", "lifestyle"],
+  "lang": "en-IN"
+}

@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Cards: public read; writes only via Admin SDK (activate API)
+    match /cards/{code} {
+      allow read: if true;
+      allow write: if false;
+    }
+    // Users: owner only (pin_hash never returned to other users via client)
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /doctor_scans/{scanId} {
+      allow create: if true;
+      allow read: if request.auth != null;
+      allow update, delete: if false;
+    }
+    match /notifications/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

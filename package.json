@@ -6,21 +6,45 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed": "ts-node --skipProject --compiler-options '{\"module\":\"commonjs\",\"esModuleInterop\":true}' scripts/seed-cards.ts"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
+    "@radix-ui/react-dialog": "^1.1.23",
+    "@radix-ui/react-toast": "^1.2.23",
+    "canvas-confetti": "^1.9.4",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
+    "firebase": "^12.19.0",
+    "framer-motion": "^13.4.1",
+    "lucide-react": "^1.47.0",
+    "next": "14.2.35",
+    "next-pwa": "^5.6.0",
+    "nodemailer": "^10.0.10",
+    "qrcode": "^1.5.4",
     "react": "^18",
     "react-dom": "^18",
-    "next": "14.2.35"
+    "react-hook-form": "^7.88.0",
+    "react-hot-toast": "^2.6.1",
+    "react-otp-input": "^3.1.1",
+    "react-qr-code": "^2.2.0",
+    "tailwind-merge": "^3.7.0",
+    "ts-node": "^10.9.2",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.2",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.35",
+    "firebase-admin": "^13.10.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "eslint": "^8",
-    "eslint-config-next": "14.2.35"
+    "typescript": "^5.9.3"
   }
 }
