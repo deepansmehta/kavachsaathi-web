@@ -30,6 +30,9 @@ export function Footer() {
             <p className="mt-4 font-rajdhani text-sm font-semibold text-cream">
               A product of GDM Technoworld Pvt. Ltd.
             </p>
+            <p className="mt-2 font-body text-xs text-cream-soft">
+              Directors: Saurabh Mehta · Jyoti Mehta
+            </p>
           </div>
 
           <div>

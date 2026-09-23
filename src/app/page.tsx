@@ -333,7 +333,10 @@ export default function HomePage() {
           >
             <div className="mx-auto mb-5 h-px w-24 bg-gradient-to-r from-transparent via-gold to-transparent" />
             <p className="font-body text-sm italic text-cream-soft">
-              — Deepansh Mehta, Co-Founder, GDM Technoworld Pvt. Ltd.
+              Directors — Saurabh Mehta &amp; Jyoti Mehta
+            </p>
+            <p className="mt-1 font-body text-xs text-cream-soft/70">
+              GDM Technoworld Pvt. Ltd.
             </p>
           </motion.div>
         </div>
