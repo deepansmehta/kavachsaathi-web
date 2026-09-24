@@ -291,7 +291,7 @@ export function HealthCard3D({
                 whose love still shields our family.
               </p>
               <p className="mt-1.5 font-rajdhani text-[8px] font-semibold uppercase tracking-[0.1em] text-cream-soft/50">
-                Shri Ganga Dhar Mehta Ji &amp; brothers
+                Late Shri Ganga Dhar Mehta Ji · 1949–2012
               </p>
             </div>
 

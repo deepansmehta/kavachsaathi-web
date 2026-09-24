@@ -186,11 +186,13 @@ const BROTHERS: {
   name: string;
   label: string;
   variant: BrotherVariant;
+  years?: string;
 }[] = [
   {
     name: "Shri Ganga Dhar Mehta Ji",
     label: "The Eldest · Our Grandfather",
-    variant: "elder",
+    years: "1949 — 2012",
+    variant: "memorial",
   },
   {
     name: "Shri Narender Bajaj Ji",
@@ -259,6 +261,11 @@ function BrotherCard({
       <h3 className="font-rajdhani text-base font-bold leading-snug text-cream sm:text-lg">
         {brother.name}
       </h3>
+      {brother.years ? (
+        <p className="mt-1.5 font-mono text-[11px] tracking-wide text-gold/80">
+          {brother.years}
+        </p>
+      ) : null}
       <p
         className={cn(
           "mt-2 font-body text-xs leading-relaxed sm:text-sm",
