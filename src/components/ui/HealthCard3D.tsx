@@ -20,6 +20,30 @@ interface HealthCard3DProps {
   healthId?: string;
 }
 
+function SoftShine() {
+  return (
+    <motion.div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-[1] overflow-hidden rounded-[16px]"
+    >
+      <motion.div
+        className="absolute -left-1/3 top-0 h-full w-1/3 skew-x-[-18deg]"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent, rgba(242,208,96,0.14), transparent)",
+        }}
+        animate={{ x: ["-20%", "320%"] }}
+        transition={{
+          duration: 3.8,
+          repeat: Infinity,
+          repeatDelay: 2.2,
+          ease: "easeInOut",
+        }}
+      />
+    </motion.div>
+  );
+}
+
 export function HealthCard3D({
   bloodGroup,
   tier = "STANDARD",
@@ -34,12 +58,10 @@ export function HealthCard3D({
 
   const code = data?.activation_code || activationCode || "XXXX";
   const emergencyUrl = getEmergencyUrl(code);
-  const displayName =
-    data?.full_name || name || "KavachSaathi Member";
+  const displayName = data?.full_name || name || "KavachSaathi Member";
   const displayHealthId =
     data?.health_id || healthId || (code !== "XXXX" ? `KVS-${code}` : "KVS-····");
-  const displayBlood =
-    data?.blood_group || bloodGroup || "";
+  const displayBlood = data?.blood_group || bloodGroup || "";
   const displayTier = (data?.tier || tier || "STANDARD").toUpperCase();
   const isPro = displayTier === "PRO";
 
@@ -54,15 +76,32 @@ export function HealthCard3D({
           aspectRatio: "85.6 / 54",
           transformStyle: "preserve-3d",
         }}
-        animate={{ rotateY: flipped ? 180 : 0 }}
-        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+        initial={{ opacity: 0, y: 18, scale: 0.96 }}
+        animate={{
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          rotateY: flipped ? 180 : 0,
+        }}
+        transition={{
+          opacity: { duration: 0.5 },
+          y: { duration: 0.5 },
+          scale: { type: "spring", stiffness: 220, damping: 18 },
+          rotateY: { duration: 0.65, ease: [0.22, 1, 0.36, 1] },
+        }}
         onClick={() => interactive && setFlipped((f) => !f)}
-        whileHover={interactive ? { scale: 1.02 } : undefined}
+        whileHover={interactive ? { scale: 1.025 } : undefined}
+        whileTap={interactive ? { scale: 0.985 } : undefined}
       >
-        {/* ─── FRONT ─── */}
+        {/* FRONT */}
         <div
-          className="absolute inset-0 overflow-hidden rounded-[16px] border border-gold/45 bg-[#0a0a08] shadow-gold-glow"
-          style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+          className="absolute inset-0 overflow-hidden rounded-[16px] border border-gold/45 bg-[#0a0a08]"
+          style={{
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            boxShadow:
+              "0 0 0 1px rgba(212,175,55,0.12), 0 18px 40px rgba(0,0,0,0.45), 0 0 32px rgba(212,175,55,0.18)",
+          }}
         >
           <div
             className="pointer-events-none absolute inset-0"
@@ -95,17 +134,18 @@ export function HealthCard3D({
           <div className="pointer-events-none absolute inset-[6px] rounded-[12px] border border-gold/25" />
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/80 to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
+          <SoftShine />
 
           <div className="relative z-10 flex h-full flex-col px-5 py-3.5 sm:px-6 sm:py-4">
-            {/* Top brand */}
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg gold-gradient shadow-gold-sm sm:h-10 sm:w-10">
-                  <Shield
-                    className="h-4.5 w-4.5 text-kavach-black sm:h-5 sm:w-5"
-                    strokeWidth={2.4}
-                  />
-                </div>
+                <motion.div
+                  className="flex h-9 w-9 items-center justify-center rounded-lg gold-gradient shadow-gold-sm sm:h-10 sm:w-10"
+                  animate={{ rotate: [0, -3, 3, 0] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <Shield className="h-5 w-5 text-kavach-black" strokeWidth={2.4} />
+                </motion.div>
                 <div>
                   <p className="font-rajdhani text-base font-bold leading-none tracking-wide text-gold sm:text-lg">
                     KavachSaathi
@@ -119,20 +159,21 @@ export function HealthCard3D({
                 <p className="font-rajdhani text-xs font-bold tracking-[0.18em] text-gold sm:text-sm">
                   GDM
                 </p>
-                <span
+                <motion.span
                   className={cn(
                     "mt-1 inline-block rounded-full px-2 py-0.5 font-rajdhani text-[8px] font-bold tracking-wider",
                     isPro
                       ? "bg-gold/20 text-gold"
                       : "border border-gold/30 text-gold/70"
                   )}
+                  animate={isPro ? { opacity: [0.75, 1, 0.75] } : undefined}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
                 >
                   {displayTier}
-                </span>
+                </motion.span>
               </div>
             </div>
 
-            {/* Identity */}
             <div className="mt-3 min-w-0 sm:mt-4">
               <p className="truncate font-rajdhani text-lg font-bold leading-tight text-cream sm:text-xl">
                 {displayName}
@@ -144,7 +185,6 @@ export function HealthCard3D({
 
             <div className="flex-1" />
 
-            {/* Blood + code */}
             <div className="flex items-end justify-between gap-3">
               <div className="min-w-0 pb-0.5">
                 <p className="font-dm text-[7px] uppercase tracking-[0.24em] text-cream-soft/50">
@@ -158,13 +198,15 @@ export function HealthCard3D({
                 </p>
               </div>
 
-              <div
+              <motion.div
                 className="relative shrink-0"
                 aria-label={
                   displayBlood
                     ? `Blood group ${displayBlood}`
                     : "Blood group sticker area"
                 }
+                animate={{ scale: [1, 1.04, 1] }}
+                transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
               >
                 <div className="absolute -inset-[3px] rounded-full bg-gradient-to-br from-[#F2D060] via-[#D4AF37] to-[#9A7A18]" />
                 <div className="relative flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#B71C1C] shadow-[inset_0_2px_6px_rgba(0,0,0,0.35),0_6px_16px_rgba(183,28,28,0.35)] sm:h-[58px] sm:w-[58px]">
@@ -176,7 +218,7 @@ export function HealthCard3D({
                     <div className="absolute inset-[5px] rounded-full border border-dashed border-white/40" />
                   )}
                 </div>
-              </div>
+              </motion.div>
             </div>
 
             <div className="mt-2.5 flex items-center justify-between border-t border-gold/20 pt-2">
@@ -190,13 +232,15 @@ export function HealthCard3D({
           </div>
         </div>
 
-        {/* ─── BACK ─── */}
+        {/* BACK */}
         <div
-          className="absolute inset-0 overflow-hidden rounded-[16px] border border-gold/40 bg-[#0c0c0a] shadow-gold-glow"
+          className="absolute inset-0 overflow-hidden rounded-[16px] border border-gold/40 bg-[#0c0c0a]"
           style={{
             backfaceVisibility: "hidden",
             WebkitBackfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
+            boxShadow:
+              "0 0 0 1px rgba(212,175,55,0.1), 0 18px 40px rgba(0,0,0,0.45), 0 0 28px rgba(212,175,55,0.14)",
           }}
         >
           <div
@@ -208,6 +252,7 @@ export function HealthCard3D({
           />
           <div className="pointer-events-none absolute inset-[6px] rounded-[12px] border border-gold/18" />
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
+          <SoftShine />
 
           <div className="relative z-10 flex h-full flex-col px-5 py-4 sm:px-6 sm:py-5">
             <div className="flex items-start justify-between gap-4">
@@ -222,7 +267,11 @@ export function HealthCard3D({
                   {String(code).padStart(4, "0")}
                 </p>
               </div>
-              <div className="shrink-0 rounded-lg bg-cream p-1.5 shadow-sm">
+              <motion.div
+                className="shrink-0 rounded-lg bg-cream p-1.5 shadow-sm"
+                animate={{ scale: [1, 1.03, 1] }}
+                transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+              >
                 <QRCode
                   value={emergencyUrl}
                   size={76}
@@ -230,7 +279,7 @@ export function HealthCard3D({
                   fgColor="#080808"
                   level="M"
                 />
-              </div>
+              </motion.div>
             </div>
 
             <div className="flex-1" />
@@ -247,9 +296,7 @@ export function HealthCard3D({
             </div>
 
             <div className="mt-2.5 flex items-center justify-between">
-              <p className="font-rajdhani text-xs font-bold text-gold">
-                KavachSaathi
-              </p>
+              <p className="font-rajdhani text-xs font-bold text-gold">KavachSaathi</p>
               <p className="font-dm text-[8px] text-cream-soft/55">
                 GDM Technoworld Pvt. Ltd.
               </p>
@@ -259,9 +306,13 @@ export function HealthCard3D({
       </motion.div>
 
       {interactive && (
-        <p className="mt-3 text-center font-dm text-[11px] tracking-wide text-cream-soft/65">
+        <motion.p
+          className="mt-3 text-center font-dm text-[11px] tracking-wide text-cream-soft/65"
+          animate={{ opacity: [0.45, 0.9, 0.45] }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+        >
           Tap to flip · Front &amp; back
-        </p>
+        </motion.p>
       )}
     </div>
   );
