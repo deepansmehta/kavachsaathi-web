@@ -28,6 +28,10 @@ export function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { user, profile, loading, isDemo } = useAuth();
+
+  if (pathname?.startsWith("/coming-soon") || pathname?.startsWith("/e/")) {
+    return null;
+  }
   const loggedIn = Boolean(user || isDemo || profile);
 
   if (pathname?.startsWith("/e/")) return null;

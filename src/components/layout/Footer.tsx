@@ -7,7 +7,9 @@ import { GoldDivider } from "@/components/ui/GoldDivider";
 
 export function Footer() {
   const pathname = usePathname();
-  if (pathname?.startsWith("/e/")) return null;
+  if (pathname?.startsWith("/e/") || pathname?.startsWith("/coming-soon")) {
+    return null;
+  }
 
   return (
     <footer className="border-t border-kavach-border bg-kavach-s1 grid-pattern">
