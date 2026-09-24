@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Shield } from "lucide-react";
 import { getTimeLeft, type TimeLeft } from "@/lib/launch";
 
@@ -22,43 +22,34 @@ const PARTICLES = [
   { x: "42%", y: "88%", d: 1.1, s: 2 },
   { x: "92%", y: "48%", d: 0.3, s: 2.5 },
   { x: "6%", y: "48%", d: 0.9, s: 3 },
-  { x: "65%", y: "35%", d: 1.4, s: 1.5 },
-  { x: "30%", y: "42%", d: 0.5, s: 2 },
 ];
+
+/** Unlock ceremony before opening the full site */
+const UNLOCK_MS = 4800;
 
 function pad(n: number) {
   return String(Math.max(0, n)).padStart(2, "0");
 }
 
-const easeOut: [number, number, number, number] = [0.22, 1, 0.36, 1];
+function LogoMark({ size = "md" }: { size?: "md" | "xl" }) {
+  const box =
+    size === "xl"
+      ? "h-28 w-28 rounded-[1.75rem] sm:h-32 sm:w-32"
+      : "h-20 w-20 rounded-2xl sm:h-24 sm:w-24 sm:rounded-3xl";
+  const icon =
+    size === "xl" ? "h-14 w-14 sm:h-16 sm:w-16" : "h-10 w-10 sm:h-12 sm:w-12";
 
-const PLACEHOLDER: TimeLeft = {
-  days: 0,
-  hours: 0,
-  minutes: 0,
-  seconds: 0,
-  totalSeconds: 0,
-  done: false,
-};
-
-function LogoMark() {
   return (
-    <motion.div
-      className="relative flex h-20 w-20 items-center justify-center rounded-2xl gold-gradient shadow-gold-glow sm:h-24 sm:w-24 sm:rounded-3xl"
-      animate={{ y: [0, -6, 0] }}
-      transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+    <div
+      className={`relative flex items-center justify-center gold-gradient shadow-gold-glow ${box}`}
     >
-      <motion.div
-        className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl sm:rounded-3xl"
+      <div
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
         aria-hidden
       >
-        <motion.div
-          className="absolute -inset-y-4 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent"
-          animate={{ x: ["-120%", "320%"] }}
-          transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut", repeatDelay: 1.6 }}
-        />
-      </motion.div>
-      <Shield className="relative h-10 w-10 text-kavach-black sm:h-12 sm:w-12" strokeWidth={2.25} />
+        <div className="cs-logo-shine absolute -inset-y-4 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+      </div>
+      <Shield className={`relative text-kavach-black ${icon}`} strokeWidth={2.25} />
       <svg
         className="absolute bottom-2.5 left-1/2 h-3 w-10 -translate-x-1/2"
         viewBox="0 0 40 12"
@@ -74,11 +65,11 @@ function LogoMark() {
           opacity="0.55"
         />
       </svg>
-    </motion.div>
+    </div>
   );
 }
 
-function CountdownGrid({ t, ready }: { t: TimeLeft; ready: boolean }) {
+function CountdownGrid({ t }: { t: TimeLeft }) {
   const units = [
     { label: "Days", value: t.days },
     { label: "Hours", value: t.hours },
@@ -93,50 +84,21 @@ function CountdownGrid({ t, ready }: { t: TimeLeft; ready: boolean }) {
     >
       {units.map((u, i) => (
         <div key={u.label} className="flex items-center gap-2 sm:gap-3">
-          <motion.div
-            className="cs-timer-cell relative min-w-[4.5rem] overflow-hidden rounded-2xl px-2 py-3 text-center sm:min-w-[5.75rem] sm:px-3 sm:py-4"
-            initial={false}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{
-              duration: 0.7,
-              delay: ready ? 0.15 + i * 0.08 : 0,
-              ease: easeOut,
-            }}
-          >
-            {ready ? (
-              <AnimatePresence mode="popLayout">
-                <motion.p
-                  key={`${u.label}-${u.value}`}
-                  className="font-mono text-3xl font-bold tabular-nums text-gold sm:text-5xl"
-                  initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
-                  transition={{ duration: 0.35 }}
-                >
-                  {pad(u.value)}
-                </motion.p>
-              </AnimatePresence>
-            ) : (
-              <p className="font-mono text-3xl font-bold tabular-nums text-gold/40 sm:text-5xl">
-                --
-              </p>
-            )}
+          <div className="cs-timer-cell relative min-w-[4.5rem] overflow-hidden rounded-2xl px-2 py-3 text-center sm:min-w-[5.75rem] sm:px-3 sm:py-4">
+            <p
+              className="font-mono text-3xl font-bold tabular-nums text-gold sm:text-5xl"
+              suppressHydrationWarning
+            >
+              {pad(u.value)}
+            </p>
             <p className="mt-2 font-rajdhani text-[10px] font-semibold uppercase tracking-[0.25em] text-cream-soft/50">
               {u.label}
             </p>
-          </motion.div>
+          </div>
           {i < units.length - 1 && (
-            <motion.span
-              className="mb-5 font-mono text-2xl text-gold/40 sm:text-3xl"
-              animate={ready ? { opacity: [0.25, 0.85, 0.25] } : { opacity: 0.4 }}
-              transition={
-                ready
-                  ? { duration: 1.4, repeat: Infinity, ease: "easeInOut" }
-                  : undefined
-              }
-            >
+            <span className="cs-colon mb-5 font-mono text-2xl text-gold/45 sm:text-3xl">
               :
-            </motion.span>
+            </span>
           )}
         </div>
       ))}
@@ -144,225 +106,204 @@ function CountdownGrid({ t, ready }: { t: TimeLeft; ready: boolean }) {
   );
 }
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 22, filter: "blur(8px)" },
-  show: (delay: number) => ({
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.85, delay, ease: easeOut },
-  }),
-};
+function UnlockCeremony() {
+  return (
+    <div className="relative z-10 flex w-full max-w-xl flex-col items-center px-4 text-center">
+      <div className="cs-unlock-burst pointer-events-none absolute left-1/2 top-[30%] h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/35" />
+      <div className="cs-unlock-burst-2 pointer-events-none absolute left-1/2 top-[30%] h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/20" />
+
+      <div className="cs-unlock-in relative mb-8">
+        <div className="absolute inset-0 animate-gold-pulse rounded-full bg-gold/35 blur-2xl" />
+        <LogoMark size="xl" />
+      </div>
+
+      <p className="cs-unlock-in cs-unlock-d1 font-rajdhani text-xs font-semibold uppercase tracking-[0.45em] text-gold sm:text-sm">
+        The Wait Is Over
+      </p>
+      <h1 className="cs-unlock-in cs-unlock-d2 mt-3 font-rajdhani text-5xl font-bold tracking-tight gold-text-shimmer sm:text-6xl md:text-7xl">
+        KavachSaathi
+      </h1>
+      <p className="cs-unlock-in cs-unlock-d3 mt-4 font-body text-base text-cream-soft/80 sm:text-lg">
+        A new chapter begins.
+      </p>
+
+      <div className="cs-unlock-in cs-unlock-d4 mt-10 w-full max-w-xs">
+        <div className="h-px w-full overflow-hidden rounded-full bg-gold/15">
+          <div className="cs-unlock-bar h-full rounded-full bg-gradient-to-r from-gold-dark via-gold to-gold-light" />
+        </div>
+        <p className="mt-3 font-rajdhani text-xs font-semibold uppercase tracking-[0.3em] text-gold/75">
+          Opening the site…
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function ComingSoonPage() {
-  const [ready, setReady] = useState(false);
-  const [t, setT] = useState<TimeLeft>(PLACEHOLDER);
+  const [t, setT] = useState<TimeLeft>(() => getTimeLeft());
+  const [phase, setPhase] = useState<"countdown" | "unlock">("countdown");
 
   useEffect(() => {
-    setReady(true);
     const tick = () => {
       const next = getTimeLeft();
       setT(next);
-      if (next.done) {
-        window.location.replace("/");
-      }
+      if (next.done) setPhase("unlock");
     };
     tick();
-    const id = setInterval(tick, 250);
-    return () => clearInterval(id);
+    const id = window.setInterval(tick, 250);
+    return () => window.clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (phase !== "unlock") return;
+    const id = window.setTimeout(() => {
+      window.location.replace("/");
+    }, UNLOCK_MS);
+    return () => window.clearTimeout(id);
+  }, [phase]);
 
   return (
     <div className="cs-stage relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-12">
-      {/* Atmosphere */}
       <div className="pointer-events-none absolute inset-0 cs-atmosphere" aria-hidden />
       <div className="pointer-events-none absolute inset-0 cs-vignette" aria-hidden />
       <div className="pointer-events-none absolute inset-0 cs-grain" aria-hidden />
 
-      {/* Soft orbit rings behind logo */}
-      <div className="pointer-events-none absolute left-1/2 top-[22%] h-64 w-64 -translate-x-1/2 -translate-y-1/2 sm:top-[20%] sm:h-80 sm:w-80" aria-hidden>
-        <div className="cs-orbit absolute inset-0 rounded-full border border-gold/10" />
-        <div className="cs-orbit-rev absolute inset-6 rounded-full border border-dashed border-gold/15" />
-        <div className="cs-orbit absolute inset-12 rounded-full border border-gold/8" />
-      </div>
-
-      {/* Floating particles */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        {PARTICLES.map((p, i) => (
-          <motion.span
-            key={i}
-            className="absolute rounded-full bg-gold"
-            style={{
-              left: p.x,
-              top: p.y,
-              width: p.s,
-              height: p.s,
-              boxShadow: "0 0 10px rgba(212,175,55,0.65)",
-            }}
-            animate={{
-              y: [0, -18, 0],
-              opacity: [0.15, 0.7, 0.15],
-              scale: [1, 1.35, 1],
-            }}
-            transition={{
-              duration: 4 + i * 0.35,
-              delay: p.d,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-        ))}
-      </div>
-
-      <div className="relative z-10 flex w-full max-w-lg flex-col items-center text-center">
-        <motion.div
-          className="relative mb-8 flex h-24 w-24 items-center justify-center sm:h-28 sm:w-28"
-          custom={0.05}
-          variants={fadeUp}
-          initial="hidden"
-          animate="show"
-        >
-          <div className="absolute inset-0 animate-gold-pulse rounded-full bg-gold/30 blur-2xl" />
-          <LogoMark />
-        </motion.div>
-
-        <motion.h1
-          className="cs-brand-title font-rajdhani text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl"
-          custom={0.18}
-          variants={fadeUp}
-          initial="hidden"
-          animate="show"
-        >
-          KavachSaathi
-        </motion.h1>
-
-        <motion.p
-          className="mt-3 font-rajdhani text-base font-semibold tracking-[0.14em] text-gold/90 sm:text-lg"
-          custom={0.32}
-          variants={fadeUp}
-          initial="hidden"
-          animate="show"
-        >
-          Born from Legacy · Built to Protect
-        </motion.p>
-
-        <motion.p
-          className="mt-2 font-body text-sm tracking-[0.2em] text-cream-soft/60 sm:text-base"
-          custom={0.42}
-          variants={fadeUp}
-          initial="hidden"
-          animate="show"
-        >
-          Something Is Coming
-        </motion.p>
-
-        <CountdownGrid t={t} ready={ready} />
-
-        {/* Signature — The Bajaj Brothers */}
-        <motion.div
-          className="bajaj-legacy mt-14 flex w-full max-w-sm flex-col items-center gap-3"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 1.05, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <div className="bajaj-legacy-rule w-full" />
-          <div className="flex items-center gap-3">
-            <span className="bajaj-legacy-diamond h-1.5 w-1.5 bg-gold" />
-            <p className="bajaj-legacy-text text-xl sm:text-2xl md:text-[1.7rem]">
-              The Bajaj Brothers
-            </p>
-            <span className="bajaj-legacy-diamond h-1.5 w-1.5 bg-gold" />
+      {phase === "unlock" ? (
+        <UnlockCeremony />
+      ) : (
+        <>
+          <div
+            className="pointer-events-none absolute left-1/2 top-[22%] h-64 w-64 -translate-x-1/2 -translate-y-1/2 sm:top-[20%] sm:h-80 sm:w-80"
+            aria-hidden
+          >
+            <div className="cs-orbit absolute inset-0 rounded-full border border-gold/10" />
+            <div className="cs-orbit-rev absolute inset-6 rounded-full border border-dashed border-gold/15" />
+            <div className="cs-orbit absolute inset-12 rounded-full border border-gold/8" />
           </div>
-          <p className="font-rajdhani text-[10px] font-semibold uppercase tracking-[0.32em] text-gold/65 sm:text-[11px]">
-            Bhirdana · Fatehabad
-          </p>
-          <div className="bajaj-legacy-rule w-full" />
-        </motion.div>
 
-        <section
-          className="mt-11 w-full max-w-md"
-          aria-label="Dedicated to The Bajaj Brothers of Bhirdana, Fatehabad — Five Brothers One Legacy"
-        >
-          <motion.h2
-            className="font-rajdhani text-[10px] font-semibold uppercase tracking-[0.35em] text-cream-soft/55 sm:text-xs"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.25, duration: 0.6 }}
-          >
-            Dedicated to Five Brothers · One Legacy
-          </motion.h2>
-          <motion.p
-            className="mt-2 font-body text-xs text-cream-soft/55 sm:text-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.35, duration: 0.6 }}
-          >
-            The Bajaj Family · Bhirdana, Fatehabad
-          </motion.p>
-
-          <p className="sr-only">
-            KavachSaathi — Born from Legacy, Built to Protect. Dedicated to The
-            Bajaj Brothers of Bhirdana, Fatehabad, Haryana. The entire Bajaj
-            family belongs to Bhirdana. Five Brothers One Legacy: Shri Ganga
-            Dhar Mehta Ji (1949 to 2011), Shri Narender Bajaj Ji, Shri Surender
-            Bajaj Ji, Shri Bansi Dhar Bajaj Ji, and Shri Pawan Bajaj Ji (1962 to
-            2015). GDM Technoworld Pvt. Ltd.
-          </p>
-
-          <ul className="mt-6 space-y-3">
-            {BROTHERS.map((b, i) => (
-              <motion.li
-                key={b.name}
-                className="cs-brother-card flex flex-col items-center rounded-xl px-3 py-2.5"
-                initial={{ opacity: 0, y: 14, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{
-                  duration: 0.55,
-                  delay: 1.45 + i * 0.12,
-                  ease: [0.22, 1, 0.36, 1],
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+            {PARTICLES.map((p, i) => (
+              <motion.span
+                key={i}
+                className="absolute rounded-full bg-gold"
+                style={{
+                  left: p.x,
+                  top: p.y,
+                  width: p.s,
+                  height: p.s,
+                  boxShadow: "0 0 10px rgba(212,175,55,0.65)",
                 }}
-                whileHover={{ scale: 1.02, y: -2 }}
-              >
-                <span className="font-rajdhani text-base font-bold text-cream sm:text-lg">
-                  {b.memorial ? (
-                    <motion.span
-                      className="mr-1 inline-block"
-                      animate={{ opacity: [0.55, 1, 0.65, 1], scale: [0.96, 1.06, 0.98, 1] }}
-                      transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-                    >
-                      🪔
-                    </motion.span>
-                  ) : null}
-                  {b.name}
-                </span>
-                {"years" in b && b.years ? (
-                  <span className="memorial-years" aria-label={`Years ${b.years}`}>
-                    {b.years}
-                  </span>
-                ) : null}
-              </motion.li>
+                animate={{
+                  y: [0, -18, 0],
+                  opacity: [0.15, 0.7, 0.15],
+                  scale: [1, 1.35, 1],
+                }}
+                transition={{
+                  duration: 4 + i * 0.35,
+                  delay: p.d,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
             ))}
-          </ul>
+          </div>
 
-          <motion.p
-            className="mt-6 font-body text-xs italic text-cream-soft/50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 2.2, duration: 0.7 }}
-          >
-            With love, respect &amp; eternal gratitude
-          </motion.p>
-        </section>
+          <div className="relative z-10 flex w-full max-w-lg flex-col items-center text-center">
+            <div className="cs-enter relative mb-8 flex h-24 w-24 items-center justify-center sm:h-28 sm:w-28">
+              <div className="absolute inset-0 animate-gold-pulse rounded-full bg-gold/30 blur-2xl" />
+              <div className="cs-logo-float">
+                <LogoMark />
+              </div>
+            </div>
 
-        <motion.p
-          className="mt-12 font-rajdhani text-xs font-semibold uppercase tracking-[0.22em] text-cream-soft/40"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2.4, duration: 0.7 }}
-        >
-          GDM Technoworld Pvt. Ltd.
-        </motion.p>
-      </div>
+            <h1 className="cs-enter cs-enter-d1 cs-brand-title font-rajdhani text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
+              KavachSaathi
+            </h1>
+
+            <p className="cs-enter cs-enter-d2 mt-3 font-rajdhani text-base font-semibold tracking-[0.14em] text-gold/90 sm:text-lg">
+              Born from Legacy · Built to Protect
+            </p>
+
+            <p className="cs-enter cs-enter-d3 mt-2 font-body text-sm tracking-[0.2em] text-cream-soft/60 sm:text-base">
+              Something Is Coming
+            </p>
+
+            <p className="cs-enter cs-enter-d3 mt-1 font-rajdhani text-[10px] font-semibold uppercase tracking-[0.28em] text-gold/50">
+              Launching 11 Oct 2026 · 12:00 PM IST
+            </p>
+
+            <div className="cs-enter cs-enter-d4 w-full">
+              <CountdownGrid t={t} />
+            </div>
+
+            <div className="bajaj-legacy mt-14 flex w-full max-w-sm flex-col items-center gap-3">
+              <div className="bajaj-legacy-rule w-full" />
+              <div className="flex items-center gap-3">
+                <span className="bajaj-legacy-diamond h-1.5 w-1.5 bg-gold" />
+                <p className="bajaj-legacy-text text-xl sm:text-2xl md:text-[1.7rem]">
+                  The Bajaj Brothers
+                </p>
+                <span className="bajaj-legacy-diamond h-1.5 w-1.5 bg-gold" />
+              </div>
+              <p className="font-rajdhani text-[10px] font-semibold uppercase tracking-[0.32em] text-gold/65 sm:text-[11px]">
+                Bhirdana · Fatehabad
+              </p>
+              <div className="bajaj-legacy-rule w-full" />
+            </div>
+
+            <section
+              className="mt-11 w-full max-w-md"
+              aria-label="Dedicated to The Bajaj Brothers of Bhirdana, Fatehabad — Five Brothers One Legacy"
+            >
+              <h2 className="font-rajdhani text-[10px] font-semibold uppercase tracking-[0.35em] text-cream-soft/55 sm:text-xs">
+                Dedicated to Five Brothers · One Legacy
+              </h2>
+              <p className="mt-2 font-body text-xs text-cream-soft/55 sm:text-sm">
+                The Bajaj Family · Bhirdana, Fatehabad
+              </p>
+
+              <p className="sr-only">
+                KavachSaathi launches 11 October 2026 at 12:00 PM IST. Born from
+                Legacy, Built to Protect. Dedicated to The Bajaj Brothers of
+                Bhirdana, Fatehabad. Shri Ganga Dhar Mehta Ji (1949 to 2011),
+                Shri Narender Bajaj Ji, Shri Surender Bajaj Ji, Shri Bansi Dhar
+                Bajaj Ji, and Shri Pawan Bajaj Ji (1962 to 2015).
+              </p>
+
+              <ul className="mt-6 space-y-3">
+                {BROTHERS.map((b, i) => (
+                  <li
+                    key={b.name}
+                    className="cs-brother-card launch-brother-row flex flex-col items-center rounded-xl px-3 py-2.5"
+                    style={{ animationDelay: `${0.35 + i * 0.1}s` }}
+                  >
+                    <span className="font-rajdhani text-base font-bold text-cream sm:text-lg">
+                      {b.memorial ? "🪔 " : ""}
+                      {b.name}
+                    </span>
+                    {"years" in b && b.years ? (
+                      <span
+                        className="memorial-years"
+                        aria-label={`Years ${b.years}`}
+                      >
+                        {b.years}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+
+              <p className="mt-6 font-body text-xs italic text-cream-soft/50">
+                With love, respect &amp; eternal gratitude
+              </p>
+            </section>
+
+            <p className="mt-12 font-rajdhani text-xs font-semibold uppercase tracking-[0.22em] text-cream-soft/40">
+              GDM Technoworld Pvt. Ltd.
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }

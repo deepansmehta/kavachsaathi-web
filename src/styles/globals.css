@@ -615,6 +615,101 @@ h6 {
     box-shadow: 0 8px 28px rgba(212, 175, 55, 0.1);
   }
 
+  .cs-enter {
+    animation: launch-welcome-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .cs-enter-d1 {
+    animation-delay: 0.12s;
+  }
+
+  .cs-enter-d2 {
+    animation-delay: 0.22s;
+  }
+
+  .cs-enter-d3 {
+    animation-delay: 0.32s;
+  }
+
+  .cs-enter-d4 {
+    animation-delay: 0.42s;
+  }
+
+  .cs-logo-float {
+    animation: cs-float 4.5s ease-in-out infinite;
+  }
+
+  .cs-logo-shine {
+    animation: cs-shine-sweep 3.8s ease-in-out 1.2s infinite;
+  }
+
+  .cs-colon {
+    animation: cs-colon-blink 1.4s ease-in-out infinite;
+  }
+
+  @keyframes cs-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes cs-shine-sweep {
+    0% {
+      transform: translateX(-140%);
+    }
+    45%,
+    100% {
+      transform: translateX(340%);
+    }
+  }
+
+  @keyframes cs-colon-blink {
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.9;
+    }
+  }
+
+  .cs-unlock-in {
+    animation: launch-welcome-in 0.95s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .cs-unlock-d1 {
+    animation-delay: 0.2s;
+  }
+
+  .cs-unlock-d2 {
+    animation-delay: 0.4s;
+  }
+
+  .cs-unlock-d3 {
+    animation-delay: 0.65s;
+  }
+
+  .cs-unlock-d4 {
+    animation-delay: 0.95s;
+  }
+
+  .cs-unlock-burst {
+    animation: launch-ring 1.6s ease-out both;
+  }
+
+  .cs-unlock-burst-2 {
+    animation: launch-ring 1.9s ease-out 0.15s both;
+  }
+
+  .cs-unlock-bar {
+    width: 0%;
+    animation: launch-enter-fill 3.6s cubic-bezier(0.22, 1, 0.36, 1) 1s forwards;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .launch-clock-spin,
     .launch-clock-spin-rev,
@@ -635,11 +730,22 @@ h6 {
     .cs-orbit,
     .cs-orbit-rev,
     .cs-brand-title,
-    .cs-timer-cell::before {
+    .cs-timer-cell::before,
+    .cs-enter,
+    .cs-logo-float,
+    .cs-logo-shine,
+    .cs-colon,
+    .cs-unlock-in,
+    .cs-unlock-burst,
+    .cs-unlock-burst-2,
+    .cs-unlock-bar {
       animation: none !important;
       opacity: 1 !important;
       filter: none !important;
       transform: none !important;
+    }
+    .cs-unlock-bar {
+      width: 100% !important;
     }
     .bajaj-legacy-text {
       letter-spacing: 0.18em !important;

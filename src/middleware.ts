@@ -46,7 +46,7 @@ export function middleware(request: NextRequest) {
     request.cookies.get(LAUNCH_PREVIEW_COOKIE)?.value === "1";
   const preview = previewParam || previewCookie;
 
-  // ── Launch gate (before 11 Oct 2026, 6:00 PM IST) ──────────────────────
+  // ── Launch gate (before 11 Oct 2026, 12:00 PM IST) ─────────────────────
   if (!isLaunched() && !preview) {
     if (pathname === "/coming-soon") {
       return NextResponse.next();
