@@ -371,6 +371,250 @@ h6 {
     }
   }
 
+  /* Signature line — The Bajaj Brothers (coming-soon) */
+  .bajaj-legacy {
+    animation: bajaj-legacy-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
+  }
+
+  .bajaj-legacy-text {
+    font-family: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    background: linear-gradient(
+      105deg,
+      #9a7a18 0%,
+      #f2d060 28%,
+      #d4af37 50%,
+      #f2d060 72%,
+      #9a7a18 100%
+    );
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation:
+      bajaj-text-in 1.5s cubic-bezier(0.22, 1, 0.36, 1) 0.45s both,
+      bajaj-shimmer 5s ease-in-out 1.8s infinite;
+  }
+
+  .bajaj-legacy-rule {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(212, 175, 55, 0.55),
+      transparent
+    );
+    transform-origin: center;
+    animation: bajaj-rule-draw 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.55s both;
+  }
+
+  .bajaj-legacy-diamond {
+    animation: bajaj-diamond-pulse 2.8s ease-in-out infinite;
+  }
+
+  @keyframes bajaj-legacy-in {
+    0% {
+      opacity: 0;
+      transform: translateY(14px) scale(0.97);
+      filter: blur(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+  }
+
+  @keyframes bajaj-text-in {
+    0% {
+      opacity: 0;
+      letter-spacing: 0.48em;
+      filter: blur(6px);
+    }
+    100% {
+      opacity: 1;
+      letter-spacing: 0.18em;
+      filter: blur(0);
+    }
+  }
+
+  @keyframes bajaj-shimmer {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes bajaj-rule-draw {
+    0% {
+      transform: scaleX(0);
+      opacity: 0;
+    }
+    100% {
+      transform: scaleX(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes bajaj-diamond-pulse {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(1) rotate(45deg);
+      box-shadow: 0 0 0 rgba(212, 175, 55, 0);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.15) rotate(45deg);
+      box-shadow: 0 0 12px rgba(212, 175, 55, 0.55);
+    }
+  }
+
+  /* Memorial years — high-visibility for dedication + SEO */
+  .memorial-years {
+    display: inline-block;
+    margin-top: 0.35rem;
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    background: linear-gradient(
+      180deg,
+      rgba(212, 175, 55, 0.18),
+      rgba(212, 175, 55, 0.06)
+    );
+    font-family: var(--font-space-mono), ui-monospace, monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #f2d060;
+    box-shadow: 0 0 18px rgba(212, 175, 55, 0.22);
+    animation: memorial-years-glow 2.6s ease-in-out infinite;
+  }
+
+  @keyframes memorial-years-glow {
+    0%,
+    100% {
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.15);
+      border-color: rgba(212, 175, 55, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 22px rgba(212, 175, 55, 0.4);
+      border-color: rgba(242, 208, 96, 0.7);
+    }
+  }
+
+  /* Premium coming-soon stage */
+  .cs-stage {
+    background: #060606;
+  }
+
+  .cs-atmosphere {
+    background:
+      radial-gradient(ellipse 70% 45% at 50% 18%, rgba(212, 175, 55, 0.16), transparent 62%),
+      radial-gradient(ellipse 50% 35% at 80% 75%, rgba(154, 122, 24, 0.08), transparent 60%),
+      radial-gradient(ellipse 40% 30% at 15% 70%, rgba(212, 175, 55, 0.05), transparent 55%),
+      linear-gradient(180deg, #0c0c0a 0%, #060606 55%, #050505 100%);
+  }
+
+  .cs-vignette {
+    background: radial-gradient(
+      ellipse 75% 70% at 50% 45%,
+      transparent 40%,
+      rgba(0, 0, 0, 0.55) 100%
+    );
+  }
+
+  .cs-grain {
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+    mix-blend-mode: overlay;
+  }
+
+  .cs-orbit {
+    animation: launch-spin 28s linear infinite;
+  }
+
+  .cs-orbit-rev {
+    animation: launch-spin-rev 38s linear infinite;
+  }
+
+  .cs-brand-title {
+    background: linear-gradient(
+      105deg,
+      #9a7a18 0%,
+      #f2d060 32%,
+      #d4af37 50%,
+      #f2d060 68%,
+      #9a7a18 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: bajaj-shimmer 6s ease-in-out infinite;
+    filter: drop-shadow(0 0 28px rgba(212, 175, 55, 0.25));
+  }
+
+  .cs-timer-cell {
+    border: 1px solid rgba(212, 175, 55, 0.22);
+    background: linear-gradient(
+      165deg,
+      rgba(212, 175, 55, 0.1) 0%,
+      rgba(18, 18, 16, 0.85) 45%,
+      rgba(10, 10, 9, 0.95) 100%
+    );
+    box-shadow:
+      0 0 0 1px rgba(212, 175, 55, 0.06) inset,
+      0 12px 36px rgba(0, 0, 0, 0.45),
+      0 0 24px rgba(212, 175, 55, 0.08);
+    backdrop-filter: blur(8px);
+  }
+
+  .cs-timer-cell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      120deg,
+      transparent 40%,
+      rgba(242, 208, 96, 0.08) 50%,
+      transparent 60%
+    );
+    background-size: 220% 100%;
+    animation: bajaj-shimmer 7s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .cs-brother-card {
+    border: 1px solid transparent;
+    background: linear-gradient(
+      180deg,
+      rgba(212, 175, 55, 0.04),
+      transparent 70%
+    );
+    transition:
+      border-color 0.35s ease,
+      background 0.35s ease,
+      box-shadow 0.35s ease;
+  }
+
+  .cs-brother-card:hover {
+    border-color: rgba(212, 175, 55, 0.28);
+    background: linear-gradient(
+      180deg,
+      rgba(212, 175, 55, 0.1),
+      rgba(212, 175, 55, 0.02) 80%
+    );
+    box-shadow: 0 8px 28px rgba(212, 175, 55, 0.1);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .launch-clock-spin,
     .launch-clock-spin-rev,
@@ -382,9 +626,30 @@ h6 {
     .launch-spark,
     .launch-burst,
     .launch-burst-2,
-    .launch-enter-bar {
+    .launch-enter-bar,
+    .bajaj-legacy,
+    .bajaj-legacy-text,
+    .bajaj-legacy-rule,
+    .bajaj-legacy-diamond,
+    .memorial-years,
+    .cs-orbit,
+    .cs-orbit-rev,
+    .cs-brand-title,
+    .cs-timer-cell::before {
       animation: none !important;
       opacity: 1 !important;
+      filter: none !important;
+      transform: none !important;
+    }
+    .bajaj-legacy-text {
+      letter-spacing: 0.18em !important;
+      color: #d4af37 !important;
+      background: none !important;
+      -webkit-background-clip: unset !important;
+      background-clip: unset !important;
+    }
+    .bajaj-legacy-diamond {
+      transform: rotate(45deg) !important;
     }
     .launch-enter-bar {
       width: 100% !important;

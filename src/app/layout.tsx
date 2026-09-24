@@ -30,11 +30,24 @@ const spaceMono = Space_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "KavachSaathi — India Ka Pehla Smart Health Card",
+    default: "KavachSaathi — India Ka Pehla Smart Health Card | Bajaj Brothers Legacy",
     template: "%s | KavachSaathi",
   },
   description:
-    "India's first smart PVC health card. Instant emergency medical access in 3 seconds. No app. No login. Just scan.",
+    "India's first smart PVC health card by GDM Technoworld. Born from Legacy · Built to Protect. Dedicated to The Bajaj Brothers of Bhirdana, Fatehabad — Five Brothers One Legacy: Shri Ganga Dhar Mehta Ji (1949–2011), Shri Narender Bajaj Ji, Shri Surender Bajaj Ji, Shri Bansi Dhar Bajaj Ji, Shri Pawan Bajaj Ji (1962–2015). Instant emergency medical access in 3 seconds.",
+  keywords: [
+    "KavachSaathi",
+    "smart health card India",
+    "Bajaj Brothers",
+    "Bhirdana",
+    "Bhirdana Fatehabad",
+    "Bajaj Family Bhirdana",
+    "Ganga Dhar Mehta",
+    "Pawan Bajaj",
+    "GDM Technoworld",
+    "emergency medical card",
+    "PVC health card",
+  ],
   applicationName: "KavachSaathi",
   authors: [{ name: "GDM Technoworld Pvt. Ltd." }],
   manifest: "/manifest.json",
@@ -49,6 +62,14 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "KavachSaathi",
+  },
+  openGraph: {
+    title: "KavachSaathi — Dedicated to The Bajaj Brothers",
+    description:
+      "Five Brothers · One Legacy. In loving memory of Shri Ganga Dhar Mehta Ji (1949–2011) and Shri Pawan Bajaj Ji (1962–2015).",
+    siteName: "KavachSaathi",
+    type: "website",
+    locale: "en_IN",
   },
 };
 

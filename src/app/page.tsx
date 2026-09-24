@@ -185,7 +185,7 @@ const BROTHERS: {
   {
     name: "Shri Ganga Dhar Mehta Ji",
     label: "The Eldest · Our Grandfather",
-    years: "1949 — 2012",
+    years: "1949 — 2011",
     variant: "memorial",
   },
   {
@@ -206,6 +206,7 @@ const BROTHERS: {
   {
     name: "Shri Pawan Bajaj Ji",
     label: "The Youngest · In Loving Memory",
+    years: "1962 — 2015",
     variant: "memorial",
   },
 ];
@@ -256,7 +257,7 @@ function BrotherCard({
         {brother.name}
       </h3>
       {brother.years ? (
-        <p className="mt-1.5 font-mono text-[11px] tracking-wide text-gold/80">
+        <p className="memorial-years mt-2" aria-label={`Years ${brother.years}`}>
           {brother.years}
         </p>
       ) : null}
@@ -370,10 +371,14 @@ export default function HomePage() {
             <h2 className="font-rajdhani text-3xl font-bold tracking-tight text-cream sm:text-4xl md:text-5xl">
               Five Brothers · One Legacy
             </h2>
+            <p className="mt-3 font-rajdhani text-xs font-semibold uppercase tracking-[0.28em] text-gold/70 sm:text-sm">
+              The Bajaj Family · Bhirdana, Fatehabad
+            </p>
             <p className="mx-auto mt-5 max-w-2xl font-body text-sm italic leading-relaxed text-gold/70 sm:text-base">
-              KavachSaathi is humbly dedicated to five brothers whose love,
-              strength and sacrifices built the foundation of our family. Their
-              blessings are the shield behind every card.
+              KavachSaathi is humbly dedicated to five brothers of Bhirdana,
+              Fatehabad — whose love, strength and sacrifices built the
+              foundation of our family. Their blessings are the shield behind
+              every card.
             </p>
           </motion.div>
 
