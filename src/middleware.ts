@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import {
-  isLaunched,
   LAUNCH_PREVIEW_COOKIE,
   LAUNCH_PREVIEW_SECRET,
 } from "@/lib/launchConfig";
+
+/**
+ * Hardcoded launch instant (11 Oct 2026, 12:00 PM IST).
+ * Do NOT rely on env here — Netlify Edge must always gate until this moment.
+ */
+const LAUNCH_AT_MS = Date.parse("2026-10-11T12:00:00+05:30");
 
 const PUBLIC_ROUTES = [
   "/",
@@ -27,32 +32,54 @@ const PROTECTED_PREFIXES = [
   "/scan-history",
 ];
 
+function isLaunchedNow() {
+  return Date.now() >= LAUNCH_AT_MS;
+}
+
+function clearPreview(res: NextResponse) {
+  res.cookies.set(LAUNCH_PREVIEW_COOKIE, "", {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 0,
+  });
+  return res;
+}
+
 function withPreviewCookie(res: NextResponse) {
   res.cookies.set(LAUNCH_PREVIEW_COOKIE, "1", {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
-    // Until a bit after launch — enough for QA sessions
-    maxAge: 60 * 60 * 24 * 30,
+    // Short-lived so QA doesn't accidentally leave the gate open for weeks
+    maxAge: 60 * 60 * 2,
   });
   return res;
 }
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const previewParam =
-    request.nextUrl.searchParams.get("preview") === LAUNCH_PREVIEW_SECRET;
+  const previewRaw = request.nextUrl.searchParams.get("preview");
+  const turnOffPreview =
+    previewRaw === "off" || previewRaw === "clear" || previewRaw === "0";
+  const previewParam = previewRaw === LAUNCH_PREVIEW_SECRET;
   const previewCookie =
     request.cookies.get(LAUNCH_PREVIEW_COOKIE)?.value === "1";
+
+  // Explicitly clear preview unlock
+  if (turnOffPreview) {
+    const soon = new URL("/coming-soon", request.url);
+    return clearPreview(NextResponse.redirect(soon));
+  }
+
   const preview = previewParam || previewCookie;
 
   // ── Launch gate (before 11 Oct 2026, 12:00 PM IST) ─────────────────────
-  if (!isLaunched() && !preview) {
+  if (!isLaunchedNow() && !preview) {
     if (pathname === "/coming-soon") {
       return NextResponse.next();
     }
 
-    // Block API calls too — no feature usable pre-launch
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
         { error: "Site not launched yet", code: "PRE_LAUNCH" },
@@ -60,11 +87,9 @@ export function middleware(request: NextRequest) {
       );
     }
 
-    const soon = new URL("/coming-soon", request.url);
-    return NextResponse.redirect(soon);
+    return NextResponse.redirect(new URL("/coming-soon", request.url));
   }
 
-  // Preview unlock via query → set cookie so further navigations stay open
   const attachPreview = previewParam;
 
   // ── Post-launch (or preview) auth routing ──────────────────────────────
@@ -94,10 +119,7 @@ export function middleware(request: NextRequest) {
     return attachPreview ? withPreviewCookie(res) : res;
   }
 
-  if (!session && !isPublic) {
-    // Unknown routes: allow through (404 handled by app)
-  }
-
+  void isPublic;
   const res = NextResponse.next();
   return attachPreview ? withPreviewCookie(res) : res;
 }
