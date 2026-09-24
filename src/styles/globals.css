@@ -108,6 +108,7 @@ h6 {
   }
 
   .gold-text-shimmer {
+    color: #d4af37;
     background: linear-gradient(
       100deg,
       #9a7a18 0%,
@@ -121,6 +122,15 @@ h6 {
     background-clip: text;
     -webkit-text-fill-color: transparent;
     animation: gold-text-shine 4.5s linear infinite;
+  }
+
+  @supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+    .gold-text-shimmer {
+      color: #d4af37;
+      -webkit-text-fill-color: #d4af37;
+      background: none;
+      animation: none;
+    }
   }
 
   @keyframes gold-text-shine {

@@ -104,18 +104,14 @@ function FadeIn({
   delay?: number;
 }) {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, amount: 0.2 });
+  const inView = useInView(ref, { once: true, amount: 0.15 });
   return (
     <motion.div
       ref={ref}
       className={className}
-      initial={{ opacity: 0, y: 32, filter: "blur(6px)" }}
-      animate={
-        inView
-          ? { opacity: 1, y: 0, filter: "blur(0px)" }
-          : { opacity: 0, y: 32, filter: "blur(6px)" }
-      }
-      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, y: 24 }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.div>
@@ -283,31 +279,31 @@ export default function HomePage() {
           className="float-blob bottom-[12%] left-[35%] h-28 w-28 bg-gold/10"
           style={{ animationDelay: "1.2s" }}
         />
-        <ECGBackground className="opacity-40" />
+        <ECGBackground className="opacity-25" />
 
         <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 pb-16 pt-10 text-center sm:px-6 sm:pb-20 sm:pt-14">
           <motion.div
-            initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           >
             <ShieldPulse />
             <motion.p
               className="font-rajdhani text-xs font-semibold uppercase tracking-[0.35em] text-gold sm:text-sm"
-              initial={{ opacity: 0, letterSpacing: "0.5em" }}
-              animate={{ opacity: 1, letterSpacing: "0.35em" }}
-              transition={{ duration: 0.8, delay: 0.15 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
             >
               GDM Technoworld Pvt. Ltd.
             </motion.p>
-            <h1 className="gold-text-shimmer mt-3 font-rajdhani text-5xl font-bold leading-none tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
+            <h1 className="mt-3 font-rajdhani text-5xl font-bold leading-none tracking-tight text-gold gold-text-shimmer sm:text-6xl md:text-7xl lg:text-8xl">
               KavachSaathi
             </h1>
             <motion.p
               className="mx-auto mt-5 max-w-md font-body text-base leading-relaxed text-cream-soft sm:text-lg"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: 0.25 }}
+              transition={{ duration: 0.55, delay: 0.2 }}
             >
               India&apos;s first smart PVC emergency health card — scan once,
               save a life.
@@ -316,7 +312,7 @@ export default function HomePage() {
               className="mt-8 flex flex-wrap items-center justify-center gap-3"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
+              transition={{ duration: 0.5, delay: 0.35 }}
             >
               <Link href="/order">
                 <GoldButton size="lg">Order Card</GoldButton>
