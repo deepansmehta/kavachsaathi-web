@@ -9,7 +9,6 @@ import { getEmergencyUrl } from "@/lib/product-flow";
 import type { UserProfile, BloodGroup } from "@/lib/types";
 
 interface HealthCard3DProps {
-  /** Kept for callers — not printed on card (physical sticker goes in red circle) */
   bloodGroup?: BloodGroup | string;
   tier?: "STANDARD" | "PRO";
   activationCode?: string;
@@ -22,15 +21,27 @@ interface HealthCard3DProps {
 }
 
 export function HealthCard3D({
+  bloodGroup,
+  tier = "STANDARD",
   activationCode,
   className,
   interactive = true,
   data,
+  name,
+  healthId,
 }: HealthCard3DProps) {
   const [flipped, setFlipped] = useState(false);
 
   const code = data?.activation_code || activationCode || "XXXX";
   const emergencyUrl = getEmergencyUrl(code);
+  const displayName =
+    data?.full_name || name || "KavachSaathi Member";
+  const displayHealthId =
+    data?.health_id || healthId || (code !== "XXXX" ? `KVS-${code}` : "KVS-····");
+  const displayBlood =
+    data?.blood_group || bloodGroup || "";
+  const displayTier = (data?.tier || tier || "STANDARD").toUpperCase();
+  const isPro = displayTier === "PRO";
 
   return (
     <div
@@ -46,115 +57,133 @@ export function HealthCard3D({
         animate={{ rotateY: flipped ? 180 : 0 }}
         transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
         onClick={() => interactive && setFlipped((f) => !f)}
-        whileHover={interactive ? { scale: 1.015 } : undefined}
+        whileHover={interactive ? { scale: 1.02 } : undefined}
       >
         {/* ─── FRONT ─── */}
         <div
-          className="absolute inset-0 overflow-hidden rounded-[14px] border border-gold/40 bg-[#0a0a08] shadow-gold-glow"
-          style={{ backfaceVisibility: "hidden" }}
+          className="absolute inset-0 overflow-hidden rounded-[16px] border border-gold/45 bg-[#0a0a08] shadow-gold-glow"
+          style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
         >
-          {/* Layered premium metal look */}
           <div
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                "linear-gradient(135deg, #1a1812 0%, #0c0c0a 42%, #14120e 78%, #0a0908 100%)",
+                "linear-gradient(145deg, #1c1914 0%, #0d0c0a 38%, #16140f 72%, #090908 100%)",
             }}
           />
           <div
-            className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full opacity-40"
+            className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full"
             style={{
               background:
-                "radial-gradient(circle, rgba(212,175,55,0.22) 0%, transparent 68%)",
+                "radial-gradient(circle, rgba(212,175,55,0.28) 0%, transparent 68%)",
             }}
           />
           <div
-            className="pointer-events-none absolute -bottom-12 -left-6 h-36 w-36 rounded-full opacity-30"
+            className="pointer-events-none absolute -bottom-14 -left-8 h-40 w-40 rounded-full"
             style={{
               background:
-                "radial-gradient(circle, rgba(212,175,55,0.12) 0%, transparent 70%)",
+                "radial-gradient(circle, rgba(212,175,55,0.14) 0%, transparent 70%)",
             }}
           />
-          {/* Diagonal gold foil slash */}
           <div
-            className="pointer-events-none absolute -left-6 top-0 h-full w-16 -skew-x-12 opacity-[0.14]"
+            className="pointer-events-none absolute -left-8 top-0 h-full w-14 -skew-x-12 opacity-[0.12]"
             style={{
               background:
-                "linear-gradient(180deg, transparent 8%, #F2D060 45%, #D4AF37 55%, transparent 92%)",
+                "linear-gradient(180deg, transparent 5%, #F2D060 48%, #D4AF37 58%, transparent 95%)",
             }}
           />
-          {/* Inner gold frame */}
-          <div className="pointer-events-none absolute inset-[7px] rounded-[10px] border border-gold/20" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/70 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/35 to-transparent" />
+          <div className="pointer-events-none absolute inset-[6px] rounded-[12px] border border-gold/25" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/80 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
 
           <div className="relative z-10 flex h-full flex-col px-5 py-3.5 sm:px-6 sm:py-4">
-            {/* Brand strip */}
+            {/* Top brand */}
             <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg gold-gradient shadow-gold-sm">
-                    <Shield
-                      className="h-5 w-5 text-kavach-black"
-                      strokeWidth={2.25}
-                    />
-                  </div>
-                  <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-[#0a0a08] bg-gold" />
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg gold-gradient shadow-gold-sm sm:h-10 sm:w-10">
+                  <Shield
+                    className="h-4.5 w-4.5 text-kavach-black sm:h-5 sm:w-5"
+                    strokeWidth={2.4}
+                  />
                 </div>
                 <div>
-                  <p className="font-rajdhani text-lg font-bold leading-none tracking-wide text-gold sm:text-[19px]">
+                  <p className="font-rajdhani text-base font-bold leading-none tracking-wide text-gold sm:text-lg">
                     KavachSaathi
                   </p>
-                  <p className="mt-1.5 font-dm text-[8px] font-medium uppercase tracking-[0.28em] text-cream-soft/65">
+                  <p className="mt-1 font-dm text-[7px] font-medium uppercase tracking-[0.22em] text-cream-soft/70 sm:text-[8px]">
                     Smart Health Card
                   </p>
                 </div>
               </div>
-              <p className="mt-1 font-rajdhani text-sm font-bold tracking-[0.2em] text-gold">
-                GDM
-              </p>
+              <div className="text-right">
+                <p className="font-rajdhani text-xs font-bold tracking-[0.18em] text-gold sm:text-sm">
+                  GDM
+                </p>
+                <span
+                  className={cn(
+                    "mt-1 inline-block rounded-full px-2 py-0.5 font-rajdhani text-[8px] font-bold tracking-wider",
+                    isPro
+                      ? "bg-gold/20 text-gold"
+                      : "border border-gold/30 text-gold/70"
+                  )}
+                >
+                  {displayTier}
+                </span>
+              </div>
             </div>
 
-            {/* Mid identity line */}
-            <div className="mt-4 flex items-center gap-2">
-              <div className="h-px flex-1 bg-gradient-to-r from-gold/50 to-transparent" />
-              <p className="shrink-0 font-rajdhani text-[8px] font-semibold uppercase tracking-[0.35em] text-gold/55">
-                Protect · Inform · Save
+            {/* Identity */}
+            <div className="mt-3 min-w-0 sm:mt-4">
+              <p className="truncate font-rajdhani text-lg font-bold leading-tight text-cream sm:text-xl">
+                {displayName}
               </p>
-              <div className="h-px flex-1 bg-gradient-to-l from-gold/50 to-transparent" />
+              <p className="mt-1 font-mono text-[10px] tracking-[0.14em] text-gold/80 sm:text-[11px]">
+                {displayHealthId}
+              </p>
             </div>
 
             <div className="flex-1" />
 
-            {/* Blood medallion zone */}
+            {/* Blood + code */}
             <div className="flex items-end justify-between gap-3">
-              <div className="min-w-0 pb-1">
-                <p className="font-dm text-[7px] uppercase tracking-[0.28em] text-cream-soft/45">
-                  Blood Group
+              <div className="min-w-0 pb-0.5">
+                <p className="font-dm text-[7px] uppercase tracking-[0.24em] text-cream-soft/50">
+                  Activation
                 </p>
-                <p className="mt-1 font-rajdhani text-[11px] font-semibold tracking-wide text-cream/85">
-                  Affix sticker
+                <p className="mt-0.5 font-mono text-sm font-bold tracking-[0.2em] text-gold">
+                  {String(code).padStart(4, "0")}
                 </p>
-                <p className="mt-0.5 font-dm text-[8px] text-cream-soft/40">
-                  Included in packaging
+                <p className="mt-0.5 font-dm text-[8px] text-cream-soft/45">
+                  Emergency QR on reverse
                 </p>
               </div>
 
-              <div className="relative shrink-0" aria-label="Blood group sticker area">
-                {/* Gold outer ring */}
-                <div className="absolute -inset-[3px] rounded-full bg-gradient-to-br from-[#F2D060] via-[#D4AF37] to-[#9A7A18] opacity-90" />
-                <div className="relative flex h-[54px] w-[54px] items-center justify-center rounded-full bg-[#B71C1C] shadow-[inset_0_2px_6px_rgba(0,0,0,0.35),0_6px_18px_rgba(183,28,28,0.4)] sm:h-[58px] sm:w-[58px]">
-                  <div className="absolute inset-[5px] rounded-full border border-dashed border-white/35" />
+              <div
+                className="relative shrink-0"
+                aria-label={
+                  displayBlood
+                    ? `Blood group ${displayBlood}`
+                    : "Blood group sticker area"
+                }
+              >
+                <div className="absolute -inset-[3px] rounded-full bg-gradient-to-br from-[#F2D060] via-[#D4AF37] to-[#9A7A18]" />
+                <div className="relative flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#B71C1C] shadow-[inset_0_2px_6px_rgba(0,0,0,0.35),0_6px_16px_rgba(183,28,28,0.35)] sm:h-[58px] sm:w-[58px]">
+                  {displayBlood ? (
+                    <span className="font-rajdhani text-lg font-bold leading-none text-white sm:text-xl">
+                      {displayBlood}
+                    </span>
+                  ) : (
+                    <div className="absolute inset-[5px] rounded-full border border-dashed border-white/40" />
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="mt-3 flex items-center justify-between border-t border-gold/15 pt-2">
-              <p className="font-rajdhani text-[8px] font-semibold tracking-[0.12em] text-gold/50">
+            <div className="mt-2.5 flex items-center justify-between border-t border-gold/20 pt-2">
+              <p className="font-rajdhani text-[8px] font-semibold tracking-[0.12em] text-gold/55">
                 GDM TECHNOWORLD
               </p>
-              <p className="font-dm text-[8px] tracking-[0.08em] text-cream-soft/45">
+              <p className="font-dm text-[8px] tracking-[0.06em] text-cream-soft/50">
                 Made in India · 1 Year
               </p>
             </div>
@@ -163,9 +192,10 @@ export function HealthCard3D({
 
         {/* ─── BACK ─── */}
         <div
-          className="absolute inset-0 overflow-hidden rounded-[14px] border border-gold/35 bg-[#0c0c0a] shadow-gold-glow"
+          className="absolute inset-0 overflow-hidden rounded-[16px] border border-gold/40 bg-[#0c0c0a] shadow-gold-glow"
           style={{
             backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
           }}
         >
@@ -173,26 +203,29 @@ export function HealthCard3D({
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                "radial-gradient(ellipse 60% 50% at 70% 30%, rgba(212,175,55,0.08), transparent 50%), linear-gradient(160deg, #12110e 0%, #080808 100%)",
+                "radial-gradient(ellipse 60% 50% at 70% 30%, rgba(212,175,55,0.1), transparent 55%), linear-gradient(160deg, #14120e 0%, #080808 100%)",
             }}
           />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
+          <div className="pointer-events-none absolute inset-[6px] rounded-[12px] border border-gold/18" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
 
           <div className="relative z-10 flex h-full flex-col px-5 py-4 sm:px-6 sm:py-5">
-            {/* Top: Emergency label + QR row */}
             <div className="flex items-start justify-between gap-4">
               <div className="pt-0.5">
-                <p className="font-rajdhani text-[10px] font-bold uppercase tracking-[0.2em] text-gold">
+                <p className="font-rajdhani text-[10px] font-bold uppercase tracking-[0.18em] text-gold">
                   Scan in emergency
                 </p>
-                <p className="mt-1.5 max-w-[9rem] font-dm text-[9px] leading-relaxed text-cream-soft/65">
+                <p className="mt-1.5 max-w-[9.5rem] font-dm text-[9px] leading-relaxed text-cream-soft/70">
                   Opens medical profile instantly — no app, no login.
                 </p>
+                <p className="mt-3 font-mono text-[10px] tracking-[0.16em] text-gold/75">
+                  {String(code).padStart(4, "0")}
+                </p>
               </div>
-              <div className="shrink-0 rounded-[6px] bg-cream p-1.5 shadow-sm">
+              <div className="shrink-0 rounded-lg bg-cream p-1.5 shadow-sm">
                 <QRCode
                   value={emergencyUrl}
-                  size={72}
+                  size={76}
                   bgColor="#E6DFC8"
                   fgColor="#080808"
                   level="M"
@@ -202,24 +235,22 @@ export function HealthCard3D({
 
             <div className="flex-1" />
 
-            {/* Dedication — one calm block */}
-            <div className="border-y border-gold/12 py-2.5 text-center">
-              <p className="font-body text-[9px] italic leading-relaxed text-gold/75 sm:text-[10px]">
+            <div className="border-y border-gold/15 py-2.5 text-center">
+              <p className="font-body text-[9px] italic leading-relaxed text-gold/80 sm:text-[10px]">
                 Dedicated to the five brothers —
                 <br />
                 whose love still shields our family.
               </p>
-              <p className="mt-1.5 font-rajdhani text-[8px] font-semibold uppercase tracking-[0.12em] text-cream-soft/45">
+              <p className="mt-1.5 font-rajdhani text-[8px] font-semibold uppercase tracking-[0.1em] text-cream-soft/50">
                 Shri Ganga Dhar Mehta Ji &amp; brothers
               </p>
             </div>
 
-            {/* Brand footer */}
             <div className="mt-2.5 flex items-center justify-between">
               <p className="font-rajdhani text-xs font-bold text-gold">
                 KavachSaathi
               </p>
-              <p className="font-dm text-[8px] text-cream-soft/50">
+              <p className="font-dm text-[8px] text-cream-soft/55">
                 GDM Technoworld Pvt. Ltd.
               </p>
             </div>
@@ -228,8 +259,8 @@ export function HealthCard3D({
       </motion.div>
 
       {interactive && (
-        <p className="mt-3 text-center font-dm text-[11px] tracking-wide text-cream-soft/60">
-          Tap to flip
+        <p className="mt-3 text-center font-dm text-[11px] tracking-wide text-cream-soft/65">
+          Tap to flip · Front &amp; back
         </p>
       )}
     </div>

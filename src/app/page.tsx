@@ -88,7 +88,13 @@ function HeroProductCard() {
         animate={{ y: [0, -10, 0] }}
         transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
       >
-        <HealthCard3D bloodGroup="A+" activationCode="0042" />
+        <HealthCard3D
+          bloodGroup="A+"
+          activationCode="0042"
+          name="Demo Member"
+          healthId="KVS-2026-0042"
+          tier="PRO"
+        />
       </motion.div>
     </motion.div>
   );
