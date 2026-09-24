@@ -15,17 +15,53 @@ export type Gender = "male" | "female" | "other" | "prefer_not_to_say";
 export interface EmergencyContact {
   name: string;
   phone: string;
-  relation: string;
+  relation?: string;
 }
 
-/** cards collection — doc ID = activation_code */
+export interface SimpleContact {
+  name: string;
+  phone: string;
+}
+
+/** cards collection — doc ID = activation_code (0001–0100) */
 export interface CardDoc {
   activation_code: string;
-  health_id: string;
-  tier: CardTier;
-  status: CardStatus;
+  health_id?: string;
+  tier?: CardTier;
+  status?: CardStatus;
+  /** New schema flag */
+  activated?: boolean;
   activated_at?: string | null;
   user_uid?: string;
+  phone?: string;
+  pinHash?: string;
+  pin_hash?: string;
+
+  // Emergency profile fields (on card doc)
+  name?: string;
+  address?: string;
+  bloodGroup?: string;
+  blood_group?: BloodGroup | string;
+  medicalConditions?: string[];
+  medical_conditions?: string[];
+  emergencyContact?: SimpleContact;
+  familyDoctor?: SimpleContact;
+  hasInsurance?: boolean;
+  has_insurance?: boolean;
+}
+
+/** Normalized public emergency view — safe to render */
+export interface EmergencyPublicView {
+  code: string;
+  activated: boolean;
+  name: string;
+  address: string;
+  bloodGroup: string;
+  medicalConditions: string[];
+  emergencyContact: SimpleContact | null;
+  familyDoctor: SimpleContact | null;
+  hasInsurance: boolean | null;
+  userUid?: string;
 }
 
 /** users collection — doc ID = Firebase Auth UID */
@@ -46,13 +82,13 @@ export interface UserProfile {
   surgeries: string[];
   emergency_contact_1: EmergencyContact;
   emergency_contact_2: EmergencyContact;
-  /** Prompt schema array form */
   emergency_contacts?: EmergencyContact[];
   doctor_name: string;
   doctor_phone: string;
   doctor_clinic: string;
-  /** Insurance policy / member ID — shown on emergency QR scan */
+  /** Prefer has_insurance for emergency — never show number publicly */
   insurance_number: string;
+  has_insurance: boolean;
   organ_donor: boolean;
   blood_donor: boolean;
   activation_code: string;
@@ -60,7 +96,6 @@ export interface UserProfile {
   tier?: CardTier;
   created_at?: string | null;
   updated_at?: string | null;
-  /** SHA-256 of 4-digit PIN — NEVER store plain PIN */
   pin_hash?: string;
   reset_token?: string | null;
   reset_token_expires?: number | null;
@@ -153,6 +188,7 @@ export const emptyProfile = (uid = ""): UserProfile => ({
   doctor_phone: "",
   doctor_clinic: "",
   insurance_number: "",
+  has_insurance: false,
   organ_donor: false,
   blood_donor: false,
   activation_code: "",

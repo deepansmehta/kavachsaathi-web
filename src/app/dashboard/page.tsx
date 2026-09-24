@@ -312,9 +312,9 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <p className="flex items-center justify-center gap-2 pt-4 font-body text-xs text-cream-soft">
+          <p className="flex items-center justify-center gap-2 pt-4 font-body text-xs text-cream-soft">
           <Shield className="h-3.5 w-3.5 text-gold" />
-          Emergency link: kavachsaathi.in/e/{data.activation_code}
+          Keep your card QR ready for emergencies
         </p>
       </div>
     </div>

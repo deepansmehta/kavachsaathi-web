@@ -13,8 +13,16 @@ export function getDemoCard(code = "0042"): CardDoc {
     health_id: "KVS-2026-DEMO1",
     tier: "PRO",
     status: "active",
+    activated: true,
     activated_at: new Date().toISOString(),
     user_uid: "demo-uid",
+    name: "Rahul Sharma",
+    address: "12 MG Road, Bengaluru, Karnataka",
+    bloodGroup: "B+",
+    medicalConditions: ["Asthma", "Type 2 Diabetes"],
+    emergencyContact: { name: "Priya Sharma", phone: "9876543210" },
+    familyDoctor: { name: "Dr. Ananya Mehta", phone: "9988776655" },
+    hasInsurance: true,
   };
 }
 
@@ -47,6 +55,7 @@ export function getDemoProfile(overrides?: Partial<UserProfile>): UserProfile {
     doctor_phone: "9988776655",
     doctor_clinic: "Apollo Clinic, Indiranagar",
     insurance_number: "HDFC-HEALTH-88442109",
+    has_insurance: true,
     organ_donor: true,
     blood_donor: true,
     activation_code: "0042",

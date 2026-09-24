@@ -1,52 +1,135 @@
-import type { CardDoc, UserProfile } from "./types";
+import type {
+  CardDoc,
+  UserProfile,
+  EmergencyPublicView,
+  SimpleContact,
+} from "./types";
 import { getDemoCard, getDemoProfile, isDemoCode } from "./demo";
 
-export interface EmergencyPayload {
-  card: CardDoc;
-  profile: UserProfile;
+function asContact(
+  value: unknown
+): SimpleContact | null {
+  if (!value || typeof value !== "object") return null;
+  const c = value as Record<string, unknown>;
+  const name = String(c.name || "").trim();
+  const phone = String(c.phone || "").trim();
+  if (!name && !phone) return null;
+  return { name: name || "Not provided", phone };
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((v) => String(v).trim()).filter(Boolean);
+}
+
+function isCardActivated(card: CardDoc): boolean {
+  if (card.activated === true) return true;
+  if (card.status === "active") return true;
+  return false;
+}
+
+/** Merge card-doc fields + optional user profile into public emergency view */
+export function buildEmergencyView(
+  code: string,
+  card: CardDoc,
+  profile?: UserProfile | null
+): EmergencyPublicView {
+  const ecFromCard =
+    asContact(card.emergencyContact) ||
+    asContact(
+      profile?.emergency_contact_1 || profile?.emergency_contacts?.[0]
+    );
+  const doctorFromCard =
+    asContact(card.familyDoctor) ||
+    (profile?.doctor_name || profile?.doctor_phone
+      ? {
+          name: profile.doctor_name || "Not provided",
+          phone: profile.doctor_phone || "",
+        }
+      : null);
+
+  const conditions =
+    asStringArray(card.medicalConditions).length > 0
+      ? asStringArray(card.medicalConditions)
+      : asStringArray(card.medical_conditions).length > 0
+        ? asStringArray(card.medical_conditions)
+        : asStringArray(profile?.medical_conditions);
+
+  const blood =
+    String(card.bloodGroup || card.blood_group || profile?.blood_group || "").trim();
+
+  let hasInsurance: boolean | null = null;
+  if (typeof card.hasInsurance === "boolean") hasInsurance = card.hasInsurance;
+  else if (typeof card.has_insurance === "boolean")
+    hasInsurance = card.has_insurance;
+  else if (typeof profile?.has_insurance === "boolean")
+    hasInsurance = profile.has_insurance;
+
+  return {
+    code,
+    activated: isCardActivated(card),
+    name: String(
+      card.name || profile?.full_name || ""
+    ).trim() || "Not provided",
+    address: String(card.address || profile?.address || "").trim() || "Not provided",
+    bloodGroup: blood || "Not provided",
+    medicalConditions: conditions,
+    emergencyContact: ecFromCard,
+    familyDoctor: doctorFromCard,
+    hasInsurance,
+    userUid: card.user_uid || profile?.uid,
+  };
 }
 
 /**
  * Server-side emergency data fetch.
- * Uses Firebase REST when configured; demo fallback otherwise.
- * Pure server — no client SDK auth needed for public reads.
+ * Prefers fields on cards/{code}; falls back to users profile.
  */
 export async function getEmergencyData(
   code: string
-): Promise<EmergencyPayload | null> {
+): Promise<EmergencyPublicView | null> {
   const id = code.trim().toUpperCase();
 
   if (isDemoCode(id) || !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
     if (isDemoCode(id) || id.length === 4) {
-      return {
-        card: getDemoCard(isDemoCode(id) ? id : "0042"),
-        profile: getDemoProfile({ activation_code: id }),
-      };
+      const card = getDemoCard(isDemoCode(id) ? id : "0042");
+      const profile = getDemoProfile({ activation_code: id });
+      return buildEmergencyView(id, {
+        ...card,
+        activated: true,
+        name: profile.full_name,
+        address: profile.address,
+        bloodGroup: profile.blood_group,
+        medicalConditions: profile.medical_conditions,
+        emergencyContact: {
+          name: profile.emergency_contact_1.name,
+          phone: profile.emergency_contact_1.phone,
+        },
+        familyDoctor: {
+          name: profile.doctor_name,
+          phone: profile.doctor_phone,
+        },
+        hasInsurance: profile.has_insurance,
+      });
     }
     return null;
   }
 
   try {
-    // Prefer Admin SDK if service account present
     const adminData = await tryAdminFetch(id);
     if (adminData) return adminData;
-
-    // Fallback: Firestore REST API (public rules allow read)
     return await restFetch(id);
   } catch {
     if (isDemoCode(id)) {
-      return {
-        card: getDemoCard(id),
-        profile: getDemoProfile({ activation_code: id }),
-      };
+      const card = getDemoCard(id);
+      const profile = getDemoProfile({ activation_code: id });
+      return buildEmergencyView(id, card, profile);
     }
     return null;
   }
 }
 
-async function tryAdminFetch(
-  id: string
-): Promise<EmergencyPayload | null> {
+async function tryAdminFetch(id: string): Promise<EmergencyPublicView | null> {
   try {
     const { getAdminDb } = await import("./firebase-admin");
     const db = getAdminDb();
@@ -56,7 +139,6 @@ async function tryAdminFetch(
       ...(cardSnap.data() as CardDoc),
       activation_code: cardSnap.id,
     };
-    if (card.status !== "active") return null;
 
     let profile: UserProfile | null = null;
     if (card.user_uid) {
@@ -79,14 +161,14 @@ async function tryAdminFetch(
         profile = { uid: d.id, ...(d.data() as Omit<UserProfile, "uid">) };
       }
     }
-    if (!profile) return null;
-    return { card, profile };
+
+    return buildEmergencyView(id, card, profile);
   } catch {
     return null;
   }
 }
 
-async function restFetch(id: string): Promise<EmergencyPayload | null> {
+async function restFetch(id: string): Promise<EmergencyPublicView | null> {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
   if (!projectId) return null;
 
@@ -96,9 +178,8 @@ async function restFetch(id: string): Promise<EmergencyPayload | null> {
   const cardJson = await cardRes.json();
   const card = parseFirestoreDoc(cardJson) as unknown as CardDoc;
   card.activation_code = id;
-  if (card.status !== "active") return null;
 
-  // Query users by activation_code via runQuery
+  let profile: UserProfile | null = null;
   const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
   const queryRes = await fetch(queryUrl, {
     method: "POST",
@@ -119,28 +200,27 @@ async function restFetch(id: string): Promise<EmergencyPayload | null> {
     next: { revalidate: 0 },
   });
 
-  if (!queryRes.ok) return null;
-  const rows = await queryRes.json();
-  const doc = rows?.[0]?.document;
-  if (!doc) {
-    // Try by user_uid
-    if (card.user_uid) {
-      const uUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${card.user_uid}`;
-      const uRes = await fetch(uUrl, { next: { revalidate: 0 } });
-      if (uRes.ok) {
-        const uJson = await uRes.json();
-        const profile = parseFirestoreDoc(uJson) as unknown as UserProfile;
-        profile.uid = card.user_uid;
-        return { card, profile };
-      }
+  if (queryRes.ok) {
+    const rows = await queryRes.json();
+    const doc = rows?.[0]?.document;
+    if (doc) {
+      profile = parseFirestoreDoc(doc) as unknown as UserProfile;
+      const nameParts = doc.name.split("/");
+      profile.uid = nameParts[nameParts.length - 1];
     }
-    return null;
   }
 
-  const profile = parseFirestoreDoc(doc) as unknown as UserProfile;
-  const nameParts = doc.name.split("/");
-  profile.uid = nameParts[nameParts.length - 1];
-  return { card, profile };
+  if (!profile && card.user_uid) {
+    const uUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${card.user_uid}`;
+    const uRes = await fetch(uUrl, { next: { revalidate: 0 } });
+    if (uRes.ok) {
+      const uJson = await uRes.json();
+      profile = parseFirestoreDoc(uJson) as unknown as UserProfile;
+      profile.uid = card.user_uid;
+    }
+  }
+
+  return buildEmergencyView(id, card, profile);
 }
 
 function parseFirestoreDoc(doc: {
@@ -172,8 +252,7 @@ function decodeValue(v: FirestoreValue): unknown {
   if ("doubleValue" in v) return v.doubleValue;
   if ("nullValue" in v) return null;
   if ("timestampValue" in v) return v.timestampValue;
-  if ("arrayValue" in v)
-    return (v.arrayValue?.values || []).map(decodeValue);
+  if ("arrayValue" in v) return (v.arrayValue?.values || []).map(decodeValue);
   if ("mapValue" in v) {
     const m: Record<string, unknown> = {};
     for (const [k, val] of Object.entries(v.mapValue?.fields || {})) {
@@ -190,6 +269,7 @@ export function logScanBackground(
   userUid: string,
   ip = "unknown"
 ): void {
+  if (!userUid || userUid === "unknown") return;
   import("./firebase-admin")
     .then(({ logScanAdmin }) =>
       logScanAdmin(activationCode, userUid, ip).catch(() => {})

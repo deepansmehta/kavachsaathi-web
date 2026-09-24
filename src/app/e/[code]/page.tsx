@@ -1,25 +1,11 @@
 import { Metadata } from "next";
 import { headers } from "next/headers";
-import { notFound } from "next/navigation";
-import {
-  Phone,
-  Heart,
-  AlertTriangle,
-  Pill,
-  Stethoscope,
-  Shield,
-  Droplets,
-  FileText,
-} from "lucide-react";
+import Link from "next/link";
 import {
   getEmergencyData,
   logScanBackground,
 } from "@/lib/firebase-server";
-import { BloodGroupBadge } from "@/components/ui/BloodGroupBadge";
-import { EmergencyContactCard } from "@/components/ui/EmergencyContactCard";
-import { Badge } from "@/components/ui/Badge";
 import { telHref, formatPhone } from "@/lib/utils";
-import type { EmergencyContact } from "@/lib/types";
 
 interface PageProps {
   params: { code: string };
@@ -29,10 +15,17 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const data = await getEmergencyData(params.code);
-  if (!data) return { title: "Card Not Found — KavachSaathi" };
+  if (!data || !data.activated) {
+    return {
+      title: "Emergency Info | KavachSaathi",
+      description:
+        "Public emergency medical profile powered by KavachSaathi health cards.",
+      robots: { index: false, follow: false },
+    };
+  }
   return {
-    title: `${data.profile.full_name} — Emergency Health Info`,
-    description: `Blood group ${data.profile.blood_group}. Emergency medical profile via KavachSaathi.`,
+    title: "Emergency Info | KavachSaathi",
+    description: `Emergency medical info for ${data.name}. Blood group ${data.bloodGroup}. Show this to a doctor in an emergency.`,
     robots: { index: false, follow: false },
   };
 }
@@ -40,228 +33,365 @@ export async function generateMetadata({
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-function resolveContacts(profile: {
-  emergency_contacts?: EmergencyContact[];
-  emergency_contact_1?: EmergencyContact;
-  emergency_contact_2?: EmergencyContact;
-}): EmergencyContact[] {
-  if (Array.isArray(profile.emergency_contacts) && profile.emergency_contacts.length) {
-    return profile.emergency_contacts.filter((c) => c?.name && c?.phone);
-  }
-  return [profile.emergency_contact_1, profile.emergency_contact_2].filter(
-    (c): c is EmergencyContact => Boolean(c?.name && c?.phone)
+const BG = "#0A0A08";
+const CARD = "#141410";
+const GOLD = "#D4AF37";
+const TEXT = "#F0EEE8";
+const MUTED = "#A8A59C";
+
+function display(value: string | null | undefined, fallback = "Not provided") {
+  const v = (value || "").trim();
+  return v || fallback;
+}
+
+function CallButton({ phone, label }: { phone: string; label: string }) {
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return null;
+  return (
+    <a
+      href={telHref(phone)}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        marginTop: 12,
+        width: "100%",
+        padding: "12px 16px",
+        borderRadius: 10,
+        background: GOLD,
+        color: "#0A0A08",
+        fontFamily: "system-ui, sans-serif",
+        fontWeight: 700,
+        fontSize: 15,
+        textDecoration: "none",
+      }}
+    >
+      📞 {label}
+    </a>
   );
 }
 
-/** PURE SERVER COMPONENT — no 'use client', no hooks, SSR only */
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      style={{
+        background: CARD,
+        borderRadius: 14,
+        border: `1px solid ${GOLD}33`,
+        padding: "18px 16px",
+        marginBottom: 12,
+      }}
+    >
+      <h2
+        style={{
+          margin: "0 0 12px",
+          fontFamily: "Rajdhani, system-ui, sans-serif",
+          fontSize: 13,
+          fontWeight: 700,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: GOLD,
+        }}
+      >
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+/** PURE SERVER COMPONENT — public, no auth, SSR only */
 export default async function EmergencyPage({ params }: PageProps) {
   const data = await getEmergencyData(params.code);
 
-  if (!data) {
-    notFound();
+  if (!data || !data.activated) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: BG,
+          color: TEXT,
+          fontFamily: "system-ui, sans-serif",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 24,
+          textAlign: "center",
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🛡️</div>
+          <h1
+            style={{
+              fontFamily: "Rajdhani, system-ui, sans-serif",
+              fontSize: 28,
+              fontWeight: 700,
+              color: GOLD,
+              margin: "0 0 8px",
+            }}
+          >
+            Card not activated yet
+          </h1>
+          <p style={{ color: MUTED, margin: "0 0 24px", lineHeight: 1.5 }}>
+            This KavachSaathi card has not been set up.
+            <br />
+            The owner needs to activate it first.
+          </p>
+          <Link
+            href="/activate"
+            style={{ color: GOLD, textDecoration: "underline", fontSize: 14 }}
+          >
+            Activate your card
+          </Link>
+        </div>
+      </div>
+    );
   }
 
-  const { card, profile } = data;
   const hdrs = headers();
   const ip =
     hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     hdrs.get("x-real-ip") ||
     "unknown";
 
-  // Fire-and-forget — do NOT await
-  logScanBackground(card.activation_code, profile.uid, ip);
+  if (data.userUid) {
+    logScanBackground(data.code, data.userUid, ip);
+  }
 
-  const contacts = resolveContacts(profile);
+  const ec = data.emergencyContact;
+  const doctor = data.familyDoctor;
+  const conditions = data.medicalConditions;
 
   return (
-    <div className="min-h-screen bg-kavach-black text-cream">
-      <div className="border-b border-danger/40 bg-danger/15 px-4 py-3 text-center">
-        <p className="font-rajdhani text-sm font-bold uppercase tracking-[0.15em] text-danger">
-          Emergency Medical Profile
+    <div
+      style={{
+        minHeight: "100vh",
+        background: BG,
+        color: TEXT,
+        fontFamily: "system-ui, -apple-system, sans-serif",
+      }}
+    >
+      <header
+        style={{
+          borderBottom: `1px solid ${GOLD}44`,
+          background: CARD,
+          padding: "16px 16px 14px",
+          textAlign: "center",
+        }}
+      >
+        <p
+          style={{
+            margin: 0,
+            fontFamily: "Rajdhani, system-ui, sans-serif",
+            fontSize: 20,
+            fontWeight: 700,
+            color: GOLD,
+            letterSpacing: "0.04em",
+          }}
+        >
+          🛡️ KavachSaathi &nbsp; EMERGENCY INFO
         </p>
-      </div>
+        <p
+          style={{
+            margin: "6px 0 0",
+            fontSize: 13,
+            color: MUTED,
+            lineHeight: 1.4,
+          }}
+        >
+          Scan kiya? Yeh details doctor ko dikhayein
+        </p>
+      </header>
 
-      <div className="mx-auto max-w-lg px-4 py-6 pb-16">
-        <div className="mb-6 flex flex-col items-center">
-          <BloodGroupBadge bloodGroup={profile.blood_group} size="emergency" />
-          <p className="mt-3 font-rajdhani text-xs font-semibold uppercase tracking-[0.2em] text-cream-soft">
-            Blood Group
+      <main
+        style={{
+          maxWidth: 480,
+          margin: "0 auto",
+          padding: "16px 14px 40px",
+        }}
+      >
+        <Section title="👤 Profile">
+          <p
+            style={{
+              margin: 0,
+              fontFamily: "Rajdhani, system-ui, sans-serif",
+              fontSize: 24,
+              fontWeight: 700,
+              color: TEXT,
+            }}
+          >
+            {display(data.name)}
           </p>
-        </div>
-
-        <div className="mb-6 text-center">
-          <h1 className="font-rajdhani text-3xl font-bold text-cream sm:text-4xl">
-            {profile.full_name}
-          </h1>
-          <p className="mt-1 font-mono text-sm text-gold">{profile.health_id}</p>
-          {profile.dob && (
-            <p className="mt-1 font-body text-sm text-cream-soft">
-              DOB: {profile.dob}
-            </p>
-          )}
-        </div>
-
-        {profile.insurance_number && (
-          <section className="mb-6">
-            <div className="rounded-card border border-gold/40 bg-gold-faint px-4 py-4 text-center">
-              <p className="flex items-center justify-center gap-2 font-rajdhani text-xs font-bold uppercase tracking-[0.2em] text-gold">
-                <FileText className="h-3.5 w-3.5" />
-                Insurance Number
-              </p>
-              <p className="mt-2 break-all font-mono text-xl font-bold tracking-wide text-cream sm:text-2xl">
-                {profile.insurance_number}
-              </p>
-            </div>
-          </section>
-        )}
-
-        {(profile.organ_donor || profile.blood_donor) && (
-          <div className="mb-6 space-y-2">
-            {profile.organ_donor && (
-              <div className="flex items-center gap-3 rounded-card border border-success/40 bg-success/15 px-4 py-3">
-                <Heart className="h-6 w-6 shrink-0 fill-success text-success" />
-                <p className="font-rajdhani text-base font-bold uppercase tracking-wide text-success">
-                  Registered Organ Donor
-                </p>
-              </div>
-            )}
-            {profile.blood_donor && (
-              <div className="flex items-center gap-3 rounded-card border border-danger/40 bg-danger/10 px-4 py-3">
-                <Droplets className="h-6 w-6 shrink-0 text-danger" />
-                <p className="font-rajdhani text-base font-bold uppercase tracking-wide text-danger">
-                  Blood Donor
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        <section className="mb-6">
-          <h2 className="mb-3 flex items-center gap-2 font-rajdhani text-sm font-bold uppercase tracking-widest text-gold">
-            <Phone className="h-4 w-4" />
-            Emergency Contacts — Tap to Call
-          </h2>
-          <div className="space-y-3">
-            {contacts.length === 0 ? (
-              <p className="rounded-card border border-kavach-border bg-kavach-s1 p-4 font-body text-sm text-cream-soft">
-                No emergency contacts listed
-              </p>
-            ) : (
-              contacts.map((c, i) => (
-                <EmergencyContactCard key={`${c.phone}-${i}`} contact={c} index={i + 1} />
-              ))
-            )}
-          </div>
-        </section>
-
-        {profile.allergies?.length > 0 && (
-          <section className="mb-6">
-            <h2 className="mb-3 flex items-center gap-2 font-rajdhani text-sm font-bold uppercase tracking-widest text-danger">
-              <AlertTriangle className="h-4 w-4" />
-              Allergies
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {profile.allergies.map((a) => (
-                <div
-                  key={a}
-                  className="rounded-badge border border-red-500/40 bg-red-500/15 px-4 py-2 font-rajdhani text-base font-semibold text-red-300"
-                >
-                  {a}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {profile.medical_conditions?.length > 0 && (
-          <section className="mb-6">
-            <h2 className="mb-3 flex items-center gap-2 font-rajdhani text-sm font-bold uppercase tracking-widest text-orange-400">
-              <Stethoscope className="h-4 w-4" />
-              Medical Conditions
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {profile.medical_conditions.map((c) => (
-                <div
-                  key={c}
-                  className="rounded-card border border-orange-500/40 bg-orange-500/15 px-4 py-2.5 font-rajdhani text-base font-semibold text-orange-300"
-                >
-                  {c}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {profile.medications?.length > 0 && (
-          <section className="mb-6">
-            <h2 className="mb-3 flex items-center gap-2 font-rajdhani text-sm font-bold uppercase tracking-widest text-blue-400">
-              <Pill className="h-4 w-4" />
-              Medications
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {profile.medications.map((m) => (
-                <div
-                  key={m}
-                  className="rounded-card border border-blue-500/40 bg-blue-500/15 px-4 py-2.5 font-rajdhani text-base font-semibold text-blue-300"
-                >
-                  {m}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {(profile.doctor_name || profile.doctor_phone) && (
-          <section className="mb-8">
-            <h2 className="mb-3 font-rajdhani text-sm font-bold uppercase tracking-widest text-gold">
-              Primary Doctor
-            </h2>
-            <div className="rounded-card border border-kavach-border bg-kavach-s1 p-4">
-              {profile.doctor_name && (
-                <p className="font-rajdhani text-lg font-semibold text-cream">
-                  {profile.doctor_name}
-                </p>
-              )}
-              {profile.doctor_clinic && (
-                <p className="font-body text-sm text-cream-soft">
-                  {profile.doctor_clinic}
-                </p>
-              )}
-              {profile.doctor_phone && (
-                <a
-                  href={telHref(profile.doctor_phone)}
-                  className="mt-2 inline-flex items-center gap-2 font-mono text-gold hover:underline"
-                >
-                  <Phone className="h-4 w-4" />
-                  {formatPhone(profile.doctor_phone)}
-                </a>
-              )}
-            </div>
-          </section>
-        )}
-
-        {!profile.allergies?.length &&
-          !profile.medical_conditions?.length &&
-          !profile.medications?.length && (
-            <div className="mb-6 rounded-card border border-kavach-border bg-kavach-s1 p-4 text-center">
-              <Badge variant="outline">
-                No known allergies or conditions listed
-              </Badge>
-            </div>
-          )}
-
-        <div className="mt-10 border-t border-kavach-border pt-6 text-center">
-          <div className="mb-2 flex items-center justify-center gap-1.5">
-            <Shield className="h-4 w-4 text-gold" />
-            <p className="font-rajdhani text-sm font-semibold text-gold">
-              Powered by KavachSaathi
-            </p>
-          </div>
-          <p className="font-body text-xs text-cream-soft">
-            GDM Technoworld Pvt. Ltd. · kavachsaathi.in
+          <p
+            style={{
+              margin: "8px 0 0",
+              fontSize: 15,
+              color: MUTED,
+              lineHeight: 1.45,
+            }}
+          >
+            🏠 {display(data.address)}
           </p>
-        </div>
-      </div>
+        </Section>
+
+        <Section title="🩸 Blood Group">
+          <p
+            style={{
+              margin: 0,
+              textAlign: "center",
+              fontFamily: "Rajdhani, system-ui, sans-serif",
+              fontSize: 56,
+              fontWeight: 800,
+              lineHeight: 1,
+              color: GOLD,
+              letterSpacing: "0.02em",
+            }}
+          >
+            {display(data.bloodGroup)}
+          </p>
+        </Section>
+
+        <Section title="💊 Medical Conditions">
+          {conditions.length === 0 ? (
+            <p style={{ margin: 0, color: MUTED, fontSize: 15 }}>
+              None reported
+            </p>
+          ) : (
+            <ul
+              style={{
+                margin: 0,
+                paddingLeft: 18,
+                fontSize: 16,
+                lineHeight: 1.7,
+                color: TEXT,
+              }}
+            >
+              {conditions.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        <Section title="📞 Emergency Contact">
+          {ec ? (
+            <>
+              <p style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>
+                {display(ec.name)}
+                {ec.phone ? (
+                  <>
+                    {" — "}
+                    <a
+                      href={telHref(ec.phone)}
+                      style={{ color: GOLD, textDecoration: "none" }}
+                    >
+                      {formatPhone(ec.phone)}
+                    </a>
+                  </>
+                ) : (
+                  " — Not provided"
+                )}
+              </p>
+              <CallButton phone={ec.phone} label="Tap to call" />
+            </>
+          ) : (
+            <p style={{ margin: 0, color: MUTED }}>Not provided</p>
+          )}
+        </Section>
+
+        <Section title="👨‍⚕️ Family Doctor">
+          {doctor ? (
+            <>
+              <p style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>
+                {display(doctor.name)}
+                {doctor.phone ? (
+                  <>
+                    {" — "}
+                    <a
+                      href={telHref(doctor.phone)}
+                      style={{ color: GOLD, textDecoration: "none" }}
+                    >
+                      {formatPhone(doctor.phone)}
+                    </a>
+                  </>
+                ) : (
+                  " — Not provided"
+                )}
+              </p>
+              <CallButton phone={doctor.phone} label="Tap to call doctor" />
+            </>
+          ) : (
+            <p style={{ margin: 0, color: MUTED }}>Not provided</p>
+          )}
+        </Section>
+
+        <Section title="🏥 Insurance">
+          <p
+            style={{
+              margin: 0,
+              textAlign: "center",
+              fontFamily: "Rajdhani, system-ui, sans-serif",
+              fontSize: 28,
+              fontWeight: 800,
+              color:
+                data.hasInsurance === true
+                  ? "#4ADE80"
+                  : data.hasInsurance === false
+                    ? "#F87171"
+                    : MUTED,
+            }}
+          >
+            {data.hasInsurance === true
+              ? "✅ YES"
+              : data.hasInsurance === false
+                ? "❌ NO"
+                : "Not provided"}
+          </p>
+        </Section>
+
+        <footer
+          style={{
+            marginTop: 28,
+            paddingTop: 20,
+            borderTop: `1px solid ${GOLD}33`,
+            textAlign: "center",
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              fontFamily: "Rajdhani, system-ui, sans-serif",
+              fontWeight: 700,
+              color: GOLD,
+              fontSize: 14,
+            }}
+          >
+            Powered by KavachSaathi
+          </p>
+          <p style={{ margin: "6px 0 0", fontSize: 12, color: MUTED }}>
+            kavachsaathi.in &nbsp;|&nbsp; GDM Techno
+          </p>
+          <Link
+            href="/login"
+            style={{
+              display: "inline-block",
+              marginTop: 16,
+              fontSize: 12,
+              color: MUTED,
+              textDecoration: "underline",
+            }}
+          >
+            Login to manage your profile
+          </Link>
+        </footer>
+      </main>
     </div>
   );
 }

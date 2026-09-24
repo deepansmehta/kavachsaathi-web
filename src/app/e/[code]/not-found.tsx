@@ -11,12 +11,12 @@ export default function EmergencyNotFound() {
       <p className="mt-2 max-w-sm font-body text-cream-soft">
         Invalid code or card not activated yet.
       </p>
-      <p className="mt-4 font-body text-sm text-cream-soft">
-        Demo:{" "}
-        <Link href="/e/0042" className="text-gold underline">
-          /e/0042
-        </Link>
-      </p>
+      <Link
+        href="/"
+        className="mt-6 font-rajdhani text-sm font-semibold text-gold hover:underline"
+      >
+        Back to home
+      </Link>
     </div>
   );
 }

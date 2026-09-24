@@ -156,11 +156,30 @@ export async function activateAndSaveProfile(params: {
       updated_at: serverTimestamp(),
     });
 
+    const p = params.profile;
     await updateDoc(doc(db, "cards", code), {
       status: "active",
+      activated: true,
       activated_at: serverTimestamp(),
       user_uid: params.uid,
       health_id: healthId,
+      phone: p.phone || "",
+      name: p.full_name || "",
+      address: p.address || "",
+      bloodGroup: p.blood_group || "",
+      blood_group: p.blood_group || "",
+      medicalConditions: p.medical_conditions || [],
+      medical_conditions: p.medical_conditions || [],
+      emergencyContact: {
+        name: p.emergency_contact_1?.name || "",
+        phone: p.emergency_contact_1?.phone || "",
+      },
+      familyDoctor: {
+        name: p.doctor_name || "",
+        phone: p.doctor_phone || "",
+      },
+      hasInsurance: Boolean(p.has_insurance),
+      has_insurance: Boolean(p.has_insurance),
     });
 
     return { success: true, health_id: healthId };
@@ -170,6 +189,39 @@ export async function activateAndSaveProfile(params: {
       error: err instanceof Error ? err.message : "Activation failed",
     };
   }
+}
+
+/** Fields written to cards/{code} for public emergency page */
+function cardEmergencyPayload(data: Partial<UserProfile>) {
+  const payload: Record<string, unknown> = {};
+  if (data.full_name !== undefined) payload.name = data.full_name;
+  if (data.address !== undefined) payload.address = data.address;
+  if (data.blood_group !== undefined) {
+    payload.bloodGroup = data.blood_group;
+    payload.blood_group = data.blood_group;
+  }
+  if (data.medical_conditions !== undefined) {
+    payload.medicalConditions = data.medical_conditions;
+    payload.medical_conditions = data.medical_conditions;
+  }
+  if (data.emergency_contact_1 !== undefined) {
+    payload.emergencyContact = {
+      name: data.emergency_contact_1.name || "",
+      phone: data.emergency_contact_1.phone || "",
+    };
+  }
+  if (data.doctor_name !== undefined || data.doctor_phone !== undefined) {
+    payload.familyDoctor = {
+      name: data.doctor_name || "",
+      phone: data.doctor_phone || "",
+    };
+  }
+  if (data.has_insurance !== undefined) {
+    payload.hasInsurance = Boolean(data.has_insurance);
+    payload.has_insurance = Boolean(data.has_insurance);
+  }
+  if (data.phone !== undefined) payload.phone = data.phone;
+  return payload;
 }
 
 export async function updateUserProfile(
@@ -192,6 +244,22 @@ export async function updateUserProfile(
     ...rest,
     updated_at: serverTimestamp(),
   });
+
+  // Sync emergency fields onto cards/{code} for public /e/[code] page
+  const code =
+    data.activation_code ||
+    (await getUserByUid(uid))?.activation_code ||
+    "";
+  if (code) {
+    const cardFields = cardEmergencyPayload(data);
+    if (Object.keys(cardFields).length > 0) {
+      try {
+        await updateDoc(doc(db, "cards", code.trim().toUpperCase()), cardFields);
+      } catch {
+        // Owner may lack write rule until rules deploy — user profile still saved
+      }
+    }
+  }
 }
 
 export async function getUserScans(uid: string): Promise<DoctorScan[]> {

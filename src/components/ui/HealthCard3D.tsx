@@ -188,13 +188,13 @@ export function HealthCard3D({
             <div className="flex items-end justify-between gap-3">
               <div className="min-w-0 pb-0.5">
                 <p className="font-dm text-[7px] uppercase tracking-[0.24em] text-cream-soft/50">
-                  Activation
+                  Blood Group
                 </p>
-                <p className="mt-0.5 font-mono text-sm font-bold tracking-[0.2em] text-gold">
-                  {String(code).padStart(4, "0")}
+                <p className="mt-0.5 font-rajdhani text-[11px] font-semibold tracking-wide text-cream/85">
+                  Affix sticker
                 </p>
                 <p className="mt-0.5 font-dm text-[8px] text-cream-soft/45">
-                  Emergency QR on reverse
+                  Included in packaging
                 </p>
               </div>
 
@@ -232,7 +232,7 @@ export function HealthCard3D({
           </div>
         </div>
 
-        {/* BACK */}
+        {/* BACK — content sized to fit PVC aspect ratio */}
         <div
           className="absolute inset-0 overflow-hidden rounded-[16px] border border-gold/40 bg-[#0c0c0a]"
           style={{
@@ -250,54 +250,47 @@ export function HealthCard3D({
                 "radial-gradient(ellipse 60% 50% at 70% 30%, rgba(212,175,55,0.1), transparent 55%), linear-gradient(160deg, #14120e 0%, #080808 100%)",
             }}
           />
-          <div className="pointer-events-none absolute inset-[6px] rounded-[12px] border border-gold/18" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
+          <div className="pointer-events-none absolute inset-[5px] rounded-[11px] border border-gold/18" />
           <SoftShine />
 
-          <div className="relative z-10 flex h-full flex-col px-5 py-4 sm:px-6 sm:py-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="pt-0.5">
-                <p className="font-rajdhani text-[10px] font-bold uppercase tracking-[0.18em] text-gold">
-                  Scan in emergency
+          <div className="relative z-10 box-border flex h-full flex-col justify-between px-3.5 py-2.5 sm:px-4 sm:py-3">
+            {/* Top row */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1 pr-2">
+                <p className="font-rajdhani text-[9px] font-bold uppercase tracking-[0.14em] text-gold">
+                  Emergency scan
                 </p>
-                <p className="mt-1.5 max-w-[9.5rem] font-dm text-[9px] leading-relaxed text-cream-soft/70">
-                  Opens medical profile instantly — no app, no login.
-                </p>
-                <p className="mt-3 font-mono text-[10px] tracking-[0.16em] text-gold/75">
-                  {String(code).padStart(4, "0")}
+                <p className="mt-1 font-dm text-[8px] leading-snug text-cream-soft/65">
+                  Medical profile opens instantly — no app needed.
                 </p>
               </div>
-              <motion.div
-                className="shrink-0 rounded-lg bg-cream p-1.5 shadow-sm"
-                animate={{ scale: [1, 1.03, 1] }}
-                transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-              >
+              <div className="shrink-0 rounded-[5px] bg-cream p-1">
                 <QRCode
                   value={emergencyUrl}
-                  size={76}
+                  size={58}
                   bgColor="#E6DFC8"
                   fgColor="#080808"
                   level="M"
                 />
-              </motion.div>
+              </div>
             </div>
 
-            <div className="flex-1" />
-
-            <div className="border-y border-gold/15 py-2.5 text-center">
-              <p className="font-body text-[9px] italic leading-relaxed text-gold/80 sm:text-[10px]">
-                Dedicated to the five brothers —
-                <br />
-                whose love still shields our family.
+            {/* Dedication — compact */}
+            <div className="my-1.5 border-y border-gold/15 py-1.5 text-center">
+              <p className="font-body text-[8px] italic leading-snug text-gold/75">
+                Dedicated to five brothers whose love shields our family.
               </p>
-              <p className="mt-1.5 font-rajdhani text-[8px] font-semibold uppercase tracking-[0.1em] text-cream-soft/50">
+              <p className="mt-1 font-rajdhani text-[7px] font-semibold tracking-[0.06em] text-cream-soft/50">
                 Late Shri Ganga Dhar Mehta Ji · 1949–2012
               </p>
             </div>
 
-            <div className="mt-2.5 flex items-center justify-between">
-              <p className="font-rajdhani text-xs font-bold text-gold">KavachSaathi</p>
-              <p className="font-dm text-[8px] text-cream-soft/55">
+            {/* Footer — single clean line inside card */}
+            <div className="flex items-center justify-between gap-2">
+              <p className="shrink-0 font-rajdhani text-[10px] font-bold tracking-wide text-gold">
+                KavachSaathi
+              </p>
+              <p className="truncate text-right font-dm text-[7px] tracking-wide text-cream-soft/50">
                 GDM Technoworld Pvt. Ltd.
               </p>
             </div>

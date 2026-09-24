@@ -67,9 +67,6 @@ export default function MyCardPage() {
             My Card
           </h1>
           <p className="mt-1 font-mono text-gold">{data.health_id}</p>
-          <p className="mt-1 font-mono text-xs text-cream-soft">
-            Code {data.activation_code}
-          </p>
         </div>
 
         <div className="mx-auto w-full max-w-[360px]">
@@ -94,9 +91,6 @@ export default function MyCardPage() {
           <div className="rounded-card bg-cream p-4">
             <QRCode value={emergencyUrl} size={160} fgColor="#080808" />
           </div>
-          <p className="font-mono text-lg font-bold tracking-[0.3em] text-gold">
-            {String(data.activation_code).padStart(4, "0")}
-          </p>
           <p className="break-all text-center font-mono text-[10px] text-cream-soft">
             {emergencyUrl}
           </p>

@@ -138,7 +138,7 @@ function LoginForm() {
                   onChange={(e) =>
                     setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
                   }
-                  placeholder="9876543210"
+                  placeholder="Mobile number"
                   inputMode="numeric"
                 />
               </div>

@@ -1,7 +1,5 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
-/node_modules
+node_modules
 /.pnp
 .pnp.js
 .yarn/install-state.gz
@@ -19,21 +17,24 @@
 # misc
 .DS_Store
 *.pem
+*.log
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
+# local env / secrets — NEVER commit
+.env
+.env.local
 .env*.local
-
-# secrets — never commit
 service-account.json
 *-firebase-adminsdk-*.json
+*.p12
 
-# vercel
+# vercel / netlify
 .vercel
+.netlify
 
 # typescript
 *.tsbuildinfo

@@ -1,12 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Cards: public read; writes only via Admin SDK (activate API)
+    // Cards: public read; owner may update emergency profile fields
     match /cards/{code} {
       allow read: if true;
-      allow write: if false;
+      allow create: if false;
+      allow update: if request.auth != null
+        && resource.data.user_uid == request.auth.uid
+        && request.resource.data.user_uid == resource.data.user_uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'name', 'address', 'bloodGroup', 'blood_group',
+              'medicalConditions', 'medical_conditions',
+              'emergencyContact', 'familyDoctor',
+              'hasInsurance', 'has_insurance', 'phone'
+            ]);
+      allow delete: if false;
     }
-    // Users: owner only (pin_hash never returned to other users via client)
+    // Users: owner only
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }

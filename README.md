@@ -15,6 +15,16 @@ npm install
 npm run dev
 ```
 
+## Deploy (Netlify + GoDaddy)
+
+1. Push this repo to GitHub.
+2. [Netlify](https://app.netlify.com) → Add new site → Import from Git → select this repo.
+3. Build uses `netlify.toml` (`npm run build` + `@netlify/plugin-nextjs`).
+4. Site settings → Environment variables — copy all keys from `.env.local.example` (production values).
+   Set `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_BASE_URL` to `https://kavachsaathi.in`.
+5. Domain management → Add `kavachsaathi.in` + `www`.
+6. GoDaddy DNS → Netlify will show the exact records (usually Netlify DNS nameservers, or A/CNAME to Netlify).
+
 ## Demo mode (no Firebase)
 
 | Action | How |

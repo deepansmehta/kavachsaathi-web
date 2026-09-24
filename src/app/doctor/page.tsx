@@ -152,7 +152,7 @@ export default function DoctorPortalPage() {
             label="Or paste Health ID / code"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="0042 or KVS-2026-XXXXX"
+            placeholder="Health ID or card code"
           />
           <GoldButton
             fullWidth
@@ -163,19 +163,6 @@ export default function DoctorPortalPage() {
             <Search className="h-4 w-4" />
             Find Patient
           </GoldButton>
-          <p className="mt-3 text-center font-body text-xs text-cream-soft">
-            Try{" "}
-            <button
-              type="button"
-              className="text-gold underline"
-              onClick={() => {
-                setCode("0042");
-                search("0042");
-              }}
-            >
-              0042
-            </button>
-          </p>
         </div>
 
         {loading && <LoadingSpinner className="py-10" />}
