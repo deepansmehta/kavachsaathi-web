@@ -45,7 +45,7 @@ export const GoldButton = forwardRef<HTMLButtonElement, GoldButtonProps>(
         whileHover={{ scale: disabled || loading ? 1 : 1.02 }}
         disabled={disabled || loading}
         className={cn(
-          "relative inline-flex items-center justify-center gap-2 rounded-input font-rajdhani font-semibold tracking-wide text-kavach-black gold-gradient shadow-gold-sm transition-shadow hover:shadow-gold-glow disabled:cursor-not-allowed disabled:opacity-50",
+          "relative inline-flex items-center justify-center gap-2 rounded-input font-rajdhani font-semibold tracking-wide text-kavach-black gold-gradient gold-shimmer shadow-gold-sm transition-shadow hover:shadow-gold-glow disabled:cursor-not-allowed disabled:opacity-50",
           sizes[size],
           fullWidth && "w-full",
           className

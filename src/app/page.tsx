@@ -104,14 +104,18 @@ function FadeIn({
   delay?: number;
 }) {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, amount: 0.25 });
+  const inView = useInView(ref, { once: true, amount: 0.2 });
   return (
     <motion.div
       ref={ref}
       className={className}
-      initial={{ opacity: 0, y: 28 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay }}
+      initial={{ opacity: 0, y: 32, filter: "blur(6px)" }}
+      animate={
+        inView
+          ? { opacity: 1, y: 0, filter: "blur(0px)" }
+          : { opacity: 0, y: 32, filter: "blur(6px)" }
+      }
+      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.div>
@@ -201,15 +205,20 @@ function BrotherCard({
   index: number;
 }) {
   const isMemorial = brother.variant === "memorial";
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, amount: 0.3 });
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: 0.15 + index * 0.1, ease: "easeOut" }}
+      ref={ref}
+      initial={{ opacity: 0, y: 24, scale: 0.96 }}
+      animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
+      transition={{ duration: 0.5, delay: 0.08 + index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -8, scale: 1.02 }}
       className={cn(
         "relative flex w-[min(72vw,220px)] shrink-0 flex-col items-center rounded-card border border-gold/35 bg-[#0e0e0c] px-4 py-6 text-center lg:w-auto",
-        "min-h-[200px]",
+        "min-h-[200px] gold-shimmer transition-shadow duration-300",
+        "hover:border-gold/60 hover:shadow-[0_12px_40px_rgba(212,175,55,0.18)]",
         isMemorial && "memorial-card border-slate-300/30 bg-[#0c0e10]/90"
       )}
     >
@@ -223,7 +232,11 @@ function BrotherCard({
           🪔
         </motion.span>
       ) : (
-        <div className="mb-4 h-1.5 w-8 rounded-full bg-gold/40" />
+        <motion.div
+          className="mb-4 h-1.5 w-8 rounded-full bg-gold/40"
+          animate={{ scaleX: [1, 1.25, 1], opacity: [0.4, 0.85, 0.4] }}
+          transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut", delay: index * 0.2 }}
+        />
       )}
 
       <h3 className="font-rajdhani text-base font-bold leading-snug text-cream sm:text-lg">
@@ -258,33 +271,60 @@ export default function HomePage() {
               "radial-gradient(ellipse 80% 55% at 50% 0%, rgba(212,175,55,0.14), transparent 55%), linear-gradient(180deg, #111111 0%, #080808 100%)",
           }}
         />
+        <div
+          className="float-blob left-[8%] top-[18%] h-40 w-40 bg-gold/20"
+          style={{ animationDelay: "0s" }}
+        />
+        <div
+          className="float-blob right-[10%] top-[40%] h-32 w-32 bg-gold/15"
+          style={{ animationDelay: "2.5s" }}
+        />
+        <div
+          className="float-blob bottom-[12%] left-[35%] h-28 w-28 bg-gold/10"
+          style={{ animationDelay: "1.2s" }}
+        />
         <ECGBackground className="opacity-40" />
 
         <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 pb-16 pt-10 text-center sm:px-6 sm:pb-20 sm:pt-14">
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55 }}
+            initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
             <ShieldPulse />
-            <p className="font-rajdhani text-xs font-semibold uppercase tracking-[0.35em] text-gold sm:text-sm">
+            <motion.p
+              className="font-rajdhani text-xs font-semibold uppercase tracking-[0.35em] text-gold sm:text-sm"
+              initial={{ opacity: 0, letterSpacing: "0.5em" }}
+              animate={{ opacity: 1, letterSpacing: "0.35em" }}
+              transition={{ duration: 0.8, delay: 0.15 }}
+            >
               GDM Technoworld Pvt. Ltd.
-            </p>
-            <h1 className="mt-3 font-rajdhani text-5xl font-bold leading-none tracking-tight text-gold sm:text-6xl md:text-7xl lg:text-8xl">
+            </motion.p>
+            <h1 className="gold-text-shimmer mt-3 font-rajdhani text-5xl font-bold leading-none tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
               KavachSaathi
             </h1>
-            <p className="mx-auto mt-5 max-w-md font-body text-base leading-relaxed text-cream-soft sm:text-lg">
+            <motion.p
+              className="mx-auto mt-5 max-w-md font-body text-base leading-relaxed text-cream-soft sm:text-lg"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.25 }}
+            >
               India&apos;s first smart PVC emergency health card — scan once,
               save a life.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            </motion.p>
+            <motion.div
+              className="mt-8 flex flex-wrap items-center justify-center gap-3"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
               <Link href="/order">
                 <GoldButton size="lg">Order Card</GoldButton>
               </Link>
               <Link href="/activate">
                 <OutlineButton size="lg">Activate</OutlineButton>
               </Link>
-            </div>
+            </motion.div>
           </motion.div>
           <HeroProductCard />
         </div>
@@ -355,19 +395,27 @@ export default function HomePage() {
           </FadeIn>
           <div className="grid gap-10 md:grid-cols-3 md:gap-8">
             {HOW.map((step, i) => (
-              <FadeIn key={step.title} delay={i * 0.08}>
-                <div className="text-center md:text-left">
-                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center text-gold md:mx-0">
-                    <step.icon className="h-8 w-8" strokeWidth={1.5} />
-                  </div>
+              <FadeIn key={step.title} delay={i * 0.1}>
+                <motion.div
+                  className="group text-center md:text-left"
+                  whileHover={{ y: -4 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
+                  <motion.div
+                    className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-gold/25 bg-gold/5 text-gold md:mx-0"
+                    whileHover={{ scale: 1.08, rotate: [-2, 2, 0] }}
+                    transition={{ duration: 0.35 }}
+                  >
+                    <step.icon className="h-7 w-7" strokeWidth={1.5} />
+                  </motion.div>
                   <p className="font-mono text-xs text-gold/70">0{i + 1}</p>
-                  <h3 className="mt-1 font-rajdhani text-xl font-bold text-cream">
+                  <h3 className="mt-1 font-rajdhani text-xl font-bold text-cream transition-colors group-hover:text-gold">
                     {step.title}
                   </h3>
                   <p className="mt-2 font-body text-sm leading-relaxed text-cream-soft">
                     {step.desc}
                   </p>
-                </div>
+                </motion.div>
               </FadeIn>
             ))}
           </div>
@@ -391,21 +439,27 @@ export default function HomePage() {
           </FadeIn>
           <div className="grid gap-x-10 gap-y-12 sm:grid-cols-2">
             {FEATURES.map((f, i) => (
-              <FadeIn key={f.title} delay={i * 0.06}>
-                <div className="flex gap-4">
-                  <f.icon
-                    className="mt-0.5 h-7 w-7 shrink-0 text-gold"
-                    strokeWidth={1.5}
-                  />
+              <FadeIn key={f.title} delay={i * 0.08}>
+                <motion.div
+                  className="group flex gap-4 rounded-card border border-transparent p-3 transition-colors hover:border-gold/20 hover:bg-gold/[0.03]"
+                  whileHover={{ x: 4 }}
+                  transition={{ type: "spring", stiffness: 280, damping: 22 }}
+                >
+                  <motion.div
+                    className="icon-bob mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gold/20 bg-gold/5 text-gold"
+                    whileHover={{ scale: 1.1 }}
+                  >
+                    <f.icon className="h-5 w-5" strokeWidth={1.5} />
+                  </motion.div>
                   <div>
-                    <h3 className="font-rajdhani text-lg font-bold text-cream">
+                    <h3 className="font-rajdhani text-lg font-bold text-cream transition-colors group-hover:text-gold">
                       {f.title}
                     </h3>
                     <p className="mt-1.5 font-body text-sm leading-relaxed text-cream-soft">
                       {f.desc}
                     </p>
                   </div>
-                </div>
+                </motion.div>
               </FadeIn>
             ))}
           </div>
