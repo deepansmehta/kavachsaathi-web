@@ -85,16 +85,31 @@ function HeroProductCard() {
       className="pointer-events-auto mx-auto mt-10 w-full max-w-[320px] sm:mt-12 sm:max-w-[360px]"
     >
       <motion.div
-        animate={{ y: [0, -10, 0] }}
-        transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
+        animate={{ y: [0, -12, 0] }}
+        transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          filter: undefined,
+        }}
       >
-        <HealthCard3D
-          bloodGroup="A+"
-          activationCode="0042"
-          name="Demo Member"
-          healthId="KVS-2026-0042"
-          tier="PRO"
-        />
+        <motion.div
+          animate={{
+            boxShadow: [
+              "0 12px 36px rgba(0,0,0,0.35)",
+              "0 20px 48px rgba(212,175,55,0.18)",
+              "0 12px 36px rgba(0,0,0,0.35)",
+            ],
+          }}
+          transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+          className="rounded-[18px]"
+        >
+          <HealthCard3D
+            bloodGroup="A+"
+            activationCode="0042"
+            name="Demo Member"
+            healthId="KVS-2026-0042"
+            tier="PRO"
+          />
+        </motion.div>
       </motion.div>
     </motion.div>
   );
