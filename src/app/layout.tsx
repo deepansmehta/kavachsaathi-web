@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     template: "%s | KavachSaathi",
   },
   description:
-    "India's first smart PVC health card by GDM Technoworld. Born from Legacy · Built to Protect. Dedicated to The Bajaj Brothers of Bhirdana, Fatehabad — Five Brothers One Legacy: Shri Ganga Dhar Mehta Ji (1949–2011), Shri Narender Bajaj Ji, Shri Surender Bajaj Ji, Shri Bansi Dhar Bajaj Ji, Shri Pawan Bajaj Ji (1962–2015). Instant emergency medical access in 3 seconds.",
+    "India's first smart PVC health card by GDM Technoworld. Born from Legacy · Built to Protect. Dedicated to The Bajaj Brothers of Bhirdana, Fatehabad — Five Brothers One Legacy: Shri Gangadhar Bajaj Ji (1949–2011), Shri Bansi Dhar Bajaj Ji, Shri Surender Bajaj Ji, Shri Narender Bajaj Ji, Shri Pawan Bajaj Ji (1962–2015). Instant emergency medical access in 3 seconds.",
   keywords: [
     "KavachSaathi",
     "smart health card India",
@@ -42,7 +42,10 @@ export const metadata: Metadata = {
     "Bhirdana",
     "Bhirdana Fatehabad",
     "Bajaj Family Bhirdana",
-    "Ganga Dhar Mehta",
+    "Gangadhar Bajaj",
+    "Bansi Dhar Bajaj",
+    "Surender Bajaj",
+    "Narender Bajaj",
     "Pawan Bajaj",
     "GDM Technoworld",
     "emergency medical card",
@@ -66,7 +69,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "KavachSaathi — Dedicated to The Bajaj Brothers",
     description:
-      "Five Brothers · One Legacy. In loving memory of Shri Ganga Dhar Mehta Ji (1949–2011) and Shri Pawan Bajaj Ji (1962–2015).",
+      "Five Brothers · One Legacy. In loving memory of Shri Gangadhar Bajaj Ji (1949–2011) and Shri Pawan Bajaj Ji (1962–2015).",
     siteName: "KavachSaathi",
     type: "website",
     locale: "en_IN",

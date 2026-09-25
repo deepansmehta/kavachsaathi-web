@@ -4,14 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Shield } from "lucide-react";
 import { getTimeLeft, type TimeLeft } from "@/lib/launch";
-
-const BROTHERS = [
-  { name: "Shri Ganga Dhar Mehta Ji", memorial: true, years: "1949 — 2011" },
-  { name: "Shri Narender Bajaj Ji", memorial: false },
-  { name: "Shri Surender Bajaj Ji", memorial: false },
-  { name: "Shri Bansi Dhar Bajaj Ji", memorial: false },
-  { name: "Shri Pawan Bajaj Ji", memorial: true, years: "1962 — 2015" },
-] as const;
+import { BROTHERS, BROTHERS_DEDICATION_LINE } from "@/lib/brothers";
 
 const PARTICLES = [
   { x: "8%", y: "18%", d: 0, s: 2 },
@@ -47,7 +40,7 @@ function LogoMark({ size = "md" }: { size?: "md" | "xl" }) {
         className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
         aria-hidden
       >
-        <div className="cs-logo-shine absolute -inset-y-4 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+        <div className="cs-logo-shine absolute -inset-y-4 w-1/3 bg-gradient-to-r from-transparent via-gold-light/50 to-transparent" />
       </div>
       <Shield className={`relative text-kavach-black ${icon}`} strokeWidth={2.25} />
       <svg
@@ -84,7 +77,11 @@ function CountdownGrid({ t }: { t: TimeLeft }) {
     >
       {units.map((u, i) => (
         <div key={u.label} className="flex items-center gap-2 sm:gap-3">
-          <div className="cs-timer-cell relative min-w-[4.5rem] overflow-hidden rounded-2xl px-2 py-3 text-center sm:min-w-[5.75rem] sm:px-3 sm:py-4">
+          <motion.div
+            className="cs-timer-cell relative min-w-[4.5rem] overflow-hidden rounded-2xl px-2 py-3 text-center sm:min-w-[5.75rem] sm:px-3 sm:py-4"
+            whileHover={{ y: -2, scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 320, damping: 22 }}
+          >
             <p
               className="font-mono text-3xl font-bold tabular-nums text-gold sm:text-5xl"
               suppressHydrationWarning
@@ -94,7 +91,7 @@ function CountdownGrid({ t }: { t: TimeLeft }) {
             <p className="mt-2 font-rajdhani text-[10px] font-semibold uppercase tracking-[0.25em] text-cream-soft/50">
               {u.label}
             </p>
-          </div>
+          </motion.div>
           {i < units.length - 1 && (
             <span className="cs-colon mb-5 font-mono text-2xl text-gold/45 sm:text-3xl">
               :
@@ -109,11 +106,8 @@ function CountdownGrid({ t }: { t: TimeLeft }) {
 function UnlockCeremony() {
   return (
     <div className="relative z-10 flex w-full max-w-xl flex-col items-center px-4 text-center">
-      <div className="cs-unlock-burst pointer-events-none absolute left-1/2 top-[30%] h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/35" />
-      <div className="cs-unlock-burst-2 pointer-events-none absolute left-1/2 top-[30%] h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/20" />
-
       <div className="cs-unlock-in relative mb-8">
-        <div className="absolute inset-0 animate-gold-pulse rounded-full bg-gold/35 blur-2xl" />
+        <div className="absolute inset-0 animate-gold-pulse rounded-3xl bg-gold/35 blur-2xl" />
         <LogoMark size="xl" />
       </div>
 
@@ -172,15 +166,6 @@ export default function ComingSoonPage() {
         <UnlockCeremony />
       ) : (
         <>
-          <div
-            className="pointer-events-none absolute left-1/2 top-[22%] h-64 w-64 -translate-x-1/2 -translate-y-1/2 sm:top-[20%] sm:h-80 sm:w-80"
-            aria-hidden
-          >
-            <div className="cs-orbit absolute inset-0 rounded-full border border-gold/10" />
-            <div className="cs-orbit-rev absolute inset-6 rounded-full border border-dashed border-gold/15" />
-            <div className="cs-orbit absolute inset-12 rounded-full border border-gold/8" />
-          </div>
-
           <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
             {PARTICLES.map((p, i) => (
               <motion.span
@@ -194,12 +179,12 @@ export default function ComingSoonPage() {
                   boxShadow: "0 0 10px rgba(212,175,55,0.65)",
                 }}
                 animate={{
-                  y: [0, -18, 0],
-                  opacity: [0.15, 0.7, 0.15],
-                  scale: [1, 1.35, 1],
+                  y: [0, -22, 0],
+                  opacity: [0.12, 0.75, 0.12],
+                  scale: [1, 1.4, 1],
                 }}
                 transition={{
-                  duration: 4 + i * 0.35,
+                  duration: 4.2 + i * 0.35,
                   delay: p.d,
                   repeat: Infinity,
                   ease: "easeInOut",
@@ -209,12 +194,16 @@ export default function ComingSoonPage() {
           </div>
 
           <div className="relative z-10 flex w-full max-w-lg flex-col items-center text-center">
-            <div className="cs-enter relative mb-8 flex h-24 w-24 items-center justify-center sm:h-28 sm:w-28">
-              <div className="absolute inset-0 animate-gold-pulse rounded-full bg-gold/30 blur-2xl" />
+            <motion.div
+              className="cs-enter relative mb-8 flex h-24 w-24 items-center justify-center sm:h-28 sm:w-28"
+              animate={{ y: [0, -5, 0] }}
+              transition={{ duration: 4.8, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <div className="absolute inset-0 animate-gold-pulse rounded-3xl bg-gold/30 blur-2xl" />
               <div className="cs-logo-float">
                 <LogoMark />
               </div>
-            </div>
+            </motion.div>
 
             <h1 className="cs-enter cs-enter-d1 cs-brand-title font-rajdhani text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
               KavachSaathi
@@ -261,24 +250,58 @@ export default function ComingSoonPage() {
               <p className="mt-2 font-body text-xs text-cream-soft/55 sm:text-sm">
                 The Bajaj Family · Bhirdana, Fatehabad
               </p>
+              <p className="mt-1 font-rajdhani text-[10px] uppercase tracking-[0.2em] text-gold/40">
+                Eldest → Youngest
+              </p>
 
               <p className="sr-only">
                 KavachSaathi launches 11 October 2026 at 12:00 PM IST. Born from
                 Legacy, Built to Protect. Dedicated to The Bajaj Brothers of
-                Bhirdana, Fatehabad. Shri Ganga Dhar Mehta Ji (1949 to 2011),
-                Shri Narender Bajaj Ji, Shri Surender Bajaj Ji, Shri Bansi Dhar
-                Bajaj Ji, and Shri Pawan Bajaj Ji (1962 to 2015).
+                Bhirdana, Fatehabad. {BROTHERS_DEDICATION_LINE}.
               </p>
 
-              <ul className="mt-6 space-y-3">
+              <ul className="mt-6 space-y-2.5">
                 {BROTHERS.map((b, i) => (
-                  <li
+                  <motion.li
                     key={b.name}
-                    className="cs-brother-card launch-brother-row flex flex-col items-center rounded-xl px-3 py-2.5"
-                    style={{ animationDelay: `${0.35 + i * 0.1}s` }}
+                    className="cs-brother-card group relative flex flex-col items-center overflow-hidden rounded-xl px-3 py-3"
+                    initial={{ opacity: 0, y: 18, filter: "blur(6px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    transition={{
+                      duration: 0.65,
+                      delay: 0.45 + i * 0.12,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                    whileHover={{
+                      y: -3,
+                      transition: { type: "spring", stiffness: 380, damping: 24 },
+                    }}
                   >
-                    <span className="font-rajdhani text-base font-bold text-cream sm:text-lg">
-                      {b.memorial ? "🪔 " : ""}
+                    <motion.span
+                      className="pointer-events-none absolute inset-x-6 bottom-0 h-px origin-center bg-gradient-to-r from-transparent via-gold/50 to-transparent"
+                      initial={{ scaleX: 0, opacity: 0 }}
+                      animate={{ scaleX: 1, opacity: 1 }}
+                      transition={{ delay: 0.7 + i * 0.12, duration: 0.55 }}
+                    />
+                    <span className="font-rajdhani text-base font-bold text-cream transition-colors duration-300 group-hover:text-gold sm:text-lg">
+                      {b.memorial ? (
+                        <motion.span
+                          className="mr-1.5 inline-block"
+                          aria-hidden
+                          animate={{
+                            opacity: [0.55, 1, 0.7, 1],
+                            scale: [0.95, 1.08, 0.98, 1],
+                          }}
+                          transition={{
+                            duration: 2.6,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: i * 0.15,
+                          }}
+                        >
+                          🪔
+                        </motion.span>
+                      ) : null}
                       {b.name}
                     </span>
                     {"years" in b && b.years ? (
@@ -289,7 +312,7 @@ export default function ComingSoonPage() {
                         {b.years}
                       </span>
                     ) : null}
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
 

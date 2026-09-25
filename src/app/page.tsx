@@ -174,42 +174,7 @@ const FEATURES = [
   },
 ];
 
-type BrotherVariant = "elder" | "pillar" | "memorial";
-
-const BROTHERS: {
-  name: string;
-  label: string;
-  variant: BrotherVariant;
-  years?: string;
-}[] = [
-  {
-    name: "Shri Ganga Dhar Mehta Ji",
-    label: "The Eldest · Our Grandfather",
-    years: "1949 — 2011",
-    variant: "memorial",
-  },
-  {
-    name: "Shri Narender Bajaj Ji",
-    label: "The Pillar of Our Family",
-    variant: "pillar",
-  },
-  {
-    name: "Shri Surender Bajaj Ji",
-    label: "The Pillar of Our Family",
-    variant: "pillar",
-  },
-  {
-    name: "Shri Bansi Dhar Bajaj Ji",
-    label: "The Pillar of Our Family",
-    variant: "pillar",
-  },
-  {
-    name: "Shri Pawan Bajaj Ji",
-    label: "The Youngest · In Loving Memory",
-    years: "1962 — 2015",
-    variant: "memorial",
-  },
-];
+import { BROTHERS } from "@/lib/brothers";
 
 function BrotherCard({
   brother,
@@ -225,15 +190,23 @@ function BrotherCard({
   return (
     <motion.article
       ref={ref}
-      initial={{ opacity: 0, y: 24, scale: 0.96 }}
-      animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
-      transition={{ duration: 0.5, delay: 0.08 + index * 0.1, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -8, scale: 1.02 }}
+      initial={{ opacity: 0, y: 28, scale: 0.94, filter: "blur(4px)" }}
+      animate={
+        inView
+          ? { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }
+          : {}
+      }
+      transition={{
+        duration: 0.6,
+        delay: 0.08 + index * 0.12,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      whileHover={{ y: -10, scale: 1.03 }}
       className={cn(
         "relative flex w-[min(72vw,220px)] shrink-0 flex-col items-center rounded-card border border-gold/35 bg-[#0e0e0c] px-4 py-6 text-center lg:w-auto",
         "min-h-[200px] gold-shimmer transition-shadow duration-300",
         "hover:border-gold/60 hover:shadow-[0_12px_40px_rgba(212,175,55,0.18)]",
-        isMemorial && "memorial-card border-slate-300/30 bg-[#0c0e10]/90"
+        isMemorial && "memorial-card border-gold/25 bg-[#0c0e10]/90"
       )}
     >
       {isMemorial ? (
@@ -249,14 +222,19 @@ function BrotherCard({
         <motion.div
           className="mb-4 h-1.5 w-8 rounded-full bg-gold/40"
           animate={{ scaleX: [1, 1.25, 1], opacity: [0.4, 0.85, 0.4] }}
-          transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut", delay: index * 0.2 }}
+          transition={{
+            duration: 2.6,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: index * 0.2,
+          }}
         />
       )}
 
       <h3 className="font-rajdhani text-base font-bold leading-snug text-cream sm:text-lg">
         {brother.name}
       </h3>
-      {brother.years ? (
+      {"years" in brother && brother.years ? (
         <p className="memorial-years mt-2" aria-label={`Years ${brother.years}`}>
           {brother.years}
         </p>
@@ -264,13 +242,13 @@ function BrotherCard({
       <p
         className={cn(
           "mt-2 font-body text-xs leading-relaxed sm:text-sm",
-          isMemorial ? "text-slate-300/80" : "text-gold/65"
+          isMemorial ? "text-gold/70" : "text-gold/65"
         )}
       >
         {brother.label}
       </p>
       {isMemorial && (
-        <p className="mt-auto pt-4 font-body text-xs italic text-slate-200/70">
+        <p className="mt-auto pt-4 font-body text-xs italic text-cream-soft/70">
           Forever in our hearts
         </p>
       )}
@@ -358,7 +336,7 @@ export default function HomePage() {
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 70% 50% at 50% 20%, rgba(212,175,55,0.08), transparent 55%), radial-gradient(ellipse 40% 40% at 85% 80%, rgba(200,210,220,0.04), transparent 50%)",
+              "radial-gradient(ellipse 70% 50% at 50% 20%, rgba(212,175,55,0.08), transparent 55%), radial-gradient(ellipse 40% 40% at 85% 80%, rgba(212,175,55,0.04), transparent 50%)",
           }}
         />
         <div className="relative z-10 mx-auto max-w-6xl">
