@@ -15,8 +15,6 @@ import {
   auth,
   db,
   initPersistentAuth,
-  hashPin,
-  loginWithCustomToken,
   isFirebaseConfigured,
 } from "@/lib/firebase";
 import { setSessionCookie } from "@/lib/utils";
@@ -105,19 +103,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       pin: string,
       loginType: "phone" | "health_id"
     ) => {
+      void loginType;
       try {
-        const pinHash = await hashPin(pin);
-        const res = await fetch("/api/auth/login", {
+        // Single source of truth: profiles + bcrypt (same as /my-profile)
+        const res = await fetch("/api/profile/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ identifier, pinHash, loginType }),
+          body: JSON.stringify({ identifier, pin }),
         });
         const data = await res.json();
-        if (!res.ok || !data.customToken) {
-          return { ok: false, error: data.error || "Invalid credentials" };
+        if (!res.ok) {
+          return {
+            ok: false,
+            error: data.error || "Invalid phone number or PIN",
+          };
         }
-        await loginWithCustomToken(data.customToken);
+        const me = await fetch("/api/profile/me");
+        if (me.ok) {
+          const meData = await me.json();
+          const p = meData.profile || {};
+          setProfile({
+            uid: String(p.health_id || "profile"),
+            phone: String(p.phone || ""),
+            health_id: String(p.health_id || ""),
+            full_name: String(p.full_name || ""),
+            blood_group: String(p.blood_group || ""),
+            ...(p as object),
+          } as UserProfile);
+        }
         setSessionCookie(true);
+        setIsDemo(false);
         return { ok: true };
       } catch (err) {
         return {

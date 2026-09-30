@@ -121,11 +121,16 @@ function loadCredentials(): ServiceAccountLike {
 function initAdmin(): App {
   if (getApps().length) return getApps()[0];
   const credentials = loadCredentials();
+  const storageBucket =
+    process.env.FIREBASE_STORAGE_BUCKET ||
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ||
+    undefined;
   return initializeApp({
     credential: cert(credentials as Parameters<typeof cert>[0]),
     projectId:
       (credentials.project_id as string) ||
       process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    ...(storageBucket ? { storageBucket } : {}),
   });
 }
 

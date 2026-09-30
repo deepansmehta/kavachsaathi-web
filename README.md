@@ -1,57 +1,93 @@
-# KavachSaathi v2
+# KavachSaathi Web — Smart Health Card
 
-India's first smart PVC health card — complete web app.  
-**GDM Technoworld Pvt. Ltd.** · [kavachsaathi.in](https://kavachsaathi.in)
+Single adaptive QR · Next.js 14 · Firebase Admin SDK APIs · Netlify  
+**GDM Technoworld** · [kavachsaathi.in](https://kavachsaathi.in)
 
-## Stack
+> Full production checklist: see **[GOLIVE.md](./GOLIVE.md)**
 
-Next.js 14 · Firebase Auth (Phone OTP) · Firestore · Tailwind · Framer Motion · next-pwa · Razorpay · react-hot-toast
+## Product rule
+
+One unchanging QR per card:
+
+```
+https://kavachsaathi.in/card/{health_id}
+```
+
+| Status | `/card/[health_id]` |
+|--------|---------------------|
+| `unactivated` | Activation form (`activation_code` + health fields + 4–6 digit PIN) |
+| `activated` | Public emergency profile |
+
+Do **not** re-seed the existing 100 `cards` documents.
 
 ## Quick start
 
 ```bash
-cp .env.local.example .env.local
+cp .env.example .env.local
+# fill values (or add service-account.json for Admin SDK)
 npm install
 npm run dev
 ```
 
-## Deploy (Netlify + GoDaddy)
+## Auth providers (Firebase Console)
 
-1. Push this repo to GitHub.
-2. [Netlify](https://app.netlify.com) → Add new site → Import from Git → select this repo.
-3. Build uses `netlify.toml` (`npm run build` + `@netlify/plugin-nextjs`).
-4. Site settings → Environment variables — copy all keys from `.env.local.example` (production values).
-   Set `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_BASE_URL` to `https://kavachsaathi.in`.
-5. Domain management → Add `kavachsaathi.in` + `www`.
-6. GoDaddy DNS → Netlify will show the exact records (usually Netlify DNS nameservers, or A/CNAME to Netlify).
+| Provider | Needed? |
+|----------|---------|
+| **Google** | Yes — `/admin` |
+| **Phone** | **No** — safe to disable (no OTP; phone is a plain profile field) |
 
-## Demo mode (no Firebase)
+Authorized domains: `localhost`, `kavachsaathi.in`, `www.kavachsaathi.in`, Netlify host.
 
-| Action | How |
-|--------|-----|
-| Activate | Code `0042` / `DEMO` → OTP `123456` |
-| Login | Any phone → OTP `123456` |
-| Emergency | `/e/0042` |
-| Doctor | Search `0042` |
+## Deploy
 
-## Pages
+### 1. Firestore rules
 
-| Route | Notes |
-|-------|--------|
-| `/` | Landing (auto → `/dashboard` if logged in) |
-| `/activate` | Code → Phone OTP → Health form + draft save |
-| `/e/[code]` | **Pure SSR** emergency page, 72px blood group |
-| `/login` | Phone OTP + 30s resend |
-| `/dashboard` | Summary, scans, PWA banner |
-| `/profile/edit` | Full medical editor |
-| `/my-card` | PVC card + QR + share |
-| `/scan-history` | Timeline |
-| `/doctor` | Patient lookup + visit notes |
-| `/order` | ₹199 / ₹299 + Razorpay |
+```bash
+firebase use kavachsaathi
+firebase deploy --only firestore:rules
+```
 
-## Critical rules baked in
+`cards`, `profiles`, and `rate_limits` are **deny-all** for clients. Access is Admin SDK only via API routes (`/api/card/activate`, `/api/cards`, `/api/emergency`, `/api/admin`, `/api/profile/*`).
 
-- Never white bg (min `#111` / `#080808`)
-- `initPersistentAuth()` + `kavach_session` cookie + middleware
-- `/e/[code]` server-only; scan logged without blocking render
-- Activation draft in `localStorage`
+### 2. Netlify
+
+1. Import Git repo (build via `netlify.toml`).
+2. Set every variable from `.env.example` (production URLs → `https://kavachsaathi.in`).
+3. Required secrets: Firebase Admin credentials, `ADMIN_EMAILS`, `PROFILE_SESSION_SECRET`.
+4. Attach domain `kavachsaathi.in`.
+
+### 3. Smoke test (disposable card only)
+
+```bash
+# terminal 1
+npm run dev
+
+# terminal 2
+SMOKE_BASE_URL=http://localhost:3000 npx ts-node --skipProject \
+  --compiler-options '{"module":"commonjs","esModuleInterop":true}' \
+  scripts/smoke-test.ts
+```
+
+Uses `KVS-2099-SMK01` / `cards/9999` then deletes it — never touches `0001`–`0100`.
+
+### 4. QR CSV for print
+
+```bash
+npx ts-node --skipProject --compiler-options '{"module":"commonjs","esModuleInterop":true}' scripts/export-qr-urls.ts
+```
+
+## Key routes
+
+| Route | Purpose |
+|--------|---------|
+| `/card/[health_id]` | Adaptive QR target |
+| `/my-profile` | PIN login · edit · forgot PIN |
+| `/admin` | Inventory · deactivate · reset PIN · CSV |
+| `/api/card/activate` | Atomic activation (bcrypt PIN) |
+
+## Security
+
+- No Firebase Phone Auth / OTP in the live QR flow
+- PIN stored as bcrypt `pin_hash`
+- Activation uses Firestore `runTransaction`
+- Rate limits + CAPTCHA on card activate & profile login

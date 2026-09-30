@@ -1,0 +1,9 @@
+rules_version = '2';
+// Deny all client access — Admin SDK / signed URLs only.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

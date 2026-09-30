@@ -14,7 +14,7 @@ import {
 } from "@/components/ui";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDemoProfile } from "@/lib/demo";
-import { getEmergencyUrl, PACKAGING_STEPS } from "@/lib/product-flow";
+import { getCardUrl, PACKAGING_STEPS } from "@/lib/product-flow";
 
 export default function MyCardPage() {
   const router = useRouter();
@@ -40,7 +40,10 @@ export default function MyCardPage() {
     );
   }
 
-  const emergencyUrl = getEmergencyUrl(data.activation_code, origin);
+  const emergencyUrl = getCardUrl(
+    data.health_id || data.activation_code,
+    origin
+  );
 
   const share = async () => {
     if (navigator.share) {

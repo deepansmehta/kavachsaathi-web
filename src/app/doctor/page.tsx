@@ -22,7 +22,7 @@ import {
   ECGBackground,
   LoadingSpinner,
 } from "@/components/ui";
-import { getCard, getUserByActivationCode, addDoctorVisitNote } from "@/lib/firestore";
+import { addDoctorVisitNote } from "@/lib/firestore";
 import { getDemoProfile, isDemoCode } from "@/lib/demo";
 import type { UserProfile, CardDoc } from "@/lib/types";
 import { telHref, formatPhone } from "@/lib/utils";
@@ -63,18 +63,110 @@ export default function DoctorPortalPage() {
         }
       }
 
-      const found = await getUserByActivationCode(trimmed);
-      const c = await getCard(trimmed);
-      if (!found && trimmed.startsWith("KVS-")) {
-        toast.error("Search by activation code for now");
-      }
-      if (!found || !c || c.status !== "active") {
-        toast.error("No active patient found");
+      // Prefer activation code; if health_id pasted, open emergency API path via code lookup only
+      const codeParam = trimmed.startsWith("KVS-")
+        ? trimmed
+        : trimmed.padStart(4, "0").slice(0, 4);
+
+      if (trimmed.startsWith("KVS-")) {
+        const em = await fetch(
+          `/api/emergency?health_id=${encodeURIComponent(trimmed)}`
+        );
+        const data = await em.json();
+        if (!em.ok || data.status !== "activated" || !data.profile) {
+          toast.error(data.message || data.error || "No active patient found");
+          setLoading(false);
+          return;
+        }
+        const p = data.profile;
+        setCard({
+          activation_code: "",
+          health_id: p.health_id,
+          status: "activated",
+          tier: "STANDARD",
+        });
+        setProfile({
+          uid: "doctor-view",
+          full_name: p.name,
+          dob: "",
+          gender: "",
+          phone: "",
+          address: "",
+          blood_group: p.blood_group,
+          allergies: p.allergies || [],
+          medical_conditions: p.chronic_conditions || [],
+          medications: p.medications || [],
+          surgeries: [],
+          emergency_contact_1: p.emergency_contacts?.[0] || {
+            name: "",
+            phone: "",
+          },
+          emergency_contact_2: p.emergency_contacts?.[1] || {
+            name: "",
+            phone: "",
+          },
+          emergency_contacts: p.emergency_contacts || [],
+          doctor_name: p.family_doctor?.name || "",
+          doctor_phone: p.family_doctor?.phone || "",
+          doctor_clinic: "",
+          insurance_number: "",
+          has_insurance: false,
+          organ_donor: false,
+          blood_donor: false,
+          activation_code: "",
+          health_id: p.health_id,
+        } as UserProfile);
         setLoading(false);
         return;
       }
-      setProfile(found);
-      setCard(c);
+
+      const res = await fetch(
+        `/api/doctor/patient?code=${encodeURIComponent(codeParam)}`
+      );
+      const data = await res.json();
+      if (!res.ok || data.status !== "activated" || !data.profile) {
+        toast.error(data.message || data.error || "No active patient found");
+        setLoading(false);
+        return;
+      }
+      const p = data.profile;
+      setCard({
+        activation_code: data.activation_code,
+        health_id: data.health_id,
+        status: "activated",
+        tier: "STANDARD",
+      });
+      setProfile({
+        uid: "doctor-view",
+        full_name: p.name,
+        dob: "",
+        gender: "",
+        phone: "",
+        address: "",
+        blood_group: p.blood_group,
+        allergies: p.allergies || [],
+        medical_conditions: p.chronic_conditions || [],
+        medications: p.medications || [],
+        surgeries: [],
+        emergency_contact_1: p.emergency_contacts?.[0] || {
+          name: "",
+          phone: "",
+        },
+        emergency_contact_2: p.emergency_contacts?.[1] || {
+          name: "",
+          phone: "",
+        },
+        emergency_contacts: p.emergency_contacts || [],
+        doctor_name: p.family_doctor?.name || "",
+        doctor_phone: p.family_doctor?.phone || "",
+        doctor_clinic: "",
+        insurance_number: "",
+        has_insurance: false,
+        organ_donor: false,
+        blood_donor: false,
+        activation_code: data.activation_code,
+        health_id: data.health_id,
+      } as UserProfile);
     } catch {
       toast.error("Search failed");
     } finally {

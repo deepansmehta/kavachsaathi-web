@@ -318,8 +318,8 @@ export default function HomePage() {
               <Link href="/order">
                 <GoldButton size="lg">Order Card</GoldButton>
               </Link>
-              <Link href="/activate">
-                <OutlineButton size="lg">Activate</OutlineButton>
+              <Link href="/my-profile">
+                <OutlineButton size="lg">My Profile</OutlineButton>
               </Link>
             </motion.div>
           </motion.div>

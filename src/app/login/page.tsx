@@ -53,8 +53,8 @@ function LoginForm() {
   };
 
   const handleLogin = async () => {
-    if (pin.length !== 4) {
-      toast.error("Enter your 4-digit PIN");
+    if (pin.length < 4 || pin.length > 6) {
+      toast.error("Enter your 4–6 digit PIN");
       return;
     }
     setSubmitting(true);

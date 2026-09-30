@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = snap.data()!;
-    if (data.status === "active") {
+    if (data.status === "active" || data.status === "activated") {
       return NextResponse.json({
         valid: false,
         error: "This card has already been activated.",

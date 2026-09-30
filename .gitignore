@@ -32,6 +32,11 @@ service-account.json
 *-firebase-adminsdk-*.json
 *.p12
 
+# pre-print exports (may contain activation codes)
+/exports/
+exports/
+qr-urls-100.csv
+
 # vercel / netlify
 .vercel
 .netlify
