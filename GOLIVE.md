@@ -67,7 +67,12 @@ Copy from `.env.example`. **Required for production:**
 ### Auth / sessions
 - `ADMIN_EMAILS` — comma-separated GDM Google emails
 - `NEXT_PUBLIC_ADMIN_EMAILS` — same list (client allowlist UI)
-- `PROFILE_SESSION_SECRET` — long random string (HMAC for `/my-profile` cookies)
+- `PROFILE_SESSION_SECRET` — long random string (HMAC for `/my-profile` cookies) — **do not rotate casually** (logs everyone out)
+- `PROFILE_ENC_KEY` — 32-byte key as base64 (`openssl rand -base64 32`) for AES-256-GCM PII at rest — **back up offline**
+
+### Firebase Storage (same project)
+- `FIREBASE_STORAGE_BUCKET` = `kavachsaathi.firebasestorage.app`
+- `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` = `kavachsaathi.firebasestorage.app`
 
 ### Optional
 - `NEXT_PUBLIC_WHATSAPP_NUMBER`, `NEXT_PUBLIC_LAUNCH_DATE`
@@ -76,11 +81,64 @@ Copy from `.env.example`. **Required for production:**
 
 ---
 
+## C2. Storage + rules
+
+Bucket: `gs://kavachsaathi.firebasestorage.app` (asia-south1), public access prevention ON, uniform ACL ON, CORS for kavachsaathi.in + localhost.
+
+```bash
+firebase deploy --only firestore:rules,storage --project kavachsaathi
+```
+
+- `storage.rules`: deny all client read/write (Admin SDK + signed URLs only)
+- `firestore.rules`: deny client access to `cards`, `profiles`, `accessLogs`, `rate_limits`, and default catch-all
+
+---
+
 ## D. Deploy app
 
 1. Push repo → Netlify build (`netlify.toml`).
 2. Confirm custom domain `kavachsaathi.in` SSL is active.
-3. Hit `https://kavachsaathi.in/card/KVS-2026-75QW6` (should show **activation** form while still unactivated — do not complete activation in prod smoke unless intentional).
+3. Hit `https://kavachsaathi.in/card/KVS-2026-75QW6` (should show **activation wizard step 1** while still unactivated — do not complete activation in prod smoke unless intentional).
+
+### Rollback (Full Details release)
+
+- Previous production deploy ID: `6abd05dd030f756edf0595c2` (`pre-full-details` tag → commit on `main` before this release)
+- Current production deploy ID (Full Details): `6abd39800461b9ad320559b4`
+- Git tag: `pre-full-details`
+
+```bash
+# Netlify UI: Deploys → publish previous deploy, OR:
+netlify api restoreSiteDeploy --data '{"site_id":"ace40397-cda8-481a-8e87-f748c4413a18","deploy_id":"6abd05dd030f756edf0595c2"}'
+```
+
+Firestore/storage rules can stay (stricter). Env vars stay.
+
+---
+
+## D2. Activation flow (7 steps)
+
+On `/card/{health_id}` when unactivated:
+
+1. Activation code → 15-min activation session cookie  
+2. Medical / emergency contacts  
+3. Photo (required, camera capture)  
+4. Exactly 2 different ID proofs (Aadhaar = last 4 only)  
+5. Address + address proof  
+6. Insurance (private / government / both)  
+7. Consents (EN+HI) + PIN → activate  
+
+Uploads use V4 signed PUT URLs; files land in `pending/` then move to `profiles/{health_id}/`.
+
+---
+
+## D3. Open Full Details (hospital admission)
+
+Public emergency view shows photo + insurer/scheme names only.  
+**Open Full Details** modal:
+
+- **PIN path**: full IDs, address, insurance docs (5-min signed GET URLs), 10-min session  
+- **Emergency hospital path**: limited insurance/admission data only; logged to `accessLogs`  
+- Document previews watermarked; Cache-Control: no-store  
 
 ---
 
