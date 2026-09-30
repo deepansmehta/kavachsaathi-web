@@ -1,26 +1,38 @@
 /**
  * KavachSaathi physical product flow
  * ----------------------------------
- * 1. PVC cards are printed looking the SAME:
- *      - Front: empty red circle (blood-group sticker area)
- *      - Back: QR placeholder area
- * 2. Inside each box:
- *      - unique 4-digit activation code (0001–0100) + unique emergency QR sticker
- *      - blood-group stickers (A+, B+, …) to paste in the red circle
- * 3. User sticks QR on the back, blood-group sticker in the red circle.
- * 4. User activates online with the 4-digit code + health profile + login PIN.
- * 5. Scanning the QR opens /e/{code} — only that cardholder’s details.
+ * ONE adaptive QR per card (never changes):
+ *   https://kavachsaathi.in/card/{health_id}
  *
- * Digital rule: emergency URL is always tied to activation_code (card doc id).
- * Card face never prints a blood group — physical sticker only.
+ * Unactivated scan → activation form (requires secret activation_code + PIN)
+ * Activated scan   → public emergency profile
+ *
+ * activation_code (0001–0100) is packaging-only — never printed near the QR.
  */
 
 export const PRODUCT_SITE =
   process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "") ||
   "https://kavachsaathi.in";
 
-/** Public emergency URL encoded in the packaging QR sticker */
-export function getEmergencyUrl(
+/** Single QR URL printed on every card */
+export function getCardUrl(healthId: string, origin?: string): string {
+  const id = String(healthId || "").trim().toUpperCase();
+  const base = (origin || PRODUCT_SITE).replace(/\/$/, "");
+  return `${base}/card/${encodeURIComponent(id)}`;
+}
+
+/** @deprecated Use getCardUrl — QR is now adaptive */
+export function getActivateUrl(healthId: string, origin?: string): string {
+  return getCardUrl(healthId, origin);
+}
+
+/** @deprecated Use getCardUrl — QR is now adaptive */
+export function getEmergencyUrl(healthId: string, origin?: string): string {
+  return getCardUrl(healthId, origin);
+}
+
+/** Legacy sticker by activation_code */
+export function getEmergencyUrlByCode(
   activationCode: string,
   origin?: string
 ): string {
@@ -35,18 +47,18 @@ export function getEmergencyUrl(
 export const PACKAGING_STEPS = [
   {
     title: "Open the box",
-    desc: "Find stickers: unique QR + 4-digit code, and your blood-group sticker.",
+    desc: "Find your unique QR sticker + secret activation code + blood-group sticker.",
   },
   {
     title: "Stick on your card",
-    desc: "QR on the back. Blood-group sticker inside the empty red circle on the front.",
+    desc: "QR on the back. Blood-group sticker in the circle on the front. Keep the activation code private.",
   },
   {
-    title: "Activate online",
-    desc: "Enter the same 4-digit code on kavachsaathi.in/activate and set your profile + PIN.",
+    title: "Scan to activate",
+    desc: "Scan the QR → enter packaging code + health details + PIN.",
   },
   {
     title: "Ready for emergency",
-    desc: "Anyone who scans your card QR sees only your medical details — no login.",
+    desc: "After activation, the same QR opens your emergency medical profile — no login.",
   },
 ] as const;

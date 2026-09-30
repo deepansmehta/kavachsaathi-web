@@ -24,8 +24,8 @@ function asStringArray(value: unknown): string[] {
 
 function isCardActivated(card: CardDoc): boolean {
   if (card.activated === true) return true;
-  if (card.status === "active") return true;
-  return false;
+  const s = String(card.status || "").toLowerCase();
+  return s === "active" || s === "activated";
 }
 
 /** Merge card-doc fields + optional user profile into public emergency view */

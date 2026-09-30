@@ -1,12 +1,9 @@
 /**
- * Public launch moment — 11 October 2026, 12:00 PM (noon) IST.
- * Explicit +05:30 so UTC hosts (Netlify) compare correctly.
- *
- * Local test override: set NEXT_PUBLIC_LAUNCH_DATE in .env.local
- * (e.g. a past ISO date), restart `npm run dev`, then restore this default.
+ * Site is live — launch gate / coming-soon timer retired.
+ * Override with NEXT_PUBLIC_LAUNCH_DATE only if you need to re-enable a countdown.
  */
 export const LAUNCH_DATE = new Date(
-  process.env.NEXT_PUBLIC_LAUNCH_DATE || "2026-10-11T12:00:00+05:30"
+  process.env.NEXT_PUBLIC_LAUNCH_DATE || "2026-09-30T00:00:00+05:30"
 );
 
 /** ?preview=<secret> unlocks the full site before launch (for internal QA) */

@@ -9,7 +9,12 @@ export type BloodGroup =
   | "AB-";
 
 export type CardTier = "STANDARD" | "PRO";
-export type CardStatus = "available" | "unactivated" | "active";
+export type CardStatus =
+  | "available"
+  | "unactivated"
+  | "active"
+  | "activated"
+  | "blocked";
 export type Gender = "male" | "female" | "other" | "prefer_not_to_say";
 
 export interface EmergencyContact {

@@ -1,0 +1,12 @@
+[
+  {
+    "origin": [
+      "https://kavachsaathi.in",
+      "https://www.kavachsaathi.in",
+      "http://localhost:3000"
+    ],
+    "method": ["PUT", "GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Content-Length"],
+    "maxAgeSeconds": 3600
+  }
+]

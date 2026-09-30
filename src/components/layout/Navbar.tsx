@@ -12,7 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const publicLinks = [
   { href: "/", label: "Home" },
-  { href: "/activate", label: "Activate" },
+  { href: "/my-profile", label: "My Profile" },
   { href: "/order", label: "Order" },
   { href: "/doctor", label: "Doctor" },
 ];
@@ -20,7 +20,7 @@ const publicLinks = [
 const appLinks = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/my-card", label: "My Card" },
-  { href: "/profile/edit", label: "Profile" },
+  { href: "/my-profile", label: "My Profile" },
   { href: "/scan-history", label: "Scans" },
 ];
 
@@ -29,12 +29,15 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const { user, profile, loading, isDemo } = useAuth();
 
-  if (pathname?.startsWith("/coming-soon") || pathname?.startsWith("/e/")) {
+  if (
+    pathname?.startsWith("/coming-soon") ||
+    pathname?.startsWith("/e/") ||
+    pathname?.startsWith("/emergency/") ||
+    pathname?.startsWith("/card/")
+  ) {
     return null;
   }
   const loggedIn = Boolean(user || isDemo || profile);
-
-  if (pathname?.startsWith("/e/")) return null;
 
   const links = loggedIn ? appLinks : publicLinks;
 
@@ -77,8 +80,8 @@ export function Navbar() {
               <Link href="/login">
                 <OutlineButton size="sm">Login</OutlineButton>
               </Link>
-              <Link href="/activate">
-                <GoldButton size="sm">Activate</GoldButton>
+              <Link href="/my-profile">
+                <GoldButton size="sm">My Profile</GoldButton>
               </Link>
             </>
           )}
