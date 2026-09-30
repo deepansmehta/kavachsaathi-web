@@ -74,14 +74,15 @@ export async function GET(req: NextRequest) {
             idProofCount: Array.isArray(d.idProofs) ? d.idProofs.length : 0,
             hasAddress: Boolean(d.address),
             hasInsurance: Boolean(d.insurance),
-            // Never include *Enc fields by default
           };
+          const nextMissing: string[] = [];
           if (!profile.profileComplete) {
-            if (!profile.hasPhoto) missing.push("photo");
-            if ((profile.idProofCount as number) < 2) missing.push("idProofs");
-            if (!profile.hasAddress) missing.push("address");
-            if (!profile.hasInsurance) missing.push("insurance");
+            if (!profile.hasPhoto) nextMissing.push("photo");
+            if ((profile.idProofCount as number) < 2) nextMissing.push("idProofs");
+            if (!profile.hasAddress) nextMissing.push("address");
+            if (!profile.hasInsurance) nextMissing.push("insurance");
           }
+          missing = nextMissing;
         }
       }
       const logs = await db

@@ -101,8 +101,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (
       identifier: string,
       pin: string,
-      _loginType: "phone" | "health_id"
+      loginType: "phone" | "health_id"
     ) => {
+      void loginType;
       try {
         // Single source of truth: profiles + bcrypt (same as /my-profile)
         const res = await fetch("/api/profile/login", {
