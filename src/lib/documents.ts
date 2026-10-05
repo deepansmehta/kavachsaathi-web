@@ -67,6 +67,8 @@ export function buildEncryptedDocFields(input: {
   const insurance: Record<string, unknown> = { coverageType };
   if (coverageType === "private" || coverageType === "both") {
     const p = input.insurance.private!;
+    const memberId = String(p.memberId || "").trim();
+    const employeeId = String(p.employeeId || "").trim();
     insurance.private = {
       insurerName: p.insurerName,
       policyNumberEnc: encrypt(p.policyNumber.trim()),
@@ -74,6 +76,11 @@ export function buildEncryptedDocFields(input: {
       validTill: p.validTill || null,
       policyCardPath: p.policyCardPath,
       policyBondPath: p.policyBondPath,
+      tpaName: String(p.tpaName || "").trim() || null,
+      memberIdEnc: memberId ? encrypt(memberId) : null,
+      isGroupPolicy: Boolean(p.isGroupPolicy),
+      corporateName: String(p.corporateName || "").trim() || null,
+      employeeIdEnc: employeeId ? encrypt(employeeId) : null,
     };
   }
   if (coverageType === "government" || coverageType === "both") {
@@ -82,6 +89,15 @@ export function buildEncryptedDocFields(input: {
       schemeName: g.schemeName,
       govtCardNumberEnc: encrypt(g.govtCardNumber.trim()),
       govtCardPath: g.govtCardPath,
+    };
+  }
+  const om = input.insurance.otherMediclaim;
+  if (om && typeof om === "object") {
+    const otherPol = String(om.policyNumber || "").trim();
+    insurance.otherMediclaim = {
+      hasOther: Boolean(om.hasOther),
+      companyName: String(om.companyName || "").trim() || null,
+      policyNumberEnc: otherPol ? encrypt(otherPol) : null,
     };
   }
 

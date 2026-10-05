@@ -13,6 +13,8 @@ import {
   parseCriticalAlerts,
   parseOrganDonor,
 } from "@/lib/profileFields";
+import { encrypt, hasEncKey } from "@/lib/crypto";
+
 
 /** PATCH /api/profile/update — edit own profile (session required) */
 export async function PATCH(req: NextRequest) {
@@ -73,7 +75,14 @@ export async function PATCH(req: NextRequest) {
         );
       }
       const digits = normalizeAbhaId(body.abhaId);
-      patch.abhaId = digits ? formatAbhaId(digits) : null;
+      const formatted = digits ? formatAbhaId(digits) : null;
+      // Encrypt ABHA at rest if key available; keep plaintext field for legacy read
+      if (formatted && hasEncKey()) {
+        patch.abhaIdEnc = encrypt(formatted);
+        patch.abhaId = null; // clear legacy plain text
+      } else {
+        patch.abhaId = formatted;
+      }
     }
     if (body.allergies !== undefined) patch.allergies = asArr(body.allergies);
     if (body.chronic_conditions !== undefined) {
@@ -142,6 +151,80 @@ export async function PATCH(req: NextRequest) {
     if (body.photo_url !== undefined) {
       patch.photo_url = body.photo_url ? String(body.photo_url) : null;
     }
+
+    // Optional cashless / admission fields (never required)
+    if (body.gender !== undefined) {
+      const g = String(body.gender || "").trim();
+      patch.gender = ["Male", "Female", "Third Gender"].includes(g) ? g : null;
+    }
+    if (body.dateOfBirth !== undefined) {
+      const dob = String(body.dateOfBirth || "").trim();
+      patch.dateOfBirth = dob || null;
+    }
+    if (body.occupation !== undefined) {
+      patch.occupation = String(body.occupation || "").trim() || null;
+    }
+    if (body.alternateContact !== undefined) {
+      const alt = String(body.alternateContact || "").replace(/\D/g, "").slice(-10);
+      patch.alternateContact = alt || null;
+    }
+    if (body.hasFamilyPhysician !== undefined) {
+      patch.hasFamilyPhysician =
+        body.hasFamilyPhysician === true || body.hasFamilyPhysician === false
+          ? body.hasFamilyPhysician
+          : null;
+    }
+    if (body.insuranceExtras !== undefined && body.insuranceExtras && typeof body.insuranceExtras === "object") {
+      if (!hasEncKey()) {
+        return NextResponse.json(
+          { error: "Encryption not configured" },
+          { status: 503 }
+        );
+      }
+      const ex = body.insuranceExtras as {
+        tpaName?: string;
+        memberId?: string;
+        isGroupPolicy?: boolean;
+        corporateName?: string;
+        employeeId?: string;
+        otherMediclaim?: {
+          hasOther?: boolean;
+          companyName?: string;
+          policyNumber?: string;
+        };
+      };
+      const existing = (snap.data()?.insurance || {}) as Record<string, unknown>;
+      const priv = { ...((existing.private as Record<string, unknown>) || {}) };
+      if (ex.tpaName !== undefined) {
+        const tpa = String(ex.tpaName || "").trim();
+        priv.tpaName = tpa || null;
+      }
+      if (ex.memberId !== undefined) {
+        const m = String(ex.memberId || "").trim();
+        priv.memberIdEnc = m ? encrypt(m) : null;
+      }
+      if (ex.isGroupPolicy !== undefined) {
+        priv.isGroupPolicy = Boolean(ex.isGroupPolicy);
+      }
+      if (ex.corporateName !== undefined) {
+        priv.corporateName = String(ex.corporateName || "").trim() || null;
+      }
+      if (ex.employeeId !== undefined) {
+        const e = String(ex.employeeId || "").trim();
+        priv.employeeIdEnc = e ? encrypt(e) : null;
+      }
+      existing.private = priv;
+      if (ex.otherMediclaim) {
+        const pol = String(ex.otherMediclaim.policyNumber || "").trim();
+        existing.otherMediclaim = {
+          hasOther: Boolean(ex.otherMediclaim.hasOther),
+          companyName: String(ex.otherMediclaim.companyName || "").trim() || null,
+          policyNumberEnc: pol ? encrypt(pol) : null,
+        };
+      }
+      patch.insurance = existing;
+    }
+
     // Never allow pin_hash / activation_code / health_id / phone via this route
 
     await ref.update(patch);

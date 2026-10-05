@@ -49,7 +49,14 @@ export type ActivateInput = {
   familyDoctorPhone?: string | null;
   criticalAlerts?: CriticalAlerts | unknown;
   abhaId?: string | null;
+  /** Optional cashless / admission demographics — never required */
+  gender?: string | null;
+  dateOfBirth?: string | null;
+  occupation?: string | null;
+  alternateContact?: string | null;
+  hasFamilyPhysician?: boolean | null;
   /** Full-details mandatory docs (Part A/B) */
+
   photoPath?: string | null;
   idProofs?: IncomingIdProof[] | null;
   address?: IncomingAddress | null;
@@ -299,6 +306,16 @@ export async function activateCardAtomic(
             : {}),
         },
         abhaId: abhaDigits ? formatAbhaId(abhaDigits) : null,
+        gender: String(input.gender || "").trim() || null,
+        dateOfBirth: String(input.dateOfBirth || "").trim() || null,
+        occupation: String(input.occupation || "").trim() || null,
+        alternateContact: String(input.alternateContact || "").replace(/\D/g, "").slice(-10) || null,
+        hasFamilyPhysician:
+          input.hasFamilyPhysician === true || input.hasFamilyPhysician === false
+            ? input.hasFamilyPhysician
+            : doctorName || doctorPhone
+              ? true
+              : null,
         allergies: input.allergies || [],
         chronic_conditions: input.chronic_conditions || [],
         medications: input.medications || [],

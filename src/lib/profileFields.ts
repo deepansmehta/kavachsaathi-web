@@ -1,5 +1,54 @@
 /** Profile field helpers — no external deps */
 
+
+export const CRITICAL_FLAG_OPTIONS = [
+  "Diabetic (insulin)",
+  "Blood thinner",
+  "Pacemaker/implant",
+  "Epilepsy",
+  "Asthma",
+  "Heart condition",
+  "Severe allergy",
+  "Pregnant",
+  "Dialysis",
+  "Other",
+] as const;
+
+export type CriticalFlagOption = (typeof CRITICAL_FLAG_OPTIONS)[number];
+
+export type CriticalFlags = {
+  tags: string[];
+  allergyText?: string;
+  otherText?: string;
+};
+
+export function parseCriticalFlags(raw: unknown): CriticalFlags {
+  if (!raw || typeof raw !== "object") {
+    if (Array.isArray(raw)) return { tags: raw.map(String).filter(Boolean) };
+    return { tags: [] };
+  }
+  const o = raw as { tags?: unknown; allergyText?: unknown; otherText?: unknown; other?: unknown };
+  const tags = Array.isArray(o.tags) ? o.tags.map((x) => String(x).trim()).filter(Boolean) : [];
+  const allergyText = String(o.allergyText || "").trim();
+  const otherText = String(o.otherText || o.other || "").trim();
+  const out: CriticalFlags = { tags };
+  if (allergyText) out.allergyText = allergyText;
+  if (otherText) out.otherText = otherText;
+  return out;
+}
+
+export function criticalFlagsDisplay(c: CriticalFlags): string[] {
+  const out: string[] = [];
+  for (const tag of c.tags) {
+    if (tag === "Severe allergy" && c.allergyText) out.push(`Severe allergy: ${c.allergyText}`);
+    else if (tag === "Other" && c.otherText) out.push(c.otherText);
+    else if (tag !== "Other" && tag !== "Severe allergy") out.push(tag);
+    else if (tag === "Severe allergy") out.push("Severe allergy");
+    else if (tag === "Other" && c.otherText) out.push(c.otherText);
+  }
+  return out;
+}
+
 export const CRITICAL_ALERT_OPTIONS = [
   "blood thinner",
   "epilepsy",

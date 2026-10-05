@@ -13,6 +13,55 @@ import {
   parseOrganDonor,
 } from "@/lib/profileFields";
 
+import { decrypt, hasEncKey } from "@/lib/crypto";
+
+function safeDec(enc: unknown): string {
+  if (!enc || typeof enc !== "string" || !hasEncKey()) return "";
+  try {
+    return decrypt(enc);
+  } catch {
+    return "";
+  }
+}
+
+/** Owner-facing insurance edit payload (decrypted ID-like fields for form editing). */
+function redactInsuranceForProfile(insurance: unknown) {
+  if (!insurance || typeof insurance !== "object") return null;
+  const i = insurance as {
+    coverageType?: string;
+    private?: Record<string, unknown>;
+    government?: Record<string, unknown>;
+    otherMediclaim?: Record<string, unknown>;
+  };
+  const priv = i.private || {};
+  const gov = i.government || {};
+  const om = i.otherMediclaim || {};
+  return {
+    coverageType: i.coverageType || "",
+    private: {
+      insurerName: priv.insurerName || "",
+      policyNumber: safeDec(priv.policyNumberEnc),
+      policyHolderName: priv.policyHolderName || "",
+      validTill: priv.validTill || "",
+      tpaName: priv.tpaName || "",
+      memberId: safeDec(priv.memberIdEnc),
+      isGroupPolicy: Boolean(priv.isGroupPolicy),
+      corporateName: priv.corporateName || "",
+      employeeId: safeDec(priv.employeeIdEnc),
+    },
+    government: {
+      schemeName: gov.schemeName || "",
+      govtCardNumber: safeDec(gov.govtCardNumberEnc),
+    },
+    otherMediclaim: {
+      hasOther: Boolean(om.hasOther),
+      companyName: om.companyName || "",
+      policyNumber: safeDec(om.policyNumberEnc),
+    },
+  };
+}
+
+
 /** GET /api/profile/me — current session profile (editable fields, no pin_hash) */
 export async function GET() {
   try {
@@ -58,6 +107,15 @@ export async function GET() {
         preferredHospital: data.preferredHospital || "",
         criticalAlerts: parseCriticalAlerts(data.criticalAlerts),
         abhaId: data.abhaId || "",
+        gender: data.gender || "",
+        dateOfBirth: data.dateOfBirth || "",
+        occupation: data.occupation || "",
+        alternateContact: data.alternateContact || "",
+        hasFamilyPhysician:
+          data.hasFamilyPhysician === true || data.hasFamilyPhysician === false
+            ? data.hasFamilyPhysician
+            : null,
+        insurance: redactInsuranceForProfile(data.insurance),
         cardStatus: card ? normalizeCardStatus(card.status) : "unactivated",
         validTill: card?.validTill || null,
         lastSeenScansAt: data.lastSeenScansAt?.toDate?.()?.toISOString?.() || null,

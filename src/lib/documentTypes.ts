@@ -71,12 +71,23 @@ export type IncomingInsurance = {
     validTill?: string | null;
     policyCardPath: string;
     policyBondPath: string;
+    /** Optional — never blocks activation */
+    tpaName?: string | null;
+    memberId?: string | null;
+    isGroupPolicy?: boolean;
+    corporateName?: string | null;
+    employeeId?: string | null;
   };
   government?: {
     schemeName: string;
     govtCardNumber: string;
     govtCardPath: string;
   };
+  otherMediclaim?: {
+    hasOther?: boolean;
+    companyName?: string | null;
+    policyNumber?: string | null;
+  } | null;
 };
 
 export type IncomingConsents = {
@@ -189,3 +200,38 @@ export function publicInsuranceLine(insurance: unknown): {
     schemeName: i.government?.schemeName,
   };
 }
+
+export const COMMON_TPAS = [
+  "Medi Assist",
+  "Paramount Health Services",
+  "MDIndia",
+  "Health India TPA",
+  "Family Health Plan (FHPL)",
+  "Vidal Health",
+  "Raksha TPA",
+  "East West Assist",
+  "Good Health TPA",
+  "Heritage Health",
+  "Other",
+] as const;
+
+export type GenderOption = "Male" | "Female" | "Third Gender";
+
+/** Optional cashless / admission profile fields — never required for activation */
+export type OptionalCashlessFields = {
+  gender?: GenderOption | "";
+  dateOfBirth?: string | null;
+  occupation?: string | null;
+  alternateContact?: string | null;
+  tpaName?: string | null;
+  memberId?: string | null;
+  isGroupPolicy?: boolean;
+  corporateName?: string | null;
+  employeeId?: string | null;
+  otherMediclaim?: {
+    hasOther?: boolean;
+    companyName?: string | null;
+    policyNumber?: string | null;
+  } | null;
+  hasFamilyPhysician?: boolean | null;
+};

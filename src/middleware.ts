@@ -1,5 +1,15 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import {
+  LAUNCH_PREVIEW_COOKIE,
+  LAUNCH_PREVIEW_SECRET,
+} from "@/lib/launchConfig";
+
+/**
+ * Hardcoded launch instant (11 Oct 2026, 12:00 PM IST).
+ * Do NOT rely on env here — Netlify Edge must always gate until this moment.
+ */
+const LAUNCH_AT_MS = Date.parse("2026-10-11T12:00:00+05:30");
 
 const PUBLIC_ROUTES = [
   "/",
@@ -10,7 +20,10 @@ const PUBLIC_ROUTES = [
   "/reset-pin",
   "/offline",
   "/doctor",
+  "/coming-soon",
   "/my-profile",
+  "/privacy",
+  "/terms",
 ];
 
 const CARD_PATTERN = /^\/card\//;
@@ -25,23 +38,119 @@ const PROTECTED_PREFIXES = [
   "/scan-history",
 ];
 
+function isLaunchedNow() {
+  return Date.now() >= LAUNCH_AT_MS;
+}
+
+function clearPreview(res: NextResponse) {
+  // Clear current + legacy cookie names so old unlocks cannot stick
+  for (const name of [LAUNCH_PREVIEW_COOKIE, "kavach_preview"]) {
+    res.cookies.set(name, "", {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 0,
+    });
+  }
+  return res;
+}
+
+function withPreviewCookie(res: NextResponse) {
+  res.cookies.set(LAUNCH_PREVIEW_COOKIE, "1", {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    // Short-lived so QA doesn't accidentally leave the gate open for weeks
+    maxAge: 60 * 60 * 2,
+  });
+  return res;
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const previewRaw = request.nextUrl.searchParams.get("preview");
+  const turnOffPreview =
+    previewRaw === "off" || previewRaw === "clear" || previewRaw === "0";
+  const previewParam = previewRaw === LAUNCH_PREVIEW_SECRET;
+  const previewCookie =
+    request.cookies.get(LAUNCH_PREVIEW_COOKIE)?.value === "1";
 
-  // Coming-soon / launch timer retired — send old links home
-  if (pathname === "/coming-soon" || pathname.startsWith("/coming-soon/")) {
-    return NextResponse.redirect(new URL("/", request.url));
+  // Explicitly clear preview unlock
+  if (turnOffPreview) {
+    const soon = new URL("/coming-soon", request.url);
+    return clearPreview(NextResponse.redirect(soon));
   }
 
-  const session = request.cookies.get("kavach_session")?.value === "1";
+  const preview = previewParam || previewCookie;
 
-  if (
-    CARD_PATTERN.test(pathname) ||
-    EMERGENCY_PATTERN.test(pathname) ||
-    ACTIVATE_PATTERN.test(pathname) ||
-    pathname === "/my-profile"
-  ) {
-    return NextResponse.next();
+  // ── Launch gate (before 11 Oct 2026, 12:00 PM IST) ─────────────────────
+  // Marketing site locked; QR card / emergency / activation APIs stay live so
+  // real kits show the activation countdown and demo can still activate.
+  if (!isLaunchedNow() && !preview) {
+    if (pathname === "/coming-soon" || pathname.startsWith("/coming-soon/")) {
+      return clearPreview(NextResponse.next());
+    }
+
+    if (CARD_PATTERN.test(pathname) || EMERGENCY_PATTERN.test(pathname)) {
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set("x-kavach-lite", "1");
+      return NextResponse.next({ request: { headers: requestHeaders } });
+    }
+
+    if (
+      pathname.startsWith("/api/card/") ||
+      pathname.startsWith("/api/uploads/") ||
+      pathname === "/api/full-details" ||
+      pathname.startsWith("/api/forms/") ||
+      pathname === "/api/features" ||
+      pathname === "/api/alert-family" ||
+      pathname === "/api/scan" ||
+      pathname === "/api/log-scan" ||
+      pathname === "/api/emergency" ||
+      pathname === "/api/cashless-timer" ||
+      pathname === "/api/vault" ||
+      pathname.startsWith("/api/vault/") ||
+      pathname === "/api/family" ||
+      pathname.startsWith("/api/family/") ||
+      pathname === "/api/hospital" ||
+      pathname.startsWith("/api/hospital/") ||
+      pathname === "/api/org" ||
+      pathname.startsWith("/api/org/") ||
+      pathname === "/api/donor-directive" ||
+      pathname.startsWith("/api/donor-directive/")
+    ) {
+      return NextResponse.next();
+    }
+
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "Site not launched yet", code: "PRE_LAUNCH" },
+        { status: 503 }
+      );
+    }
+
+    return clearPreview(
+      NextResponse.redirect(new URL("/coming-soon", request.url))
+    );
+  }
+
+  const attachPreview = previewParam;
+
+  // ── Post-launch (or preview) auth routing ──────────────────────────────
+  const session = request.cookies.get("kavach_session")?.value === "1";
+  const requestHeaders = new Headers(request.headers);
+
+  if (CARD_PATTERN.test(pathname) || EMERGENCY_PATTERN.test(pathname)) {
+    requestHeaders.set("x-kavach-lite", "1");
+    const res = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    return attachPreview ? withPreviewCookie(res) : res;
+  }
+
+  if (ACTIVATE_PATTERN.test(pathname) || pathname === "/my-profile" || pathname === "/hospital" || pathname === "/org") {
+    const res = NextResponse.next();
+    return attachPreview ? withPreviewCookie(res) : res;
   }
 
   const isPublic =
@@ -49,20 +158,24 @@ export function middleware(request: NextRequest) {
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
 
   if (session && (pathname === "/login" || pathname === "/forgot-pin")) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const res = NextResponse.redirect(new URL("/dashboard", request.url));
+    return attachPreview ? withPreviewCookie(res) : res;
   }
   if (session && pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const res = NextResponse.redirect(new URL("/dashboard", request.url));
+    return attachPreview ? withPreviewCookie(res) : res;
   }
 
   if (!session && isProtected) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+    const res = NextResponse.redirect(loginUrl);
+    return attachPreview ? withPreviewCookie(res) : res;
   }
 
   void isPublic;
-  return NextResponse.next();
+  const res = NextResponse.next();
+  return attachPreview ? withPreviewCookie(res) : res;
 }
 
 export const config = {

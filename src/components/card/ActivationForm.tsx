@@ -15,6 +15,7 @@ import {
 } from "@/lib/profileFields";
 import {
   ADDRESS_PROOF_OK_TYPES,
+  COMMON_TPAS,
   GOVT_SCHEMES,
   ID_PROOF_TYPES,
   PRIVATE_INSURERS,
@@ -104,11 +105,27 @@ export function ActivationForm({
   const [schemeName, setSchemeName] = useState("");
   const [govtCardNumber, setGovtCardNumber] = useState("");
   const [govtCardPath, setGovtCardPath] = useState<string | null>(null);
+  // Optional cashless fields (never block activation)
+  const [gender, setGender] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [occupation, setOccupation] = useState("");
+  const [alternateContact, setAlternateContact] = useState("");
+  const [tpaName, setTpaName] = useState("");
+  const [tpaOther, setTpaOther] = useState("");
+  const [memberId, setMemberId] = useState("");
+  const [isGroupPolicy, setIsGroupPolicy] = useState(false);
+  const [corporateName, setCorporateName] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
+  const [hasOtherMediclaim, setHasOtherMediclaim] = useState<"" | "yes" | "no">("");
+  const [otherCompany, setOtherCompany] = useState("");
+  const [otherPolicyNumber, setOtherPolicyNumber] = useState("");
+  const [hasFamilyPhysician, setHasFamilyPhysician] = useState<"" | "yes" | "no">("");
 
   // Step 7
   const [consentPhoto, setConsentPhoto] = useState(false);
   const [consentDocs, setConsentDocs] = useState(false);
   const [consentDpdp, setConsentDpdp] = useState(false);
+  const [consentLegal, setConsentLegal] = useState(false);
   const [pin, setPin] = useState("");
   const [pinConfirm, setPinConfirm] = useState("");
 
@@ -262,6 +279,7 @@ export function ActivationForm({
       if (coverageType === "private" || coverageType === "both") {
         if (
           !insurerName ||
+          insurerName === "Other" ||
           !policyNumber.trim() ||
           !policyHolder.trim() ||
           !policyCardPath ||
@@ -296,8 +314,8 @@ export function ActivationForm({
       setStep(6);
       return;
     }
-    if (!consentPhoto || !consentDocs || !consentDpdp) {
-      toast.error("All three consents are required");
+    if (!consentPhoto || !consentDocs || !consentDpdp || !consentLegal) {
+      toast.error("All consents are required (including Privacy & Terms)");
       return;
     }
     if (pin !== pinConfirm) {
@@ -331,6 +349,11 @@ export function ActivationForm({
           validTill: validTill || null,
           policyCardPath,
           policyBondPath,
+          tpaName: (tpaName === "Other" ? tpaOther : tpaName) || null,
+          memberId: memberId.trim() || null,
+          isGroupPolicy,
+          corporateName: isGroupPolicy ? corporateName.trim() || null : null,
+          employeeId: isGroupPolicy ? employeeId.trim() || null : null,
         };
       }
       if (coverageType === "government" || coverageType === "both") {
@@ -338,6 +361,13 @@ export function ActivationForm({
           schemeName,
           govtCardNumber,
           govtCardPath,
+        };
+      }
+      if (hasOtherMediclaim) {
+        insurance.otherMediclaim = {
+          hasOther: hasOtherMediclaim === "yes",
+          companyName: otherCompany.trim() || null,
+          policyNumber: otherPolicyNumber.trim() || null,
         };
       }
 
@@ -357,6 +387,16 @@ export function ActivationForm({
           preferredHospital: preferredHospital.trim() || null,
           criticalAlerts,
           abhaId: abhaId.trim() || null,
+          gender: gender || null,
+          dateOfBirth: dateOfBirth || null,
+          occupation: occupation.trim() || null,
+          alternateContact: alternateContact || null,
+          hasFamilyPhysician:
+            hasFamilyPhysician === "yes"
+              ? true
+              : hasFamilyPhysician === "no"
+                ? false
+                : null,
           allergies,
           chronic_conditions: conditions,
           medications,
@@ -889,8 +929,20 @@ export function ActivationForm({
               <div className="space-y-2 rounded-lg border border-[#333] p-3">
                 <select
                   className="w-full rounded-lg border border-[#333] bg-[#1a1a14] p-3 text-white"
-                  value={insurerName}
-                  onChange={(e) => setInsurerName(e.target.value)}
+                  value={
+                    PRIVATE_INSURERS.includes(
+                      insurerName as (typeof PRIVATE_INSURERS)[number]
+                    )
+                      ? insurerName
+                      : insurerName
+                        ? "Other"
+                        : ""
+                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "Other") setInsurerName("Other");
+                    else setInsurerName(v);
+                  }}
                 >
                   <option value="">Insurer</option>
                   {PRIVATE_INSURERS.map((n) => (
@@ -899,6 +951,20 @@ export function ActivationForm({
                     </option>
                   ))}
                 </select>
+                {(insurerName === "Other" ||
+                  (insurerName &&
+                    !PRIVATE_INSURERS.includes(
+                      insurerName as (typeof PRIVATE_INSURERS)[number]
+                    ))) && (
+                  <GoldInput
+                    label="Insurer name (Other)"
+                    value={insurerName === "Other" ? "" : insurerName}
+                    onChange={(e) =>
+                      setInsurerName(e.target.value.trim() || "Other")
+                    }
+                    placeholder="Test Insurance Co"
+                  />
+                )}
                 <GoldInput
                   label="Policy number"
                   value={policyNumber}
@@ -965,6 +1031,127 @@ export function ActivationForm({
                 />
               </div>
             )}
+
+            <div className="space-y-2 rounded-lg border border-dashed border-[#D4AF3755] p-3">
+              <p className="text-xs uppercase tracking-wider text-[#D4AF37]">
+                Optional — cashless form pre-fill (skip anytime)
+              </p>
+              <select
+                className="w-full rounded-lg border border-[#333] bg-[#1a1a14] p-3 text-white"
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+              >
+                <option value="">Gender (optional)</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Third Gender">Third Gender</option>
+              </select>
+              <GoldInput
+                label="Date of birth (optional)"
+                type="date"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+              />
+              <GoldInput
+                label="Occupation (optional)"
+                value={occupation}
+                onChange={(e) => setOccupation(e.target.value)}
+              />
+              <GoldInput
+                label="Alternate contact (optional)"
+                value={alternateContact}
+                onChange={(e) =>
+                  setAlternateContact(e.target.value.replace(/\D/g, "").slice(0, 10))
+                }
+                inputMode="numeric"
+              />
+              <select
+                className="w-full rounded-lg border border-[#333] bg-[#1a1a14] p-3 text-white"
+                value={tpaName}
+                onChange={(e) => setTpaName(e.target.value)}
+              >
+                <option value="">TPA name (optional)</option>
+                {COMMON_TPAS.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              {tpaName === "Other" && (
+                <GoldInput
+                  label="TPA name (Other)"
+                  value={tpaOther}
+                  onChange={(e) => setTpaOther(e.target.value)}
+                />
+              )}
+              <GoldInput
+                label="Insured member / health card ID (optional)"
+                value={memberId}
+                onChange={(e) => setMemberId(e.target.value)}
+              />
+              <label className="flex gap-2 text-sm text-[#A8A59C]">
+                <input
+                  type="checkbox"
+                  checked={isGroupPolicy}
+                  onChange={(e) => setIsGroupPolicy(e.target.checked)}
+                />
+                Group / corporate policy
+              </label>
+              {isGroupPolicy && (
+                <>
+                  <GoldInput
+                    label="Corporate name"
+                    value={corporateName}
+                    onChange={(e) => setCorporateName(e.target.value)}
+                  />
+                  <GoldInput
+                    label="Employee ID"
+                    value={employeeId}
+                    onChange={(e) => setEmployeeId(e.target.value)}
+                  />
+                </>
+              )}
+              <select
+                className="w-full rounded-lg border border-[#333] bg-[#1a1a14] p-3 text-white"
+                value={hasOtherMediclaim}
+                onChange={(e) =>
+                  setHasOtherMediclaim(e.target.value as "" | "yes" | "no")
+                }
+              >
+                <option value="">Other health insurance? (optional)</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+              {hasOtherMediclaim === "yes" && (
+                <>
+                  <GoldInput
+                    label="Other insurer company"
+                    value={otherCompany}
+                    onChange={(e) => setOtherCompany(e.target.value)}
+                  />
+                  <GoldInput
+                    label="Other policy number"
+                    value={otherPolicyNumber}
+                    onChange={(e) => setOtherPolicyNumber(e.target.value)}
+                  />
+                </>
+              )}
+              <select
+                className="w-full rounded-lg border border-[#333] bg-[#1a1a14] p-3 text-white"
+                value={hasFamilyPhysician}
+                onChange={(e) =>
+                  setHasFamilyPhysician(e.target.value as "" | "yes" | "no")
+                }
+              >
+                <option value="">Family physician? (optional)</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+              <p className="text-[11px] text-[#A8A59C]">
+                Family physician name/phone can be filled in Medical step — used on the IRDAI form.
+              </p>
+            </div>
+
             <div className="flex gap-2">
               <GoldButton className="flex-1" onClick={() => setStep(5)}>
                 Back
@@ -1001,6 +1188,35 @@ export function ActivationForm({
                 onChange={(e) => setConsentDpdp(e.target.checked)}
               />
               I consent under DPDP Act / मैं DPDP अधिनियम के तहत सहमति देता/देती हूँ
+            </label>
+            <label className="flex gap-2 text-sm text-[#A8A59C]">
+              <input
+                type="checkbox"
+                checked={consentLegal}
+                onChange={(e) => setConsentLegal(e.target.checked)}
+              />
+              <span>
+                I have read the{" "}
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#D4AF37] underline"
+                >
+                  Privacy Policy
+                </a>{" "}
+                and{" "}
+                <a
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#D4AF37] underline"
+                >
+                  Terms
+                </a>
+                {" / "}
+                मैंने गोपनीयता नीति और नियम पढ़ लिए हैं
+              </span>
             </label>
             <GoldInput
               label="Set PIN (4–6 digits)"

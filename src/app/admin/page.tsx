@@ -23,7 +23,27 @@ type CardRow = {
   tier?: string;
   validTill?: string | null;
   isDemo?: boolean;
+  serial?: string | null;
+  batch?: number | null;
 };
+
+type InsurerRow = {
+  name: string;
+  tpaHelpline: string;
+  claimsHelpline: string;
+  email: string;
+  website: string;
+  sourceUrl: string;
+};
+
+const emptyInsurer = (): InsurerRow => ({
+  name: "",
+  tpaHelpline: "",
+  claimsHelpline: "",
+  email: "",
+  website: "",
+  sourceUrl: "",
+});
 
 const ALLOWED =
   (process.env.NEXT_PUBLIC_ADMIN_EMAILS ||
@@ -37,11 +57,15 @@ export default function AdminPage() {
   const [user, setUser] = useState<User | null>(null);
   const [checking, setChecking] = useState(true);
   const [cards, setCards] = useState<CardRow[]>([]);
+  const [batchCounts, setBatchCounts] = useState<Record<string, number>>({});
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<
     "" | "activated" | "unactivated" | "blocked"
   >("");
   const [loading, setLoading] = useState(false);
+  const [insurers, setInsurers] = useState<InsurerRow[]>([]);
+  const [insurersMeta, setInsurersMeta] = useState<string>("");
+  const [savingInsurers, setSavingInsurers] = useState(false);
 
   useEffect(() => {
     let unsub = () => {};
@@ -82,6 +106,7 @@ export default function AdminPage() {
         return;
       }
       setCards(data.cards || []);
+      setBatchCounts(data.batchCounts || {});
     } catch {
       toast.error("Network error");
     } finally {
@@ -92,6 +117,87 @@ export default function AdminPage() {
   useEffect(() => {
     if (isAdmin) void load();
   }, [isAdmin, load]);
+
+  const loadInsurers = useCallback(async () => {
+    if (!user || !isAdmin) return;
+    try {
+      const t = await token();
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${t}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "get-insurers" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Failed to load insurers");
+        return;
+      }
+      const list = (Array.isArray(data.list) ? data.list : []).map(
+        (r: Record<string, unknown>) => ({
+          name: String(r.name || ""),
+          tpaHelpline: String(r.tpaHelpline || ""),
+          claimsHelpline: String(r.claimsHelpline || r.tpaHelpline || ""),
+          email: String(r.email || ""),
+          website: String(r.website || ""),
+          sourceUrl: String(r.sourceUrl || ""),
+        })
+      );
+      setInsurers(list.length ? list : [emptyInsurer()]);
+      const meta = [
+        data.updatedAt ? `updated ${data.updatedAt}` : null,
+        data.updatedBy ? `by ${data.updatedBy}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      setInsurersMeta(meta);
+    } catch {
+      toast.error("Failed to load insurers");
+    }
+  }, [user, isAdmin, token]);
+
+  useEffect(() => {
+    if (isAdmin) void loadInsurers();
+  }, [isAdmin, loadInsurers]);
+
+  const saveInsurers = async () => {
+    const cleaned = insurers.filter((r) => r.name.trim() && r.tpaHelpline.trim());
+    if (!cleaned.length) {
+      toast.error("Add at least one insurer with name + helpline");
+      return;
+    }
+    for (const r of cleaned) {
+      if (r.sourceUrl && !/^https?:\/\//i.test(r.sourceUrl)) {
+        toast.error(`Invalid source URL for ${r.name}`);
+        return;
+      }
+    }
+    setSavingInsurers(true);
+    try {
+      const t = await token();
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${t}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "save-insurers", list: cleaned }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Save failed");
+        return;
+      }
+      toast.success(data.message || "Insurers saved");
+      void loadInsurers();
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setSavingInsurers(false);
+    }
+  };
 
   const login = async () => {
     try {
@@ -345,6 +451,15 @@ export default function AdminPage() {
                 blocked
                 {demoCount ? ` · ${demoCount} demo` : ""} · {user.email}
               </p>
+              <p className="mt-1 font-mono text-xs text-[var(--gold)]/80">
+                Batches:{" "}
+                {[1, 2, 3, 4, 5]
+                  .map((b) => `B${b}=${batchCounts[String(b)] || 0}`)
+                  .join(" · ")}
+                {batchCounts.unset
+                  ? ` · unset=${batchCounts.unset}`
+                  : ""}
+              </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -398,13 +513,90 @@ export default function AdminPage() {
           </GoldButton>
         </div>
 
+        <div className="mb-6 rounded-2xl border border-[var(--gold-border)] bg-[var(--kavach-s1)] p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-lg text-white">Insurer helplines</h2>
+              <p className="text-xs text-[var(--text-soft)]">
+                Stored in Firestore <code>config/insurers</code>. Only use
+                numbers copied from each insurer&apos;s official site — keep{" "}
+                <code>sourceUrl</code>.
+                {insurersMeta ? ` · ${insurersMeta}` : ""}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <OutlineButton onClick={() => void loadInsurers()}>
+                Reload
+              </OutlineButton>
+              <OutlineButton
+                onClick={() => setInsurers((prev) => [...prev, emptyInsurer()])}
+              >
+                Add row
+              </OutlineButton>
+              <GoldButton
+                onClick={() => void saveInsurers()}
+                disabled={savingInsurers}
+              >
+                {savingInsurers ? "Saving…" : "Save insurers"}
+              </GoldButton>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {insurers.map((row, idx) => (
+              <div
+                key={idx}
+                className="grid gap-2 rounded-xl border border-[var(--gold-border)]/50 p-3 md:grid-cols-2"
+              >
+                {(
+                  [
+                    ["name", "Insurer name"],
+                    ["tpaHelpline", "TPA / service helpline"],
+                    ["claimsHelpline", "Claims helpline"],
+                    ["email", "Email"],
+                    ["website", "Website"],
+                    ["sourceUrl", "Source URL (official page)"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label key={key} className="block text-xs text-[var(--text-soft)]">
+                    {label}
+                    <input
+                      className="mt-1 w-full rounded-lg border border-[var(--gold-border)] bg-black px-2 py-1.5 text-sm text-white outline-none focus:border-[var(--gold)]"
+                      value={row[key]}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setInsurers((prev) =>
+                          prev.map((r, i) =>
+                            i === idx ? { ...r, [key]: v } : r
+                          )
+                        );
+                      }}
+                    />
+                  </label>
+                ))}
+                <div className="md:col-span-2">
+                  <button
+                    type="button"
+                    className="text-xs text-red-300/90 underline"
+                    onClick={() =>
+                      setInsurers((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                  >
+                    Remove row
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="overflow-x-auto rounded-2xl border border-[var(--gold-border)]">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="bg-[var(--kavach-s2)] text-xs uppercase tracking-wider text-[var(--gold)]">
               <tr>
-                <th className="px-3 py-3">#</th>
+                <th className="px-3 py-3">serial</th>
+                <th className="px-3 py-3">batch</th>
                 <th className="px-3 py-3">health_id</th>
-                <th className="px-3 py-3">activation</th>
+                <th className="px-3 py-3">code</th>
                 <th className="px-3 py-3">status</th>
                 <th className="px-3 py-3">validTill</th>
                 <th className="px-3 py-3">activatedAt</th>
@@ -418,7 +610,10 @@ export default function AdminPage() {
                   className="border-t border-[var(--gold-border)]/40"
                 >
                   <td className="px-3 py-2 font-mono text-[var(--text-soft)]">
-                    {c.activation_code}
+                    {c.serial || "—"}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-[var(--text-soft)]">
+                    {c.batch != null ? c.batch : "—"}
                   </td>
                   <td className="px-3 py-2 font-mono text-[var(--gold-light)]">
                     <Link

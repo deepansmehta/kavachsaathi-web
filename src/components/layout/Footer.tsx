@@ -47,6 +47,8 @@ export function Footer() {
                 ["/order", "Order Card"],
                 ["/doctor", "Doctor Portal"],
                 ["/login", "Login"],
+                ["/privacy", "Privacy Policy"],
+                ["/terms", "Terms of Use"],
               ].map(([href, label]) => (
                 <li key={href}>
                   <Link href={href} className="hover:text-gold">
@@ -87,7 +89,14 @@ export function Footer() {
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="font-body text-xs text-cream-soft">
             © {new Date().getFullYear()} GDM Technoworld Pvt. Ltd. All rights
-            reserved.
+            reserved.{" "}
+            <Link href="/privacy" className="hover:text-gold">
+              Privacy
+            </Link>
+            {" · "}
+            <Link href="/terms" className="hover:text-gold">
+              Terms
+            </Link>
           </p>
           <p className="font-rajdhani text-xs font-semibold uppercase tracking-wider text-gold">
             Made in India

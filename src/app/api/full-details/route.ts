@@ -353,6 +353,34 @@ export async function GET(req: NextRequest) {
       | { sameAsIdIndex?: number | null; path?: string | null }
       | undefined;
 
+    // F8: ABHA — decrypt and include in PIN scope (never emergency)
+    const abhaIdEnc = d.abhaIdEnc as string | undefined;
+    const abhaIdPlain = d.abhaId as string | undefined;
+    let abhaNumber: string | null = null;
+    if (abhaIdEnc) {
+      abhaNumber = safeDecrypt(abhaIdEnc);
+    } else if (abhaIdPlain) {
+      abhaNumber = String(abhaIdPlain);
+    }
+    const abha = abhaNumber ? { number: abhaNumber } : null;
+
+    // F12: Donor directive (PIN scope only)
+    const donorData = d.donorDirective as {
+      bloodDonor?: boolean;
+      nottoPledgeId?: string;
+      advanceDirectivePath?: string;
+    } | undefined;
+    const nottoPledgeId = donorData?.nottoPledgeId
+      ? safeDecrypt(donorData.nottoPledgeId)
+      : null;
+    const advanceDirectiveUrl = await signed(donorData?.advanceDirectivePath);
+    const donorDirective = {
+      bloodDonor: donorData?.bloodDonor ?? null,
+      organDonor: (d.organDonor as string | undefined) ?? "unset",
+      nottoPledgeId,
+      advanceDirectiveUrl,
+    };
+
     return NextResponse.json({
       ...base,
       idProofs: idsOut,
@@ -377,6 +405,8 @@ export async function GET(req: NextRequest) {
         govtCardNumber: safeDecrypt(insurance?.government?.govtCardNumberEnc),
         govtCardUrl: await signed(insurance?.government?.govtCardPath),
       },
+      abha,
+      donorDirective,
     }, {
       headers: {
         "Cache-Control": "no-store",

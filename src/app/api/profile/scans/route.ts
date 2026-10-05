@@ -82,8 +82,44 @@ export async function GET() {
       return new Date(s.scannedAt) > lastSeen;
     }).length;
 
+    let accessLogs: {
+      id: string;
+      mode: string;
+      hospitalName: string | null;
+      staffName: string | null;
+      atIST: string;
+    }[] = [];
+    try {
+      let logSnap = await db
+        .collection("accessLogs")
+        .where("health_id", "==", healthId)
+        .limit(30)
+        .get();
+      if (logSnap.empty) {
+        logSnap = await db
+          .collection("accessLogs")
+          .where("healthId", "==", healthId)
+          .limit(30)
+          .get();
+      }
+      accessLogs = logSnap.docs.map((d) => {
+        const x = d.data();
+        const at = x.at as Timestamp | undefined;
+        return {
+          id: d.id,
+          mode: String(x.mode || ""),
+          hospitalName: x.hospitalName ? String(x.hospitalName) : null,
+          staffName: x.staffName ? String(x.staffName) : null,
+          atIST: formatIST(at || null),
+        };
+      });
+    } catch {
+      accessLogs = [];
+    }
+
     return NextResponse.json({
       scans,
+      accessLogs,
       newSinceLastVisit,
       retentionDays: 180,
       lastSeenScansAt: lastSeen ? lastSeen.toISOString() : null,

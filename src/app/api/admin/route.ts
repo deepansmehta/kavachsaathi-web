@@ -137,6 +137,8 @@ export async function GET(req: NextRequest) {
         tier: data.tier || "STANDARD",
         validTill: data.validTill ? String(data.validTill) : null,
         isDemo: data.isDemo === true,
+        serial: data.serial ? String(data.serial) : null,
+        batch: typeof data.batch === "number" ? data.batch : null,
       };
     });
 
@@ -151,7 +153,8 @@ export async function GET(req: NextRequest) {
         (c) =>
           c.health_id.includes(q) ||
           c.activation_code.includes(q) ||
-          c.docId.includes(q)
+          c.docId.includes(q) ||
+          (c.serial && c.serial.includes(q))
       );
     }
     if (
@@ -164,12 +167,18 @@ export async function GET(req: NextRequest) {
 
     const inventory = cards.filter((c) => !c.isDemo);
     const demos = cards.filter((c) => c.isDemo);
+    const batchCounts: Record<string, number> = {};
+    for (const c of inventory) {
+      const key = c.batch != null ? String(c.batch) : "unset";
+      batchCounts[key] = (batchCounts[key] || 0) + 1;
+    }
 
     return NextResponse.json({
       count: inventory.length,
       demoCount: demos.length,
       inventoryActivated: inventory.filter((c) => c.status === "activated")
         .length,
+      batchCounts,
       cards,
     });
   } catch (err) {
@@ -463,6 +472,91 @@ export async function POST(req: NextRequest) {
         health_id,
         idProofs: revealed,
         message: "Reveal logged to accessLogs",
+      });
+    }
+
+    if (action === "set-nfc") {
+      const health_id = String(body.health_id || "").toUpperCase();
+      const nfcEnabled = Boolean(body.nfcEnabled);
+      const snap = await db
+        .collection("cards")
+        .where("health_id", "==", health_id)
+        .limit(1)
+        .get();
+      if (snap.empty) {
+        return NextResponse.json({ error: "Card not found" }, { status: 404 });
+      }
+      await snap.docs[0].ref.update({ nfcEnabled });
+      return NextResponse.json({ success: true, nfcEnabled });
+    }
+
+    if (action === "get-insurers") {
+      const snap = await db.collection("config").doc("insurers").get();
+      const data = snap.exists ? snap.data() : null;
+      return NextResponse.json({
+        list: Array.isArray(data?.list) ? data!.list : [],
+        updatedAt: data?.updatedAt || null,
+        updatedBy: data?.updatedBy || null,
+      });
+    }
+
+    if (action === "save-insurers") {
+      const raw = body.list;
+      if (!Array.isArray(raw)) {
+        return NextResponse.json(
+          { error: "list must be an array" },
+          { status: 400 }
+        );
+      }
+      const list = [];
+      for (const row of raw) {
+        if (!row || typeof row !== "object") continue;
+        const name = String((row as { name?: string }).name || "").trim();
+        const tpaHelpline = String(
+          (row as { tpaHelpline?: string }).tpaHelpline || ""
+        ).trim();
+        const claimsHelpline = String(
+          (row as { claimsHelpline?: string }).claimsHelpline ||
+            tpaHelpline ||
+            ""
+        ).trim();
+        const sourceUrl = String(
+          (row as { sourceUrl?: string }).sourceUrl || ""
+        ).trim();
+        if (!name || !tpaHelpline) {
+          return NextResponse.json(
+            { error: "Each insurer needs name + tpaHelpline" },
+            { status: 400 }
+          );
+        }
+        if (sourceUrl && !/^https?:\/\//i.test(sourceUrl)) {
+          return NextResponse.json(
+            { error: `sourceUrl must be http(s) for ${name}` },
+            { status: 400 }
+          );
+        }
+        list.push({
+          name,
+          tpaHelpline,
+          claimsHelpline: claimsHelpline || tpaHelpline,
+          email: String((row as { email?: string }).email || "").trim() || null,
+          website:
+            String((row as { website?: string }).website || "").trim() || null,
+          sourceUrl: sourceUrl || null,
+        });
+      }
+      await db.collection("config").doc("insurers").set(
+        {
+          list,
+          updatedAt: new Date().toISOString(),
+          updatedBy: admin.email,
+        },
+        { merge: true }
+      );
+      return NextResponse.json({
+        success: true,
+        count: list.length,
+        message: `Saved ${list.length} insurers`,
       });
     }
 

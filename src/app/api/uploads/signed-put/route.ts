@@ -14,7 +14,12 @@ import {
   maxBytesForType,
 } from "@/lib/storage";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { findCardByHealthId } from "@/lib/cardsRepo";
 import { normalizeHealthId } from "@/lib/healthId";
+import {
+  evaluateActivationGate,
+  NO_STORE_HEADERS,
+} from "@/lib/activationGate";
 
 const KINDS = [
   "photo",
@@ -37,7 +42,7 @@ export async function POST(req: NextRequest) {
     if (!isStorageConfigured()) {
       return NextResponse.json(
         { error: "Storage not configured", code: "STORAGE_NOT_READY" },
-        { status: 503 }
+        { status: 503, headers: NO_STORE_HEADERS }
       );
     }
 
@@ -45,13 +50,26 @@ export async function POST(req: NextRequest) {
     const kind = String(body.kind || "") as (typeof KINDS)[number];
     const contentType = String(body.contentType || "");
     if (!KINDS.includes(kind)) {
-      return NextResponse.json({ error: "Invalid kind" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid kind" },
+        { status: 400, headers: NO_STORE_HEADERS }
+      );
     }
-    if (!ALLOWED_UPLOAD_TYPES.includes(contentType as (typeof ALLOWED_UPLOAD_TYPES)[number])) {
-      return NextResponse.json({ error: "Invalid content type" }, { status: 400 });
+    if (
+      !ALLOWED_UPLOAD_TYPES.includes(
+        contentType as (typeof ALLOWED_UPLOAD_TYPES)[number]
+      )
+    ) {
+      return NextResponse.json(
+        { error: "Invalid content type" },
+        { status: 400, headers: NO_STORE_HEADERS }
+      );
     }
     if (kind === "photo" && contentType === "application/pdf") {
-      return NextResponse.json({ error: "Photo must be an image" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Photo must be an image" },
+        { status: 400, headers: NO_STORE_HEADERS }
+      );
     }
 
     const act = verifyActivationSessionToken(
@@ -66,17 +84,32 @@ export async function POST(req: NextRequest) {
 
     if (act) {
       health_id = normalizeHealthId(act.healthId);
+      const db = getAdminDb();
+      const card = await findCardByHealthId(db, health_id);
+      const gate = evaluateActivationGate(health_id, card?.isDemo === true);
+      if (!gate.ok) {
+        return NextResponse.json(
+          { error: gate.message, code: gate.code },
+          { status: 403, headers: NO_STORE_HEADERS }
+        );
+      }
       prefix = `pending/${health_id}/${act.sessionId}`;
     } else if (prof) {
       const db = getAdminDb();
       const snap = await db.collection("profiles").doc(prof.profileId).get();
       if (!snap.exists) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        return NextResponse.json(
+          { error: "Unauthorized" },
+          { status: 401, headers: NO_STORE_HEADERS }
+        );
       }
       health_id = normalizeHealthId(String(snap.data()?.health_id || ""));
       prefix = `profiles/${health_id}`;
     } else {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401, headers: NO_STORE_HEADERS }
+      );
     }
 
     const ext =
@@ -88,18 +121,21 @@ export async function POST(req: NextRequest) {
     const path = `${prefix}/${kind}.${ext}`;
     const url = await getSignedPutUrl({ path, contentType });
 
-    return NextResponse.json({
-      url,
-      path,
-      maxBytes: maxBytesForType(contentType),
-      contentType,
-      expiresInSec: 600,
-    });
+    return NextResponse.json(
+      {
+        url,
+        path,
+        maxBytes: maxBytesForType(contentType),
+        contentType,
+        expiresInSec: 600,
+      },
+      { headers: NO_STORE_HEADERS }
+    );
   } catch (err) {
     console.error("signed-put", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed" },
-      { status: 500 }
+      { status: 500, headers: NO_STORE_HEADERS }
     );
   }
 }

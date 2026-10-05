@@ -4,6 +4,10 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { findCardByHealthId, cardIsActivated, cardIsBlocked } from "@/lib/cardsRepo";
 import { normalizeHealthId, isValidHealthId } from "@/lib/healthId";
 import {
+  evaluateActivationGate,
+  NO_STORE_HEADERS,
+} from "@/lib/activationGate";
+import {
   makeActivationSessionToken,
   activationSessionCookieOptions,
 } from "@/lib/activationSession";
@@ -14,6 +18,9 @@ import {
   makeMathCaptcha,
   verifyMathCaptcha,
 } from "@/lib/rateLimit";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 /**
  * POST /api/card/activation-session
@@ -72,10 +79,23 @@ export async function POST(req: NextRequest) {
 
     const card = await findCardByHealthId(db, health_id);
     if (!card) {
-      return NextResponse.json({ error: "Card not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Card not found" },
+        { status: 404, headers: NO_STORE_HEADERS }
+      );
+    }
+    const gate = evaluateActivationGate(health_id, card.isDemo === true);
+    if (!gate.ok) {
+      return NextResponse.json(
+        { error: gate.message, code: gate.code },
+        { status: 403, headers: NO_STORE_HEADERS }
+      );
     }
     if (cardIsBlocked(card)) {
-      return NextResponse.json({ error: "Card is blocked" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Card is blocked" },
+        { status: 403, headers: NO_STORE_HEADERS }
+      );
     }
     if (cardIsActivated(card)) {
       return NextResponse.json({ error: "Already activated" }, { status: 409 });

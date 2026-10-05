@@ -7,9 +7,18 @@ import {
   findCardByHealthId,
   loadEmergencyProfile,
 } from "@/lib/cardsRepo";
-import { isValidHealthId, normalizeHealthId, INVALID_CARD_MESSAGE } from "@/lib/healthId";
+import {
+  isValidHealthId,
+  normalizeHealthId,
+  INVALID_CARD_MESSAGE,
+} from "@/lib/healthId";
+import { canActivateHealthId } from "@/lib/activationGate";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { makeScanToken } from "@/lib/scanToken";
+import { EmergencyLite } from "@/components/card/EmergencyLite";
+import { loadFeatureFlags } from "@/lib/features/server";
+import { featuresFromEnv } from "@/lib/features/flags";
+import { ActivationSoon } from "@/components/card/ActivationSoon";
 import { CardClient } from "./CardClient";
 
 interface PageProps {
@@ -18,6 +27,7 @@ interface PageProps {
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -30,9 +40,6 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * Single adaptive QR target:
  * https://kavachsaathi.in/card/{health_id}
- * — unactivated → activation form
- * — blocked → neutral blocked message (no medical data)
- * — activated → public emergency view
  */
 export default async function CardPage({ params }: PageProps) {
   const healthId = normalizeHealthId(
@@ -78,46 +85,48 @@ export default async function CardPage({ params }: PageProps) {
     }
 
     if (!cardIsActivated(card)) {
+      if (!canActivateHealthId(healthId, card.isDemo === true)) {
+        return <ActivationSoon healthId={healthId} />;
+      }
       return <CardClient mode="unactivated" healthId={healthId} />;
     }
 
     const profile = await loadEmergencyProfile(db, card);
-    if (profile) {
-      profile.health_id = healthId;
-      try {
-        const { isStorageConfigured, getSignedGetUrl } = await import(
-          "@/lib/storage"
-        );
-        const path = profile.photo_url;
-        if (
-          isStorageConfigured() &&
-          path &&
-          !path.startsWith("http") &&
-          path.includes("/")
-        ) {
-          profile.photoSignedUrl = await getSignedGetUrl({
-            path,
-            expiresMs: 5 * 60_000,
-          });
-        } else if (path?.startsWith("http")) {
-          profile.photoSignedUrl = path;
-        }
-      } catch {
-        /* storage optional until bucket exists */
+    if (!profile) {
+      return (
+        <CardClient
+          mode="invalid"
+          message="This card is activated but the profile could not be loaded."
+        />
+      );
+    }
+    profile.health_id = healthId;
+    // Normal public scan view ALWAYS includes a short-lived photo URL when available
+    try {
+      const { isStorageConfigured, getSignedGetUrl } = await import(
+        "@/lib/storage"
+      );
+      const path = profile.photo_url;
+      if (
+        isStorageConfigured() &&
+        path &&
+        !path.startsWith("http") &&
+        path.includes("/")
+      ) {
+        profile.photoSignedUrl = await getSignedGetUrl({
+          path,
+          expiresMs: 5 * 60_000,
+        });
+      } else if (path?.startsWith("http")) {
+        profile.photoSignedUrl = path;
       }
+    } catch {
+      /* photo optional if Storage briefly unavailable */
     }
     const scanToken = makeScanToken(healthId);
+    const flags = await loadFeatureFlags().catch(() => featuresFromEnv());
     return (
-      <CardClient
-        mode="activated"
-        scanToken={scanToken}
-        profile={profile}
-        message={
-          profile
-            ? undefined
-            : "This card is activated but the profile could not be loaded."
-        }
-      />
+      <EmergencyLite profile={profile} scanToken={scanToken} flags={flags} />
     );
   } catch (e) {
     console.error("card page", e);

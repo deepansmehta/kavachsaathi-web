@@ -4,13 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/check-launch-env.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test:cleanup-safety": "ts-node --skipProject --compiler-options '{\"module\":\"commonjs\",\"esModuleInterop\":true}' scripts/test-cleanup-pending-safety.ts",
     "seed": "ts-node --skipProject --compiler-options '{\"module\":\"commonjs\",\"esModuleInterop\":true}' scripts/seed-cards.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
+    "@pdf-lib/fontkit": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-toast": "^1.2.23",
     "bcryptjs": "^3.0.3",
@@ -31,6 +34,7 @@
     "react-hot-toast": "^2.6.1",
     "react-otp-input": "^3.1.1",
     "react-qr-code": "^2.2.0",
+    "regenerator-runtime": "^0.14.1",
     "tailwind-merge": "^3.7.0",
     "ts-node": "^10.9.2",
     "zod": "^4.6.5"
@@ -46,6 +50,9 @@
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
+    "lighthouse": "^12.8.2",
+    "pdf-lib": "^1.17.1",
+    "playwright": "^1.48.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.9.3"

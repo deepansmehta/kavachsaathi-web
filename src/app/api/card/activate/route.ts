@@ -2,11 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { activateCardAtomic } from "@/lib/activateCard";
 import {
+  evaluateActivationGate,
+  NO_STORE_HEADERS,
+} from "@/lib/activationGate";
+import { findCardByHealthId } from "@/lib/cardsRepo";
+import { normalizeHealthId } from "@/lib/healthId";
+import {
   checkRateLimit,
   clientIp,
   makeMathCaptcha,
   verifyMathCaptcha,
 } from "@/lib/rateLimit";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 /**
  * POST /api/card/activate
@@ -57,8 +66,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const health_id = normalizeHealthId(String(body.health_id || ""));
+    const card = await findCardByHealthId(db, health_id);
+    const gate = evaluateActivationGate(health_id, card?.isDemo === true);
+    if (!gate.ok) {
+      return NextResponse.json(
+        { error: gate.message, code: gate.code },
+        { status: 403, headers: NO_STORE_HEADERS }
+      );
+    }
+
     const result = await activateCardAtomic(db, {
-      health_id: String(body.health_id || ""),
+      health_id,
       activation_code: String(body.activation_code || ""),
       pin: String(body.pin || ""),
       full_name: String(body.full_name || body.name || ""),
@@ -85,6 +104,11 @@ export async function POST(req: NextRequest) {
       familyDoctorPhone: body.familyDoctorPhone || null,
       criticalAlerts: body.criticalAlerts || { tags: [] },
       abhaId: body.abhaId || null,
+      gender: body.gender || null,
+      dateOfBirth: body.dateOfBirth || null,
+      occupation: body.occupation || null,
+      alternateContact: body.alternateContact || null,
+      hasFamilyPhysician: body.hasFamilyPhysician ?? null,
       photoPath: body.photoPath || null,
       idProofs: body.idProofs || null,
       address: body.address || null,

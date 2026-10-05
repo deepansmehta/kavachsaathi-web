@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Rajdhani, DM_Sans, Space_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { Navbar } from "@/components/layout/Navbar";
@@ -34,23 +35,7 @@ export const metadata: Metadata = {
     template: "%s | KavachSaathi",
   },
   description:
-    "India's first smart PVC health card by GDM Technoworld. Born from Legacy · Built to Protect. Dedicated to The Bajaj Brothers of Bhirdana, Fatehabad — Five Brothers One Legacy: Shri Gangadhar Bajaj Ji (1949–2011), Shri Bansi Dhar Bajaj Ji, Shri Surender Bajaj Ji, Shri Narender Bajaj Ji, Shri Pawan Bajaj Ji (1962–2015). Instant emergency medical access in 3 seconds.",
-  keywords: [
-    "KavachSaathi",
-    "smart health card India",
-    "Bajaj Brothers",
-    "Bhirdana",
-    "Bhirdana Fatehabad",
-    "Bajaj Family Bhirdana",
-    "Gangadhar Bajaj",
-    "Bansi Dhar Bajaj",
-    "Surender Bajaj",
-    "Narender Bajaj",
-    "Pawan Bajaj",
-    "GDM Technoworld",
-    "emergency medical card",
-    "PVC health card",
-  ],
+    "India's first smart PVC health card by GDM Technoworld. Instant emergency medical access in 3 seconds.",
   applicationName: "KavachSaathi",
   authors: [{ name: "GDM Technoworld Pvt. Ltd." }],
   manifest: "/manifest.json",
@@ -60,19 +45,6 @@ export const metadata: Metadata = {
       { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "KavachSaathi",
-  },
-  openGraph: {
-    title: "KavachSaathi — Dedicated to The Bajaj Brothers",
-    description:
-      "Five Brothers · One Legacy. In loving memory of Shri Gangadhar Bajaj Ji (1949–2011) and Shri Pawan Bajaj Ji (1962–2015).",
-    siteName: "KavachSaathi",
-    type: "website",
-    locale: "en_IN",
   },
 };
 
@@ -87,6 +59,31 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const lite = headers().get("x-kavach-lite") === "1";
+
+  // Emergency / card scan path: no Nav, Footer, Auth, Google fonts, or Toaster
+  if (lite) {
+    return (
+      <html lang="en">
+        <head>
+          <meta name="robots" content="noindex,nofollow" />
+        </head>
+        <body
+          style={{
+            margin: 0,
+            minHeight: "100vh",
+            background: "#080808",
+            color: "#F0EEE8",
+            fontFamily:
+              "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+          }}
+        >
+          {children}
+        </body>
+      </html>
+    );
+  }
+
   return (
     <html
       lang="en"
@@ -109,7 +106,9 @@ export default function RootLayout({
                   border: "1px solid rgba(212,175,55,0.22)",
                   fontFamily: "DM Sans, sans-serif",
                 },
-                success: { iconTheme: { primary: "#D4AF37", secondary: "#080808" } },
+                success: {
+                  iconTheme: { primary: "#D4AF37", secondary: "#080808" },
+                },
               }}
             />
           </Providers>

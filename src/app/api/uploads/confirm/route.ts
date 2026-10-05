@@ -8,6 +8,13 @@ import {
   verifyProfileSessionToken,
 } from "@/lib/profileSession";
 import { verifyUploadedObject } from "@/lib/storage";
+import { getAdminDb } from "@/lib/firebase-admin";
+import { findCardByHealthId } from "@/lib/cardsRepo";
+import { normalizeHealthId } from "@/lib/healthId";
+import {
+  evaluateActivationGate,
+  NO_STORE_HEADERS,
+} from "@/lib/activationGate";
 
 /** POST /api/uploads/confirm — verify object exists + magic bytes */
 export async function POST(req: NextRequest) {
@@ -16,7 +23,10 @@ export async function POST(req: NextRequest) {
     const path = String(body.path || "");
     const contentType = String(body.contentType || "");
     if (!path || !contentType) {
-      return NextResponse.json({ error: "path and contentType required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "path and contentType required" },
+        { status: 400, headers: NO_STORE_HEADERS }
+      );
     }
 
     const act = verifyActivationSessionToken(
@@ -26,10 +36,28 @@ export async function POST(req: NextRequest) {
       req.cookies.get(PROFILE_SESSION_COOKIE)?.value
     );
     if (!act && !prof) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401, headers: NO_STORE_HEADERS }
+      );
     }
-    if (act && !path.startsWith(`pending/${act.healthId}/`)) {
-      return NextResponse.json({ error: "Path not allowed" }, { status: 403 });
+    if (act) {
+      const health_id = normalizeHealthId(act.healthId);
+      if (!path.startsWith(`pending/${health_id}/`)) {
+        return NextResponse.json(
+          { error: "Path not allowed" },
+          { status: 403, headers: NO_STORE_HEADERS }
+        );
+      }
+      const db = getAdminDb();
+      const card = await findCardByHealthId(db, health_id);
+      const gate = evaluateActivationGate(health_id, card?.isDemo === true);
+      if (!gate.ok) {
+        return NextResponse.json(
+          { error: gate.message, code: gate.code },
+          { status: 403, headers: NO_STORE_HEADERS }
+        );
+      }
     }
 
     const result = await verifyUploadedObject({
@@ -37,14 +65,20 @@ export async function POST(req: NextRequest) {
       expectedType: contentType,
     });
     if (!result.ok) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: 400, headers: NO_STORE_HEADERS }
+      );
     }
-    return NextResponse.json({ success: true, size: result.size });
+    return NextResponse.json(
+      { success: true, size: result.size },
+      { headers: NO_STORE_HEADERS }
+    );
   } catch (err) {
     console.error("uploads/confirm", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed" },
-      { status: 500 }
+      { status: 500, headers: NO_STORE_HEADERS }
     );
   }
 }

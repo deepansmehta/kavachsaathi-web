@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, useRef, type CSSProperties } from "react";
 import toast from "react-hot-toast";
+import QRCode from "react-qr-code";
 
 type Captcha = { token: string; question: string };
 
@@ -27,8 +28,82 @@ type Details =
       };
       insurance?: Record<string, unknown>;
       expiresAt?: number;
+      abha?: { number: string } | null;
+      donorDirective?: {
+        bloodDonor?: boolean | null;
+        organDonor?: string;
+        nottoPledgeId?: string | null;
+        advanceDirectiveUrl?: string | null;
+      } | null;
     }
   | null;
+
+type VaultRecord = {
+  id: string;
+  type: string;
+  date: string;
+  hospital: string;
+  url: string | null;
+  uploadedAt?: string;
+};
+
+type CashlessTimerData = {
+  cashlessRequestAt: string | null;
+  irdaiTimelines: {
+    preAuthDecision: string;
+    enhancementDecision: string;
+    finalDischargeAuth: string;
+    reference: string;
+    referenceUrl: string;
+  };
+  escalation: {
+    step1: string;
+    step2: { name: string; url: string; phone: string };
+    step3: { name: string; url: string; note: string };
+  };
+  insurers: Array<{ name: string; tpaHelpline?: string; claimsHelpline?: string }>;
+  disclaimer: string;
+};
+
+type FeatureFlags = {
+  cashlessTimer?: boolean;
+  recordsVault?: boolean;
+  claimFormPrefill?: boolean;
+  abhaLink?: boolean;
+  donorDirective?: boolean;
+};
+
+async function downloadPdf(url: string, fallbackName: string) {
+  const res = await fetch(url, { credentials: "same-origin" });
+  if (!res.ok) {
+    let msg = "Download failed";
+    try {
+      const j = await res.json();
+      msg = j.error || msg;
+    } catch { /* */ }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const a = document.createElement("a");
+  const objectUrl = URL.createObjectURL(blob);
+  a.href = objectUrl;
+  a.download = fallbackName;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.open(objectUrl, "_blank", "noopener,noreferrer");
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+}
+
+function formatElapsed(since: string): string {
+  const diff = Date.now() - new Date(since).getTime();
+  const totalMins = Math.floor(diff / 60_000);
+  const hrs = Math.floor(totalMins / 60);
+  const mins = totalMins % 60;
+  if (hrs > 0) return `${hrs}h ${mins}m`;
+  return `${mins}m`;
+}
 
 export function FullDetailsModal({
   healthId,
@@ -39,13 +114,12 @@ export function FullDetailsModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const [tab, setTab] = useState<"choose" | "pin" | "emergency" | "view">(
-    "choose"
-  );
+  const [tab, setTab] = useState<"choose" | "pin" | "emergency" | "view">("choose");
   const [pin, setPin] = useState("");
   const [captcha, setCaptcha] = useState<Captcha | null>(null);
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [loading, setLoading] = useState(false);
+  const [dlLoading, setDlLoading] = useState<string | null>(null);
   const [details, setDetails] = useState<Details>(null);
   const [hospitalName, setHospitalName] = useState("");
   const [staffName, setStaffName] = useState("");
@@ -54,12 +128,40 @@ export function FullDetailsModal({
   const [reason, setReason] = useState("");
   const [attested, setAttested] = useState(false);
 
+  // Feature flags (loaded once when modal opens)
+  const [flags, setFlags] = useState<FeatureFlags>({});
+  const flagsLoaded = useRef(false);
+
+  // Cashless timer state
+  const [cashlessData, setCashlessData] = useState<CashlessTimerData | null>(null);
+  const [cashlessLoading, setCashlessLoading] = useState(false);
+  const [, setTimerTick] = useState(0);
+
+  // Vault records
+  const [vaultRecords, setVaultRecords] = useState<VaultRecord[]>([]);
+  const [vaultLoaded, setVaultLoaded] = useState(false);
+
+  // ABHA copy state
+  const [abhaCopied, setAbhaCopied] = useState(false);
+
   useEffect(() => {
     if (!open) {
       setTab("choose");
       setDetails(null);
       setPin("");
+      setCashlessData(null);
+      setVaultRecords([]);
+      setVaultLoaded(false);
+      flagsLoaded.current = false;
       return;
+    }
+    // Load feature flags once
+    if (!flagsLoaded.current) {
+      flagsLoaded.current = true;
+      fetch("/api/features")
+        .then((r) => r.json())
+        .then((d) => setFlags(d.flags || {}))
+        .catch(() => {});
     }
   }, [open]);
 
@@ -79,6 +181,34 @@ export function FullDetailsModal({
     }, ms);
     return () => window.clearTimeout(t);
   }, [details?.expiresAt]);
+
+  // Timer tick for elapsed display
+  useEffect(() => {
+    if (!cashlessData?.cashlessRequestAt) return;
+    const interval = setInterval(() => setTimerTick((t) => t + 1), 30_000);
+    return () => clearInterval(interval);
+  }, [cashlessData?.cashlessRequestAt]);
+
+  // Load vault records once view is shown with PIN scope
+  useEffect(() => {
+    if (tab === "view" && details?.scope === "pin" && flags.recordsVault && !vaultLoaded) {
+      setVaultLoaded(true);
+      fetch("/api/vault")
+        .then((r) => r.json())
+        .then((d) => setVaultRecords(d.records || []))
+        .catch(() => {});
+    }
+  }, [tab, details?.scope, flags.recordsVault, vaultLoaded]);
+
+  // Load cashless timer once view is shown
+  useEffect(() => {
+    if (tab === "view" && details?.scope === "pin" && flags.cashlessTimer && !cashlessData) {
+      fetch("/api/cashless-timer")
+        .then((r) => r.json())
+        .then((d) => setCashlessData(d))
+        .catch(() => {});
+    }
+  }, [tab, details?.scope, flags.cashlessTimer, cashlessData]);
 
   if (!open) return null;
 
@@ -162,6 +292,54 @@ export function FullDetailsModal({
     }
   };
 
+  const onDownload = async (kind: "cashless" | "admission" | "claim") => {
+    setDlLoading(kind);
+    try {
+      if (kind === "cashless") {
+        await downloadPdf("/api/forms/cashless", "kavachsaathi-cashless-irdai.pdf");
+      } else if (kind === "claim") {
+        await downloadPdf("/api/forms/claim", "kavachsaathi-claim-form-part-a.pdf");
+      } else {
+        await downloadPdf(
+          "/api/forms/admission-sheet",
+          details?.scope === "emergency"
+            ? "kavachsaathi-admission-sheet-limited.pdf"
+            : "kavachsaathi-admission-sheet.pdf"
+        );
+      }
+      toast.success("PDF ready");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Download failed");
+    } finally {
+      setDlLoading(null);
+    }
+  };
+
+  const submitCashlessTimer = async () => {
+    setCashlessLoading(true);
+    try {
+      const res = await fetch("/api/cashless-timer", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Failed");
+        return;
+      }
+      setCashlessData(data);
+      toast.success("Cashless request time recorded");
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setCashlessLoading(false);
+    }
+  };
+
+  const copyAbha = (number: string) => {
+    navigator.clipboard.writeText(number).then(() => {
+      setAbhaCopied(true);
+      setTimeout(() => setAbhaCopied(false), 2000);
+    });
+  };
+
   return (
     <div
       style={{
@@ -199,18 +377,10 @@ export function FullDetailsModal({
 
         {tab === "choose" && (
           <div style={{ display: "grid", gap: 10 }}>
-            <button
-              type="button"
-              onClick={() => setTab("pin")}
-              style={btn}
-            >
+            <button type="button" onClick={() => setTab("pin")} style={btn}>
               Patient / family has the PIN
             </button>
-            <button
-              type="button"
-              onClick={() => setTab("emergency")}
-              style={btnOutline}
-            >
+            <button type="button" onClick={() => setTab("emergency")} style={btnOutline}>
               Patient is unconscious — Hospital emergency access
             </button>
           </div>
@@ -286,6 +456,167 @@ export function FullDetailsModal({
             {details.note && (
               <p style={{ color: "#FCE49A", fontSize: 13 }}>{details.note}</p>
             )}
+
+            {/* PDF Forms */}
+            <div
+              style={{
+                display: "grid",
+                gap: 8,
+                padding: 10,
+                border: "1px solid #D4AF3755",
+                borderRadius: 10,
+              }}
+            >
+              <p style={{ fontSize: 12, color: "#D4AF37", margin: 0 }}>Downloadable forms</p>
+              {details.scope === "pin" && (
+                <button
+                  type="button"
+                  disabled={!!dlLoading}
+                  onClick={() => onDownload("cashless")}
+                  style={btn}
+                >
+                  {dlLoading === "cashless" ? "Preparing…" : "Download Cashless Form (IRDAI)"}
+                </button>
+              )}
+              {details.scope === "pin" && flags.claimFormPrefill && (
+                <button
+                  type="button"
+                  disabled={!!dlLoading}
+                  onClick={() => onDownload("claim")}
+                  style={btnOutline}
+                >
+                  {dlLoading === "claim" ? "Preparing…" : "Download Claim Form (Reimbursement)"}
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={!!dlLoading}
+                onClick={() => onDownload("admission")}
+                style={details.scope === "pin" ? btnOutline : btn}
+              >
+                {dlLoading === "admission"
+                  ? "Preparing…"
+                  : details.scope === "emergency"
+                    ? "Download Limited Admission Info Sheet"
+                    : "Download Admission Info Sheet"}
+              </button>
+              {details.scope === "emergency" && (
+                <p style={{ fontSize: 11, color: "#A8A59C", margin: 0 }}>
+                  Emergency access: limited sheet only (no address / ID numbers / cashless form).
+                </p>
+              )}
+            </div>
+
+            {/* F4: Cashless Timer (PIN scope only) */}
+            {details.scope === "pin" && flags.cashlessTimer && (
+              <div
+                style={{
+                  padding: 10,
+                  border: "1px solid #D4AF3755",
+                  borderRadius: 10,
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                <p style={{ fontSize: 12, color: "#D4AF37", margin: 0 }}>
+                  Cashless hospitalisation timer
+                </p>
+                {cashlessData?.cashlessRequestAt ? (
+                  <div>
+                    <p style={{ color: "#FCE49A", fontSize: 13 }}>
+                      ✅ Request submitted {formatElapsed(cashlessData.cashlessRequestAt)} ago
+                    </p>
+                    <p style={{ fontSize: 11, color: "#A8A59C", marginTop: 4 }}>
+                      Submitted: {new Date(cashlessData.cashlessRequestAt).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={cashlessLoading}
+                    onClick={submitCashlessTimer}
+                    style={btn}
+                  >
+                    {cashlessLoading ? "Saving…" : "Cashless request submitted"}
+                  </button>
+                )}
+                {cashlessData && (
+                  <div style={{ fontSize: 11, color: "#A8A59C" }}>
+                    <p style={{ color: "#FCE49A", marginBottom: 4 }}>
+                      IRDAI decision timelines:
+                    </p>
+                    <p>• {cashlessData.irdaiTimelines.preAuthDecision}</p>
+                    <p>• {cashlessData.irdaiTimelines.enhancementDecision}</p>
+                    <p>• {cashlessData.irdaiTimelines.finalDischargeAuth}</p>
+                    <p style={{ marginTop: 4 }}>
+                      Ref:{" "}
+                      <a
+                        href={cashlessData.irdaiTimelines.referenceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "#D4AF37" }}
+                      >
+                        {cashlessData.irdaiTimelines.reference}
+                      </a>
+                    </p>
+                    {cashlessData.insurers.length > 0 && (
+                      <>
+                        <p style={{ color: "#FCE49A", marginTop: 6, marginBottom: 2 }}>
+                          Insurer helplines:
+                        </p>
+                        {cashlessData.insurers.map((ins, i) => (
+                          <p key={i}>
+                            • {ins.name}
+                            {ins.tpaHelpline ? ` TPA: ${ins.tpaHelpline}` : ""}
+                            {ins.claimsHelpline ? ` Claims: ${ins.claimsHelpline}` : ""}
+                          </p>
+                        ))}
+                      </>
+                    )}
+                    <p style={{ color: "#FCE49A", marginTop: 6, marginBottom: 2 }}>
+                      Escalation:
+                    </p>
+                    <p>1. {cashlessData.escalation.step1}</p>
+                    <p>
+                      2.{" "}
+                      <a
+                        href={cashlessData.escalation.step2.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "#D4AF37" }}
+                      >
+                        {cashlessData.escalation.step2.name}
+                      </a>{" "}
+                      — {cashlessData.escalation.step2.phone}
+                    </p>
+                    <p>
+                      3.{" "}
+                      <a
+                        href={cashlessData.escalation.step3.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "#D4AF37" }}
+                      >
+                        {cashlessData.escalation.step3.name}
+                      </a>
+                    </p>
+                    <p
+                      style={{
+                        marginTop: 6,
+                        padding: "4px 8px",
+                        background: "#1a1a14",
+                        borderRadius: 6,
+                        fontSize: 10,
+                      }}
+                    >
+                      ⚠ {cashlessData.disclaimer}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ID Proofs (PIN scope) */}
             {details.scope === "pin" && details.idProofs && (
               <section>
                 <h3 style={{ color: "#D4AF37", fontSize: 13 }}>ID proofs</h3>
@@ -302,6 +633,8 @@ export function FullDetailsModal({
                 ))}
               </section>
             )}
+
+            {/* Address (PIN scope) */}
             {details.scope === "pin" && details.address && (
               <section>
                 <h3 style={{ color: "#D4AF37", fontSize: 13 }}>Address</h3>
@@ -314,6 +647,8 @@ export function FullDetailsModal({
                 </p>
               </section>
             )}
+
+            {/* Insurance */}
             {details.insurance && (
               <section>
                 <h3 style={{ color: "#D4AF37", fontSize: 13 }}>Insurance</h3>
@@ -321,6 +656,134 @@ export function FullDetailsModal({
                   {JSON.stringify(details.insurance, null, 2)}
                 </pre>
               </section>
+            )}
+
+            {/* F8: ABHA Link (PIN scope only) */}
+            {details.scope === "pin" && flags.abhaLink && details.abha?.number && (
+              <div
+                style={{
+                  padding: 10,
+                  border: "1px solid #D4AF3755",
+                  borderRadius: 10,
+                }}
+              >
+                <p style={{ fontSize: 12, color: "#D4AF37", marginBottom: 8 }}>
+                  ABHA (Ayushman Bharat Health Account)
+                </p>
+                <p style={{ fontFamily: "monospace", fontSize: 15, letterSpacing: 2 }}>
+                  {details.abha.number}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => copyAbha(details?.abha?.number || "")}
+                  style={{ ...btnGhost, padding: "4px 8px", fontSize: 12 }}
+                >
+                  {abhaCopied ? "✓ Copied" : "Copy"}
+                </button>
+                <div style={{ marginTop: 8, background: "#fff", display: "inline-block", padding: 4, borderRadius: 6 }}>
+                  <QRCode
+                    value={details.abha.number}
+                    size={96}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* F12: Donor Directive (PIN scope only) */}
+            {details.scope === "pin" && flags.donorDirective && details.donorDirective !== undefined && (
+              <div
+                style={{
+                  padding: 10,
+                  border: "1px solid #D4AF3755",
+                  borderRadius: 10,
+                }}
+              >
+                <p style={{ fontSize: 12, color: "#D4AF37", marginBottom: 8 }}>
+                  Donor &amp; Advance Directive
+                </p>
+                <p style={{ fontSize: 12 }}>
+                  Blood donor:{" "}
+                  <span style={{ color: "#FCE49A" }}>
+                    {details.donorDirective?.bloodDonor === true
+                      ? "Yes"
+                      : details.donorDirective?.bloodDonor === false
+                        ? "No"
+                        : "Not specified"}
+                  </span>
+                </p>
+                <p style={{ fontSize: 12 }}>
+                  Organ donor:{" "}
+                  <span style={{ color: "#FCE49A" }}>
+                    {details.donorDirective?.organDonor === "yes"
+                      ? "Yes"
+                      : details.donorDirective?.organDonor === "no"
+                        ? "No"
+                        : "Not specified"}
+                  </span>
+                </p>
+                {details.donorDirective?.nottoPledgeId && (
+                  <p style={{ fontSize: 12 }}>
+                    NOTTO Pledge ID:{" "}
+                    <span style={{ fontFamily: "monospace", color: "#FCE49A" }}>
+                      {details.donorDirective.nottoPledgeId}
+                    </span>
+                  </p>
+                )}
+                {details.donorDirective?.advanceDirectiveUrl && (
+                  <a
+                    href={details.donorDirective.advanceDirectiveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "#D4AF37", fontSize: 12 }}
+                  >
+                    View advance directive document ↗
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* F5: Records Vault (PIN scope only, latest 3) */}
+            {details.scope === "pin" && flags.recordsVault && vaultRecords.length > 0 && (
+              <div
+                style={{
+                  padding: 10,
+                  border: "1px solid #D4AF3755",
+                  borderRadius: 10,
+                }}
+              >
+                <p style={{ fontSize: 12, color: "#D4AF37", marginBottom: 8 }}>
+                  Medical records vault (latest 3)
+                </p>
+                {vaultRecords.map((r) => (
+                  <div
+                    key={r.id}
+                    style={{
+                      marginBottom: 8,
+                      padding: 6,
+                      background: "#1a1a14",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  >
+                    <p style={{ color: "#FCE49A", margin: 0 }}>
+                      {r.type.replace(/_/g, " ")} · {r.date || "—"} · {r.hospital || "—"}
+                    </p>
+                    {r.url && (
+                      <a
+                        href={r.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "#D4AF37" }}
+                      >
+                        Open (5-min link) ↗
+                      </a>
+                    )}
+                  </div>
+                ))}
+                <p style={{ fontSize: 10, color: "#A8A59C", margin: 0 }}>
+                  Signed URLs expire in 5 minutes. Full vault accessible in My Profile.
+                </p>
+              </div>
             )}
           </div>
         )}
@@ -337,6 +800,7 @@ const btn: CSSProperties = {
   padding: "12px 14px",
   fontWeight: 700,
   cursor: "pointer",
+  minHeight: 44,
 };
 const btnOutline: CSSProperties = {
   ...btn,

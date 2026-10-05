@@ -128,3 +128,13 @@ export async function deletePrefix(prefix: string): Promise<number> {
   }
   return n;
 }
+
+export async function getObjectBytes(path: string): Promise<Buffer | null> {
+  const bucket = getBucket();
+  const file = bucket.file(path);
+  const [exists] = await file.exists();
+  if (!exists) return null;
+  const [buf] = await file.download();
+  return buf;
+}
+

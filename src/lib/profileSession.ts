@@ -46,7 +46,11 @@ export function profileSessionCookieOptions(token: string) {
     name: COOKIE,
     value: token,
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    // Always Secure on Netlify/prod hosts (NODE_ENV can be production there)
+    secure:
+      process.env.NODE_ENV === "production" ||
+      process.env.NETLIFY === "true" ||
+      process.env.CONTEXT === "production",
     sameSite: "lax" as const,
     path: "/",
     maxAge: MAX_AGE_SEC,
@@ -58,7 +62,10 @@ export function clearProfileSessionCookie() {
     name: COOKIE,
     value: "",
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure:
+      process.env.NODE_ENV === "production" ||
+      process.env.NETLIFY === "true" ||
+      process.env.CONTEXT === "production",
     sameSite: "lax" as const,
     path: "/",
     maxAge: 0,

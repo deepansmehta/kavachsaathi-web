@@ -7,9 +7,12 @@ import {
 } from "./healthId";
 import {
   criticalAlertsDisplay,
+  criticalFlagsDisplay,
   parseCriticalAlerts,
+  parseCriticalFlags,
   parseOrganDonor,
   type CriticalAlerts,
+  type CriticalFlags,
   type OrganDonorValue,
 } from "./profileFields";
 
@@ -26,6 +29,7 @@ export type CardRecord = {
   validTill?: string | null;
   lastScanLoggedAt?: unknown;
   lastScanDocId?: string | null;
+  isDemo?: boolean;
 };
 
 function mapCard(
@@ -46,6 +50,7 @@ function mapCard(
     validTill: data.validTill ? String(data.validTill) : null,
     lastScanLoggedAt: data.lastScanLoggedAt ?? null,
     lastScanDocId: data.lastScanDocId ? String(data.lastScanDocId) : null,
+    isDemo: data.isDemo === true,
   };
 }
 
@@ -100,6 +105,8 @@ export type PublicEmergencyProfile = {
   organDonor?: OrganDonorValue;
   criticalAlerts: CriticalAlerts;
   criticalAlertLabels: string[];
+  criticalFlags: CriticalFlags;
+  criticalFlagLabels: string[];
   sectionsRendered: string[];
   insurerName?: string | null;
   schemeName?: string | null;
@@ -163,6 +170,7 @@ function mapPublicProfile(
   ).trim();
 
   const criticalAlerts = parseCriticalAlerts(data.criticalAlerts);
+  const criticalFlags = parseCriticalFlags(data.criticalFlags);
   const organDonor = parseOrganDonor(
     data.organDonor ?? data.organ_donor
   );
@@ -177,7 +185,11 @@ function mapPublicProfile(
   const medications = asArr(data.medications || data.current_medications);
 
   const sectionsRendered = ["basic"];
-  if (criticalAlerts.tags.length || criticalAlerts.otherText) {
+  if (
+    criticalAlerts.tags.length ||
+    criticalAlerts.otherText ||
+    criticalFlags.tags.length
+  ) {
     sectionsRendered.push("critical");
   }
   if (
@@ -219,6 +231,8 @@ function mapPublicProfile(
     organDonor,
     criticalAlerts,
     criticalAlertLabels: criticalAlertsDisplay(criticalAlerts),
+    criticalFlags,
+    criticalFlagLabels: criticalFlagsDisplay(criticalFlags),
     sectionsRendered,
     insurerName: insurance?.private?.insurerName || null,
     schemeName: insurance?.government?.schemeName || null,

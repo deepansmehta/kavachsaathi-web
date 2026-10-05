@@ -11,13 +11,34 @@ import { getFirestore } from "firebase-admin/firestore";
 import { DEMO_ACTIVATION_CODE, DEMO_HEALTH_ID } from "./demoConstants";
 
 function loadAdmin() {
+  // Load .env.local for Storage bucket if present
+  try {
+    const envPath = path.join(process.cwd(), ".env.local");
+    if (fs.existsSync(envPath)) {
+      for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
+        const m = line.match(/^([^#=]+)=(.*)$/);
+        if (m && !process.env[m[1].trim()]) {
+          process.env[m[1].trim()] = m[2].trim();
+        }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
   if (!getApps().length) {
     const saPath = path.join(process.cwd(), "service-account.json");
     if (!fs.existsSync(saPath)) {
       throw new Error("Missing service-account.json");
     }
     const sa = JSON.parse(fs.readFileSync(saPath, "utf8"));
-    initializeApp({ credential: cert(sa), projectId: sa.project_id });
+    const bucket =
+      process.env.FIREBASE_STORAGE_BUCKET ||
+      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    initializeApp({
+      credential: cert(sa),
+      projectId: sa.project_id,
+      ...(bucket ? { storageBucket: bucket } : {}),
+    });
     console.log("project:", sa.project_id);
   }
   return getFirestore();

@@ -464,9 +464,10 @@ async function main() {
       }
       if (String(d.data().status) !== "unactivated") changed += 1;
     }
-    unAfter === 100 && unAfter === unactivatedBefore && changed === 0
-      ? pass(13, "100 real cards still unactivated")
-      : fail(13, "real cards", `un=${unAfter} changedStatus=${changed}`);
+    // Inventory is 500 real cards (A0001–A0500); assert none flipped by this suite.
+    unAfter === 500 && unAfter === unactivatedBefore && changed === 0
+      ? pass(13, "500 real cards still unactivated")
+      : fail(13, "real cards", `un=${unAfter} before=${unactivatedBefore} changedStatus=${changed}`);
   }
 
   await cleanup(db);

@@ -20,6 +20,38 @@ https://kavachsaathi.in/card/{health_id}
 
 Do **not** re-seed the existing 100 `cards` documents.
 
+## Activation gate (scheduled open — no redeploy on launch day)
+
+Real kits (`KVS-2026-*`) open automatically when **server time ≥ `ACTIVATION_OPENS_AT`**, unless the kill switch is on.
+
+| Env | Meaning |
+|-----|---------|
+| `ACTIVATION_OPENS_AT` | ISO datetime with timezone (e.g. `2026-10-11T12:00:00+05:30`) — real kits blocked until this instant |
+| `ACTIVATION_ENABLED=false` | Emergency kill switch — blocks real kits even after opens-at |
+| unset / `true` for `ACTIVATION_ENABLED` | Kill switch off — schedule decides |
+
+**Always exempt:** `KVS-DEMO-*`, `KVS-2099-*`, and any card with `isDemo: true`.
+
+APIs return `403` with `ACTIVATION_NOT_OPEN` (before schedule) or `ACTIVATION_DISABLED` (kill switch).
+
+Build fails if `ACTIVATION_OPENS_AT` is set (and kill switch is not on) without `GRIEVANCE_OFFICER_NAME` + `GRIEVANCE_OFFICER_EMAIL`.
+
+### GO-LIVE (launch day)
+
+`GRIEVANCE_OFFICER_NAME` + `GRIEVANCE_OFFICER_EMAIL` in Netlify → set `ACTIVATION_OPENS_AT=2026-10-11T12:00:00+05:30` (once) → ensure `ACTIVATION_ENABLED` is **not** `false` → deploy once → at noon IST the gate opens with **no further redeploy**. Optional: scan 1 real card step 1 only (do not submit).
+
+Do **not** commit secrets. Do **not** print `PROFILE_ENC_KEY`.
+
+## Public card views
+
+| URL | When | Photo |
+|-----|------|-------|
+| `/card/{health_id}` (activated) | Normal QR scan — **always** | Yes (signed URL, ≤5 min) + “Insured with” |
+| `/card/{health_id}` (unactivated, before opens-at) | Real kits before schedule | Countdown — “Activation opens on 11 October 2026, 12:00 PM IST” |
+| `/emergency/{health_id}` | Alternate deep-link (legacy) | Separate server page |
+
+`EmergencyLite` **is** the normal activated `/card/` view (SSR for mobile perf). It is not a no-photo fallback.
+
 ## Quick start
 
 ```bash
