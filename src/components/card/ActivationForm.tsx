@@ -276,6 +276,7 @@ export function ActivationForm({
         toast.error("Select coverage type");
         return false;
       }
+      if (coverageType === "none") return true;
       if (coverageType === "private" || coverageType === "both") {
         if (
           !insurerName ||
@@ -363,7 +364,7 @@ export function ActivationForm({
           govtCardPath,
         };
       }
-      if (hasOtherMediclaim) {
+      if (coverageType !== "none" && hasOtherMediclaim) {
         insurance.otherMediclaim = {
           hasOther: hasOtherMediclaim === "yes",
           companyName: otherCompany.trim() || null,
@@ -924,7 +925,14 @@ export function ActivationForm({
               <option value="private">Private</option>
               <option value="government">Government</option>
               <option value="both">Both</option>
+              <option value="none">No insurance / कोई बीमा नहीं</option>
             </select>
+            {coverageType === "none" && (
+              <p className="rounded-lg border border-[#333] bg-[#141410] p-3 text-sm text-[#A8A59C]">
+                No policy details needed — you can continue. Emergency card will
+                not show an insurer. / बीमा नहीं है तो आगे बढ़ सकते हैं।
+              </p>
+            )}
             {(coverageType === "private" || coverageType === "both") && (
               <div className="space-y-2 rounded-lg border border-[#333] p-3">
                 <select
@@ -1065,6 +1073,8 @@ export function ActivationForm({
                 }
                 inputMode="numeric"
               />
+              {coverageType !== "none" && (
+                <>
               <select
                 className="w-full rounded-lg border border-[#333] bg-[#1a1a14] p-3 text-white"
                 value={tpaName}
@@ -1134,6 +1144,8 @@ export function ActivationForm({
                     value={otherPolicyNumber}
                     onChange={(e) => setOtherPolicyNumber(e.target.value)}
                   />
+                </>
+              )}
                 </>
               )}
               <select
