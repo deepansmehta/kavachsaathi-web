@@ -3,13 +3,25 @@ import type { NextRequest } from "next/server";
 import {
   LAUNCH_PREVIEW_COOKIE,
   LAUNCH_PREVIEW_SECRET,
+  isSiteLaunched,
 } from "@/lib/launchConfig";
 
 /**
- * Hardcoded launch instant (11 Oct 2026, 12:00 PM IST).
- * Do NOT rely on env here — Netlify Edge must always gate until this moment.
+ * Pre-launch gate uses the SAME instant as ACTIVATION_OPENS_AT
+ * (via isSiteLaunched → getSiteLaunchAtMs). Opens automatically at that
+ * moment with no redeploy. Emergency: SITE_PRELAUNCH_FORCE=open|closed.
+ *
+ * Always allowed before launch (no preview needed):
+ *   /card /e /emergency — QR emergency / activation countdown
+ *   /api/card /api/uploads /api/full-details /api/forms /api/features
+ *   /api/alert-family /api/scan /api/log-scan /api/emergency
+ *   Phase 2/3 APIs (handlers still return 404 when flags OFF)
+ *   /admin + /api/admin — allowlisted Google admins only (handler enforces)
+ *
+ * Gated until launch (→ /coming-soon or 503):
+ *   /my-profile, /hospital, /org, marketing pages
+ *   /api/profile/*, other non-allowlisted APIs
  */
-const LAUNCH_AT_MS = Date.parse("2026-10-11T12:00:00+05:30");
 
 const PUBLIC_ROUTES = [
   "/",
@@ -38,12 +50,7 @@ const PROTECTED_PREFIXES = [
   "/scan-history",
 ];
 
-function isLaunchedNow() {
-  return Date.now() >= LAUNCH_AT_MS;
-}
-
 function clearPreview(res: NextResponse) {
-  // Clear current + legacy cookie names so old unlocks cannot stick
   for (const name of [LAUNCH_PREVIEW_COOKIE, "kavach_preview"]) {
     res.cookies.set(name, "", {
       path: "/",
@@ -60,10 +67,36 @@ function withPreviewCookie(res: NextResponse) {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
-    // Short-lived so QA doesn't accidentally leave the gate open for weeks
     maxAge: 60 * 60 * 2,
   });
   return res;
+}
+
+function isPreLaunchApiAllowed(pathname: string): boolean {
+  return (
+    pathname.startsWith("/api/card/") ||
+    pathname.startsWith("/api/uploads/") ||
+    pathname === "/api/full-details" ||
+    pathname.startsWith("/api/forms/") ||
+    pathname === "/api/features" ||
+    pathname === "/api/alert-family" ||
+    pathname === "/api/scan" ||
+    pathname === "/api/log-scan" ||
+    pathname === "/api/emergency" ||
+    pathname === "/api/cashless-timer" ||
+    pathname === "/api/vault" ||
+    pathname.startsWith("/api/vault/") ||
+    pathname === "/api/family" ||
+    pathname.startsWith("/api/family/") ||
+    pathname === "/api/hospital" ||
+    pathname.startsWith("/api/hospital/") ||
+    pathname === "/api/org" ||
+    pathname.startsWith("/api/org/") ||
+    pathname === "/api/donor-directive" ||
+    pathname.startsWith("/api/donor-directive/") ||
+    pathname === "/api/admin" ||
+    pathname.startsWith("/api/admin/")
+  );
 }
 
 export function middleware(request: NextRequest) {
@@ -75,20 +108,23 @@ export function middleware(request: NextRequest) {
   const previewCookie =
     request.cookies.get(LAUNCH_PREVIEW_COOKIE)?.value === "1";
 
-  // Explicitly clear preview unlock
   if (turnOffPreview) {
     const soon = new URL("/coming-soon", request.url);
     return clearPreview(NextResponse.redirect(soon));
   }
 
   const preview = previewParam || previewCookie;
+  const launched = isSiteLaunched();
 
-  // ── Launch gate (before 11 Oct 2026, 12:00 PM IST) ─────────────────────
-  // Marketing site locked; QR card / emergency / activation APIs stay live so
-  // real kits show the activation countdown and demo can still activate.
-  if (!isLaunchedNow() && !preview) {
+  // ── Pre-launch (before ACTIVATION_OPENS_AT / SITE_PRELAUNCH_FORCE) ─────
+  if (!launched && !preview) {
     if (pathname === "/coming-soon" || pathname.startsWith("/coming-soon/")) {
       return clearPreview(NextResponse.next());
+    }
+
+    // Admin UI + API always reachable; Google allowlist enforced in handlers
+    if (ADMIN_PATTERN.test(pathname) || pathname.startsWith("/api/admin")) {
+      return NextResponse.next();
     }
 
     if (CARD_PATTERN.test(pathname) || EMERGENCY_PATTERN.test(pathname)) {
@@ -97,28 +133,7 @@ export function middleware(request: NextRequest) {
       return NextResponse.next({ request: { headers: requestHeaders } });
     }
 
-    if (
-      pathname.startsWith("/api/card/") ||
-      pathname.startsWith("/api/uploads/") ||
-      pathname === "/api/full-details" ||
-      pathname.startsWith("/api/forms/") ||
-      pathname === "/api/features" ||
-      pathname === "/api/alert-family" ||
-      pathname === "/api/scan" ||
-      pathname === "/api/log-scan" ||
-      pathname === "/api/emergency" ||
-      pathname === "/api/cashless-timer" ||
-      pathname === "/api/vault" ||
-      pathname.startsWith("/api/vault/") ||
-      pathname === "/api/family" ||
-      pathname.startsWith("/api/family/") ||
-      pathname === "/api/hospital" ||
-      pathname.startsWith("/api/hospital/") ||
-      pathname === "/api/org" ||
-      pathname.startsWith("/api/org/") ||
-      pathname === "/api/donor-directive" ||
-      pathname.startsWith("/api/donor-directive/")
-    ) {
+    if (isPreLaunchApiAllowed(pathname)) {
       return NextResponse.next();
     }
 
@@ -148,7 +163,13 @@ export function middleware(request: NextRequest) {
     return attachPreview ? withPreviewCookie(res) : res;
   }
 
-  if (ACTIVATE_PATTERN.test(pathname) || pathname === "/my-profile" || pathname === "/hospital" || pathname === "/org") {
+  if (
+    ACTIVATE_PATTERN.test(pathname) ||
+    pathname === "/my-profile" ||
+    pathname === "/hospital" ||
+    pathname === "/org" ||
+    ADMIN_PATTERN.test(pathname)
+  ) {
     const res = NextResponse.next();
     return attachPreview ? withPreviewCookie(res) : res;
   }

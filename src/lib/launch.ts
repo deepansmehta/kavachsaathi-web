@@ -1,6 +1,11 @@
-import { LAUNCH_DATE, isLaunched } from "@/lib/launchConfig";
+import { isLaunched, getSiteLaunchAtMs } from "@/lib/launchConfig";
 
-export { LAUNCH_DATE, isLaunched } from "@/lib/launchConfig";
+export {
+  LAUNCH_DATE,
+  isLaunched,
+  isSiteLaunched,
+  getSiteLaunchAtMs,
+} from "@/lib/launchConfig";
 
 export type TimeLeft = {
   days: number;
@@ -13,7 +18,7 @@ export type TimeLeft = {
 };
 
 export function getTimeLeft(now = new Date()): TimeLeft {
-  const ms = LAUNCH_DATE.getTime() - now.getTime();
+  const ms = getSiteLaunchAtMs() - now.getTime();
   const diff = Math.max(0, ms);
   const totalSeconds = Math.floor(diff / 1000);
   const days = Math.floor(totalSeconds / 86400);

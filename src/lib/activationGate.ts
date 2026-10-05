@@ -5,10 +5,14 @@
  *  1) ACTIVATION_ENABLED is not an explicit kill-switch ("false"/"0"/"off"/"no")
  *  2) server time (UTC) >= ACTIVATION_OPENS_AT
  *
+ * Site pre-launch middleware uses the SAME ACTIVATION_OPENS_AT instant
+ * (see src/lib/launchConfig.ts isSiteLaunched).
+ *
  * Demo (KVS-DEMO-*), disposable (KVS-2099-*), and isDemo:true cards are always exempt.
  * ACTIVATION_TEST_NOW / ACTIVATION_TEST_AS_REAL are ignored in production.
  */
 import { isDemoHealthId, normalizeHealthId } from "./healthId";
+import { getSiteLaunchAt, getSiteLaunchNow } from "./launchConfig";
 
 export type ActivationDenyCode =
   | "ACTIVATION_NOT_OPEN"
@@ -34,11 +38,13 @@ export function isActivationEnabled(): boolean {
 }
 
 export function getActivationOpensAt(): Date | null {
+  // Prefer env; fall back to shared site launch instant so gates never drift
   const raw = String(process.env.ACTIVATION_OPENS_AT || "").trim();
-  if (!raw) return null;
-  const t = Date.parse(raw);
-  if (Number.isNaN(t)) return null;
-  return new Date(t);
+  if (raw) {
+    const t = Date.parse(raw);
+    if (!Number.isNaN(t)) return new Date(t);
+  }
+  return getSiteLaunchAt();
 }
 
 function isProductionRuntime(): boolean {
@@ -52,16 +58,10 @@ function isProductionRuntime(): boolean {
 
 /**
  * Mockable clock for tests. ACTIVATION_TEST_NOW is ignored in production.
+ * Shared with site pre-launch via getSiteLaunchNow().
  */
 export function getActivationNow(): Date {
-  if (!isProductionRuntime()) {
-    const raw = String(process.env.ACTIVATION_TEST_NOW || "").trim();
-    if (raw) {
-      const t = Date.parse(raw);
-      if (!Number.isNaN(t)) return new Date(t);
-    }
-  }
-  return new Date();
+  return getSiteLaunchNow();
 }
 
 export function isActivationScheduleOpen(now = getActivationNow()): boolean {

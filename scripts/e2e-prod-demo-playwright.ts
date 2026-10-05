@@ -332,6 +332,26 @@ async function main() {
       ? pass("2 seven-step activation")
       : fail("2 activation", String(st));
 
+    // Ensure critical flags exist so Phase 1 badges render on emergency view
+    {
+      const card = (await db.collection("cards").doc(DEMO_HEALTH_ID).get()).data();
+      const pid = card?.linkedProfileId as string | undefined;
+      if (pid) {
+        await db
+          .collection("profiles")
+          .doc(pid)
+          .set(
+            {
+              criticalFlags: {
+                tags: ["Diabetic (insulin)", "Severe allergy"],
+                allergyText: "Penicillin",
+              },
+            },
+            { merge: true }
+          );
+      }
+    }
+
     // Public view
     await page.goto(`${BASE}/card/${DEMO_HEALTH_ID}`, {
       waitUntil: "networkidle",
@@ -353,7 +373,36 @@ async function main() {
       : fail("3 public", `insurerOk=${insurerOk}`);
     await shot(page, "10-public");
 
+    // Public emergency view — Phase 1 UI
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto(`${BASE}/card/${DEMO_HEALTH_ID}`, {
+      waitUntil: "networkidle",
+    });
+    await page.waitForTimeout(2000);
+    const phaseHtml = await page.content();
+    const hasAlert =
+      (await page.getByRole("button", { name: /Alert Family/i }).count()) > 0;
+    const has108 = (await page.locator('a[href="tel:108"]').count()) > 0;
+    const hasBadge = (await page.locator(".ks-badge").count()) > 0;
+    // Badges need criticalFlags on profile — may be 0 if wizard didn't set them;
+    // Alert Family + Quick Call (108) are the required Phase 1 signals when flags ON.
+    hasAlert && has108 && hasBadge
+      ? pass("3b Phase1 badges + Alert Family + Quick Call")
+      : fail(
+          "3b Phase1",
+          `alert=${hasAlert} 108=${has108} badges=${hasBadge}`
+        );
+    const phaseDir = path.join(process.cwd(), "exports/forms-live-prod");
+    fs.mkdirSync(phaseDir, { recursive: true });
+    await page.screenshot({
+      path: path.join(phaseDir, "emergency-phase1-375.png"),
+      fullPage: true,
+    });
+    pass("3c Phase1 375px screenshot");
+    void phaseHtml;
+
     // Full details wrong/right PIN
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.getByText(/Open Full Details/i).click();
     await page.waitForTimeout(800);
     await page.getByRole("button", { name: /Patient \/ family has the PIN/i }).click();
@@ -426,6 +475,84 @@ async function main() {
       ? pass("4 correct PIN details")
       : fail("4 correct PIN", `http=${okPin.status()}`);
     await shot(page, "11-details-pin");
+
+    // Pack-1 live: Cashless + Admission PDFs → exports/forms-live-prod/
+    {
+      const formsOut = path.join(process.cwd(), "exports/forms-live-prod");
+      fs.mkdirSync(formsOut, { recursive: true });
+      const cookies = await context.cookies();
+      const cookieHeader = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+      for (const [ep, fileBase] of [
+        ["cashless", "cashless"],
+        ["admission-sheet", "admission"],
+      ] as const) {
+        const res = await page.request.get(`${BASE}/api/forms/${ep}`, {
+          headers: { Cookie: cookieHeader, Accept: "application/pdf" },
+        });
+        const buf = Buffer.from(await res.body());
+        const isPdf = buf.slice(0, 5).toString("utf8").startsWith("%PDF");
+        if (res.status() === 200 && isPdf) {
+          fs.writeFileSync(path.join(formsOut, `${fileBase}-live.pdf`), buf);
+          pass(`4b ${ep} PDF 200 (${buf.length}b)`);
+        } else {
+          fail(
+            `4b ${ep} PDF`,
+            `status=${res.status()} pdf=${isPdf} bytes=${buf.length}`
+          );
+        }
+      }
+      async function renderPage1(pdfFile: string, outPng: string) {
+        const pdfBytes = fs.readFileSync(pdfFile);
+        const b2 = await chromium.launch({ headless: true });
+        try {
+          const p2 = await b2.newPage({ viewport: { width: 900, height: 1200 } });
+          await p2.addScriptTag({
+            url: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js",
+          });
+          await p2.evaluate(async (arr: number[]) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const pdfjsLib = (window as any).pdfjsLib;
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+              "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+            const pdf = await pdfjsLib.getDocument({
+              data: new Uint8Array(arr),
+            }).promise;
+            const page1 = await pdf.getPage(1);
+            const viewport = page1.getViewport({ scale: 1.35 });
+            const canvas = document.createElement("canvas");
+            canvas.id = "c";
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            document.body.style.margin = "0";
+            document.body.innerHTML = "";
+            document.body.appendChild(canvas);
+            await page1
+              .render({ canvasContext: canvas.getContext("2d"), viewport })
+              .promise;
+            document.body.dataset.ready = "1";
+          }, [...pdfBytes]);
+          await p2.waitForFunction(() => document.body.dataset.ready === "1", {
+            timeout: 60000,
+          });
+          await p2.locator("#c").screenshot({ path: outPng });
+        } finally {
+          await b2.close();
+        }
+      }
+      for (const base of ["cashless", "admission"] as const) {
+        const pdfPath = path.join(formsOut, `${base}-live.pdf`);
+        if (!fs.existsSync(pdfPath)) continue;
+        try {
+          await renderPage1(pdfPath, path.join(formsOut, `${base}-page1.png`));
+          pass(`4c ${base}-page1.png`);
+        } catch (e) {
+          fail(
+            `4c ${base} PNG`,
+            e instanceof Error ? e.message.slice(0, 100) : "err"
+          );
+        }
+      }
+    }
 
     // Signed URL expiry ≤ 5 min
     const imgs = page.locator("img");
@@ -683,7 +810,64 @@ async function main() {
   let un = 0;
   for (const d of real.docs)
     if (String(d.data().status) === "unactivated") un += 1;
-  un === 100 ? pass("11 real 100 unactivated") : fail("11 real", `un=${un}`);
+  un === 500 ? pass("11 real 500 unactivated") : fail("11 real", `un=${un}`);
+
+  // Phase 2/3 APIs without session → 404 (flag OFF); features shows Phase1 ON
+  {
+    const feat = await (await fetch(`${BASE}/api/features`)).json();
+    const f = feat.flags || {};
+    const p1 =
+      f.alertFamily === true &&
+      f.criticalBadges === true &&
+      f.quickCall === true;
+    const p23off = [
+      "cashlessTimer",
+      "recordsVault",
+      "claimFormPrefill",
+      "familyPlan",
+      "hospitalPortal",
+      "orgDashboard",
+      "donorDirective",
+      "nfcInfo",
+    ].every((k) => f[k] === false);
+    p1 && p23off
+      ? pass("12 flags Phase1 ON / Phase2+3 OFF")
+      : fail("12 flags", JSON.stringify(f));
+
+    for (const [method, url] of [
+      ["GET", "/api/cashless-timer"],
+      ["GET", "/api/vault"],
+      ["GET", "/api/family"],
+      ["GET", "/api/hospital"],
+      ["GET", "/api/org"],
+      ["GET", "/api/donor-directive"],
+      ["GET", "/api/forms/claim"],
+    ] as const) {
+      const r = await fetch(`${BASE}${url}`, { method });
+      [401, 403, 404].includes(r.status)
+        ? pass(`12b ${method} ${url} → ${r.status}`)
+        : fail(`12b ${url}`, `status=${r.status}`);
+    }
+  }
+
+  // Scheduled activation still blocked for real inventory
+  {
+    const r = await fetch(`${BASE}/api/card/activate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        health_id: "KVS-2026-75QW6",
+        activation_code: "0000",
+        pin: "1234",
+      }),
+    });
+    const body = await r.json().catch(() => ({} as Record<string, unknown>));
+    const code = String(body.code || body.error || "");
+    /ACTIVATION_NOT_OPEN/i.test(code) ||
+    /not open|opens on|11 October/i.test(JSON.stringify(body))
+      ? pass("13 ACTIVATION_NOT_OPEN")
+      : fail("13 schedule", `status=${r.status} body=${JSON.stringify(body).slice(0, 120)}`);
+  }
 
   console.log("screenshot_dir=" + OUT);
   console.log("insurer_used=" + insurerUsed);
