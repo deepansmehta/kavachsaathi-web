@@ -142,9 +142,11 @@ export function evaluateActivationGate(
   opts?: ActivationGateOpts | null
 ): ActivationGateResult {
   const simMs = resolveSimOpensAtMs(opts);
+  const isDemoCard = cardIsDemo === true || isDemoHealthId(raw);
 
-  // Preview launch sim: demo is NOT exempt; schedule uses simulated opens-at.
-  if (simMs != null) {
+  // Preview launch sim: ONLY the demo card loses exemption and uses simulated opens-at.
+  // Real inventory always stays on the real ACTIVATION_OPENS_AT schedule.
+  if (simMs != null && isDemoCard) {
     if (isActivationKillSwitchOn()) {
       return {
         ok: false,

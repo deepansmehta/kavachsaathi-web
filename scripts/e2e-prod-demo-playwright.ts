@@ -16,12 +16,24 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { DEMO_HEALTH_ID } from "./demoConstants";
 import { resetDemoCard } from "./reset-demo-card";
 
-const BASE = "https://kavachsaathi.in";
+const BASE = (
+  process.env.PREVIEW_BASE_URL ||
+  process.env.E2E_BASE_URL ||
+  "https://kavachsaathi.in"
+).replace(/\/$/, "");
+const LAUNCH_SIM = Boolean(process.env.PREVIEW_BASE_URL);
 const PIN = "482913";
 const PHONE = "9999900001";
 const DATE = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-const OUT = path.join(process.cwd(), `exports/e2e-prod-${DATE}`);
+const OUT = path.join(
+  process.cwd(),
+  LAUNCH_SIM ? `exports/e2e-launch-sim-${DATE}` : `exports/e2e-prod-${DATE}`
+);
 const INSURER_TARGET = "Test Insurance Co";
+
+if (LAUNCH_SIM && /kavachsaathi\.in$/i.test(new URL(BASE).hostname)) {
+  throw new Error("REFUSED: PREVIEW_BASE_URL must not be production");
+}
 
 function loadEnv() {
   const p = path.join(process.cwd(), ".env.local");
@@ -163,13 +175,37 @@ async function main() {
   page.setDefaultTimeout(45000);
 
   try {
-    await page.goto(`${BASE}/card/${DEMO_HEALTH_ID}`, {
-      waitUntil: "networkidle",
-    });
-    await page.waitForTimeout(1500);
+    if (LAUNCH_SIM) {
+      await page.goto(`${BASE}/card/${DEMO_HEALTH_ID}?launchIn=15`, {
+        waitUntil: "networkidle",
+      });
+      await page.waitForTimeout(1000);
+      const simBody = await page.locator("body").innerText();
+      /TEST MODE — simulated launch/i.test(simBody)
+        ? pass("0a launch-sim banner")
+        : fail("0a launch-sim banner");
+      /Activation opens|SEC|Sec/i.test(simBody)
+        ? pass("0b countdown")
+        : fail("0b countdown");
+      await page.waitForFunction(
+        () =>
+          /activation code|ACTIVATION CODE|Enter the secret/i.test(
+            document.body?.innerText || ""
+          ),
+        undefined,
+        { timeout: 60_000 }
+      );
+      pass("0c activation opened after sim");
+    } else {
+      await page.goto(`${BASE}/card/${DEMO_HEALTH_ID}`, {
+        waitUntil: "networkidle",
+      });
+      await page.waitForTimeout(1500);
+    }
     await shot(page, "01-step1");
 
-    // Wrong code → error
+    // Wrong code → error (skip on launch-sim to save time)
+    if (!LAUNCH_SIM) {
     await fillByLabel(page, /Activation code/i, "0000");
     await page.getByRole("button", { name: /Continue/i }).click();
     await page.waitForTimeout(2500);
@@ -189,6 +225,7 @@ async function main() {
 
     // CAPTCHA if shown after wrong attempts
     await solveMathCaptchaIfPresent(page);
+    }
 
     await fillByLabel(page, /Activation code/i, actCode);
     await solveMathCaptchaIfPresent(page);

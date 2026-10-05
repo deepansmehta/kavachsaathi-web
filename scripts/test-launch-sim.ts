@@ -108,6 +108,14 @@ async function main() {
   if (r.ok) pass("2c demo ok after sim opens");
   else fail("2c demo ok after sim opens", JSON.stringify(r));
 
+  // Real card still blocked by real schedule even with sim cookie
+  r = gate.evaluateActivationGate("KVS-2026-75QW6", false, new Date(opens + 1000), {
+    simOpensAtMs: opens,
+  });
+  if (!r.ok && r.code === "ACTIVATION_NOT_OPEN")
+    pass("2c2 real still NOT_OPEN under sim");
+  else fail("2c2 real still NOT_OPEN under sim", JSON.stringify(r));
+
   if (!launchCfg.isSiteLaunched(new Date(), opens))
     pass("2d middleware site gated before sim");
   else fail("2d middleware site gated before sim", "launched");
