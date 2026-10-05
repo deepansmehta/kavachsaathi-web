@@ -16,24 +16,22 @@ export function ActivationCountdown({
 }) {
   const opensMs = Date.parse(opensAtIso);
   const [now, setNow] = useState(() => Date.now());
-  const [refreshed, setRefreshed] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
+  // Schedule a single reload at opens-at (do NOT depend on `now` — that
+  // would clearTimeout every tick and cancel the reload).
   useEffect(() => {
-    if (!autoRefresh || refreshed || Number.isNaN(opensMs)) return;
-    if (Date.now() >= opensMs) {
-      setRefreshed(true);
-      // Small delay so "open" flash is visible, then reload
-      const t = setTimeout(() => {
-        window.location.reload();
-      }, 400);
-      return () => clearTimeout(t);
-    }
-  }, [now, opensMs, autoRefresh, refreshed]);
+    if (!autoRefresh || Number.isNaN(opensMs)) return;
+    const delay = Math.max(0, opensMs - Date.now()) + 400;
+    const t = setTimeout(() => {
+      window.location.reload();
+    }, delay);
+    return () => clearTimeout(t);
+  }, [opensMs, autoRefresh]);
 
   if (Number.isNaN(opensMs)) return null;
 

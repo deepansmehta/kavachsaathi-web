@@ -154,12 +154,14 @@ async function main() {
       : fail("2 countdown visible", body.slice(0, 200));
 
     // Wait for auto-refresh after ~30s (+ buffer)
+    // Playwright: waitForFunction(fn, arg, options) — options are 3rd arg
     await page.waitForFunction(
       () => {
         const t = document.body?.innerText || "";
         return /activation code|Enter.*code|Continue/i.test(t);
       },
-      { timeout: 75_000 }
+      undefined,
+      { timeout: 90_000 }
     );
     pass("3 activation step 1 opened after countdown");
 
