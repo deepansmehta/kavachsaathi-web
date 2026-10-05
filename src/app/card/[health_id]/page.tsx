@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getAdminDb } from "@/lib/firebase-admin";
 import {
   cardIsActivated,
@@ -20,6 +20,10 @@ import { loadFeatureFlags } from "@/lib/features/server";
 import { featuresFromEnv } from "@/lib/features/flags";
 import { ActivationSoon } from "@/components/card/ActivationSoon";
 import { CardClient } from "./CardClient";
+import {
+  formatSimOpensMessage,
+  getLaunchSimOpensAtMs,
+} from "@/lib/launchSim";
 
 interface PageProps {
   params: { health_id: string };
@@ -85,7 +89,18 @@ export default async function CardPage({ params }: PageProps) {
     }
 
     if (!cardIsActivated(card)) {
-      if (!canActivateHealthId(healthId, card.isDemo === true)) {
+      const simOpensAtMs = getLaunchSimOpensAtMs(cookies());
+      const gateOpts = { simOpensAtMs };
+      if (!canActivateHealthId(healthId, card.isDemo === true, undefined, gateOpts)) {
+        if (simOpensAtMs != null) {
+          return (
+            <ActivationSoon
+              healthId={healthId}
+              opensAtIso={new Date(simOpensAtMs).toISOString()}
+              headline={formatSimOpensMessage(simOpensAtMs)}
+            />
+          );
+        }
         return <ActivationSoon healthId={healthId} />;
       }
       return <CardClient mode="unactivated" healthId={healthId} />;

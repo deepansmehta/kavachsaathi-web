@@ -6,14 +6,34 @@ function pad(n: number) {
   return String(Math.max(0, n)).padStart(2, "0");
 }
 
-export function ActivationCountdown({ opensAtIso }: { opensAtIso: string }) {
+export function ActivationCountdown({
+  opensAtIso,
+  autoRefresh = false,
+}: {
+  opensAtIso: string;
+  /** When true, reload the page once the countdown hits zero. */
+  autoRefresh?: boolean;
+}) {
   const opensMs = Date.parse(opensAtIso);
   const [now, setNow] = useState(() => Date.now());
+  const [refreshed, setRefreshed] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!autoRefresh || refreshed || Number.isNaN(opensMs)) return;
+    if (Date.now() >= opensMs) {
+      setRefreshed(true);
+      // Small delay so "open" flash is visible, then reload
+      const t = setTimeout(() => {
+        window.location.reload();
+      }, 400);
+      return () => clearTimeout(t);
+    }
+  }, [now, opensMs, autoRefresh, refreshed]);
 
   if (Number.isNaN(opensMs)) return null;
 
@@ -27,7 +47,7 @@ export function ActivationCountdown({ opensAtIso }: { opensAtIso: string }) {
   if (diff <= 0) {
     return (
       <p style={{ color: "#D4AF37", fontWeight: 600, fontSize: 14 }}>
-        Activation is open — refresh this page.
+        Activation is open — refreshing…
       </p>
     );
   }

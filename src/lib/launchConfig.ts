@@ -80,12 +80,22 @@ export function getSitePrelaunchForce(): "open" | "closed" | null {
 /**
  * Marketing /my-profile /api/profile pre-launch gate.
  * Opens automatically when now >= ACTIVATION_OPENS_AT (same as kit activation).
+ *
+ * @param opensAtMsOverride — preview launch-sim cookie epoch; when set (and
+ *   launch sim enabled upstream), compare against this instead of real opens-at.
  */
-export function isSiteLaunched(now: Date = getSiteLaunchNow()): boolean {
+export function isSiteLaunched(
+  now: Date = getSiteLaunchNow(),
+  opensAtMsOverride?: number | null
+): boolean {
   const force = getSitePrelaunchForce();
   if (force === "open") return true;
   if (force === "closed") return false;
-  return now.getTime() >= getSiteLaunchAtMs();
+  const opens =
+    opensAtMsOverride != null && Number.isFinite(opensAtMsOverride)
+      ? Number(opensAtMsOverride)
+      : getSiteLaunchAtMs();
+  return now.getTime() >= opens;
 }
 
 /** @deprecated use getSiteLaunchAt() — kept for countdown UI imports */

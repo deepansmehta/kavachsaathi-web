@@ -5,11 +5,22 @@ import {
   LAUNCH_PREVIEW_SECRET,
   isSiteLaunched,
 } from "@/lib/launchConfig";
+import {
+  LAUNCH_SIM_COOKIE,
+  getLaunchSimOpensAtMs,
+  isLaunchSimEnabled,
+  launchSimCookieOptions,
+  parseLaunchInParam,
+} from "@/lib/launchSim";
 
 /**
  * Pre-launch gate uses the SAME instant as ACTIVATION_OPENS_AT
  * (via isSiteLaunched → getSiteLaunchAtMs). Opens automatically at that
  * moment with no redeploy. Emergency: SITE_PRELAUNCH_FORCE=open|closed.
+ *
+ * Preview-only launch sim (?launchIn=N): sets ks_launch_sim cookie and uses
+ * that timestamp as the opens-at for middleware + (via cookie) activation gate.
+ * Ignored when CONTEXT=production or LAUNCH_SIM_ENABLED is not true.
  *
  * Always allowed before launch (no preview needed):
  *   /card /e /emergency — QR emergency / activation countdown
@@ -62,6 +73,14 @@ function clearPreview(res: NextResponse) {
   return res;
 }
 
+function clearLaunchSim(res: NextResponse) {
+  res.cookies.set(LAUNCH_SIM_COOKIE, "", {
+    ...launchSimCookieOptions(0),
+    maxAge: 0,
+  });
+  return res;
+}
+
 function withPreviewCookie(res: NextResponse) {
   res.cookies.set(LAUNCH_PREVIEW_COOKIE, "1", {
     path: "/",
@@ -99,6 +118,11 @@ function isPreLaunchApiAllowed(pathname: string): boolean {
   );
 }
 
+function stripLaunchIn(url: URL) {
+  url.searchParams.delete("launchIn");
+  return url;
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const previewRaw = request.nextUrl.searchParams.get("preview");
@@ -108,33 +132,60 @@ export function middleware(request: NextRequest) {
   const previewCookie =
     request.cookies.get(LAUNCH_PREVIEW_COOKIE)?.value === "1";
 
+  // ── Launch simulation (?launchIn=N|reset) — preview contexts only ─────
+  const launchInRaw = request.nextUrl.searchParams.get("launchIn");
+  const launchIn = parseLaunchInParam(launchInRaw);
+  if (launchIn !== null) {
+    const dest = stripLaunchIn(request.nextUrl.clone());
+    if (launchIn === "reset") {
+      const res = NextResponse.redirect(dest);
+      return clearLaunchSim(res);
+    }
+    const opensAtMs = Date.now() + launchIn * 1000;
+    const res = NextResponse.redirect(dest);
+    res.cookies.set(
+      LAUNCH_SIM_COOKIE,
+      String(opensAtMs),
+      launchSimCookieOptions(launchIn + 120)
+    );
+    return res;
+  }
+
   if (turnOffPreview) {
     const soon = new URL("/coming-soon", request.url);
     return clearPreview(NextResponse.redirect(soon));
   }
 
   const preview = previewParam || previewCookie;
-  const launched = isSiteLaunched();
+  const simOpensAtMs = getLaunchSimOpensAtMs(request.cookies);
+  const launched = isSiteLaunched(new Date(), simOpensAtMs);
+
+  // Mark request so layouts can show the yellow TEST MODE banner
+  const requestHeaders = new Headers(request.headers);
+  if (simOpensAtMs != null && isLaunchSimEnabled()) {
+    requestHeaders.set("x-ks-launch-sim", String(simOpensAtMs));
+  }
 
   // ── Pre-launch (before ACTIVATION_OPENS_AT / SITE_PRELAUNCH_FORCE) ─────
   if (!launched && !preview) {
     if (pathname === "/coming-soon" || pathname.startsWith("/coming-soon/")) {
-      return clearPreview(NextResponse.next());
+      return clearPreview(
+        NextResponse.next({ request: { headers: requestHeaders } })
+      );
     }
 
     // Admin UI + API always reachable; Google allowlist enforced in handlers
     if (ADMIN_PATTERN.test(pathname) || pathname.startsWith("/api/admin")) {
-      return NextResponse.next();
+      return NextResponse.next({ request: { headers: requestHeaders } });
     }
 
     if (CARD_PATTERN.test(pathname) || EMERGENCY_PATTERN.test(pathname)) {
-      const requestHeaders = new Headers(request.headers);
       requestHeaders.set("x-kavach-lite", "1");
       return NextResponse.next({ request: { headers: requestHeaders } });
     }
 
     if (isPreLaunchApiAllowed(pathname)) {
-      return NextResponse.next();
+      return NextResponse.next({ request: { headers: requestHeaders } });
     }
 
     if (pathname.startsWith("/api/")) {
@@ -153,7 +204,6 @@ export function middleware(request: NextRequest) {
 
   // ── Post-launch (or preview) auth routing ──────────────────────────────
   const session = request.cookies.get("kavach_session")?.value === "1";
-  const requestHeaders = new Headers(request.headers);
 
   if (CARD_PATTERN.test(pathname) || EMERGENCY_PATTERN.test(pathname)) {
     requestHeaders.set("x-kavach-lite", "1");
@@ -170,7 +220,7 @@ export function middleware(request: NextRequest) {
     pathname === "/org" ||
     ADMIN_PATTERN.test(pathname)
   ) {
-    const res = NextResponse.next();
+    const res = NextResponse.next({ request: { headers: requestHeaders } });
     return attachPreview ? withPreviewCookie(res) : res;
   }
 
@@ -195,7 +245,7 @@ export function middleware(request: NextRequest) {
   }
 
   void isPublic;
-  const res = NextResponse.next();
+  const res = NextResponse.next({ request: { headers: requestHeaders } });
   return attachPreview ? withPreviewCookie(res) : res;
 }
 

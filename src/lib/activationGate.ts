@@ -8,11 +8,18 @@
  * Site pre-launch middleware uses the SAME ACTIVATION_OPENS_AT instant
  * (see src/lib/launchConfig.ts isSiteLaunched).
  *
- * Demo (KVS-DEMO-*), disposable (KVS-2099-*), and isDemo:true cards are always exempt.
+ * Demo (KVS-DEMO-*), disposable (KVS-2099-*), and isDemo:true cards are always exempt
+ * — EXCEPT during preview-only launch simulation (see launchSim.ts / simOpensAtMs).
  * ACTIVATION_TEST_NOW / ACTIVATION_TEST_AS_REAL are ignored in production.
  */
 import { isDemoHealthId, normalizeHealthId } from "./healthId";
 import { getSiteLaunchAt, getSiteLaunchNow } from "./launchConfig";
+import { formatSimOpensMessage, isLaunchSimEnabled } from "./launchSim";
+
+export type ActivationGateOpts = {
+  /** Preview-only: simulated opens-at epoch ms from ks_launch_sim cookie. */
+  simOpensAtMs?: number | null;
+};
 
 export type ActivationDenyCode =
   | "ACTIVATION_NOT_OPEN"
@@ -96,8 +103,8 @@ export const ACTIVATION_DISABLED_MESSAGE =
   "Activation is temporarily closed. Your QR stays valid — please try again later.";
 
 /** Prefer schedule message when opens-at is known. */
-export function activationNotOpenMessage(): string {
-  const opens = getActivationOpensAt();
+export function activationNotOpenMessage(opensAt?: Date | null): string {
+  const opens = opensAt ?? getActivationOpensAt();
   if (!opens) return ACTIVATION_NOT_OPEN_MESSAGE;
   try {
     const fmt = new Intl.DateTimeFormat("en-IN", {
@@ -115,11 +122,46 @@ export function activationNotOpenMessage(): string {
   }
 }
 
+/**
+ * Effective sim opens-at: only when launch sim is enabled AND a valid ms is passed.
+ * Always null in production CONTEXT.
+ */
+export function resolveSimOpensAtMs(
+  opts?: ActivationGateOpts | null
+): number | null {
+  if (!isLaunchSimEnabled()) return null;
+  const ms = opts?.simOpensAtMs;
+  if (ms == null || !Number.isFinite(ms) || ms <= 0) return null;
+  return Math.floor(ms);
+}
+
 export function evaluateActivationGate(
   raw: string,
   cardIsDemo?: boolean | null,
-  now = getActivationNow()
+  now = getActivationNow(),
+  opts?: ActivationGateOpts | null
 ): ActivationGateResult {
+  const simMs = resolveSimOpensAtMs(opts);
+
+  // Preview launch sim: demo is NOT exempt; schedule uses simulated opens-at.
+  if (simMs != null) {
+    if (isActivationKillSwitchOn()) {
+      return {
+        ok: false,
+        code: "ACTIVATION_DISABLED",
+        message: ACTIVATION_DISABLED_MESSAGE,
+      };
+    }
+    if (now.getTime() < simMs) {
+      return {
+        ok: false,
+        code: "ACTIVATION_NOT_OPEN",
+        message: `${formatSimOpensMessage(simMs)}. Your QR stays valid — please try again after that time.`,
+      };
+    }
+    return { ok: true };
+  }
+
   if (cardIsDemo === true) return { ok: true };
   if (isActivationExemptHealthId(raw)) return { ok: true };
 
@@ -145,9 +187,10 @@ export function evaluateActivationGate(
 export function canActivateHealthId(
   raw: string,
   cardIsDemo?: boolean | null,
-  now = getActivationNow()
+  now = getActivationNow(),
+  opts?: ActivationGateOpts | null
 ): boolean {
-  return evaluateActivationGate(raw, cardIsDemo, now).ok;
+  return evaluateActivationGate(raw, cardIsDemo, now, opts).ok;
 }
 
 /** @deprecated use activationNotOpenMessage / ACTIVATION_DISABLED_MESSAGE */

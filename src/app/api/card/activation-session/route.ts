@@ -18,6 +18,7 @@ import {
   makeMathCaptcha,
   verifyMathCaptcha,
 } from "@/lib/rateLimit";
+import { getLaunchSimOpensAtMs } from "@/lib/launchSim";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -84,7 +85,9 @@ export async function POST(req: NextRequest) {
         { status: 404, headers: NO_STORE_HEADERS }
       );
     }
-    const gate = evaluateActivationGate(health_id, card.isDemo === true);
+    const gate = evaluateActivationGate(health_id, card.isDemo === true, undefined, {
+      simOpensAtMs: getLaunchSimOpensAtMs(req.cookies),
+    });
     if (!gate.ok) {
       return NextResponse.json(
         { error: gate.message, code: gate.code },

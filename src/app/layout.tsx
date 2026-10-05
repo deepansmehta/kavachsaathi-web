@@ -6,6 +6,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Providers } from "@/components/Providers";
+import { LaunchSimBanner } from "@/components/LaunchSimBanner";
 import "@/styles/globals.css";
 
 const rajdhani = Rajdhani({
@@ -59,7 +60,14 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const lite = headers().get("x-kavach-lite") === "1";
+  const hdrs = headers();
+  const lite = hdrs.get("x-kavach-lite") === "1";
+  const simRaw = hdrs.get("x-ks-launch-sim");
+  const simMs = simRaw ? Number(simRaw) : NaN;
+  const simBanner =
+    Number.isFinite(simMs) && simMs > 0 ? (
+      <LaunchSimBanner opensAtMs={simMs} />
+    ) : null;
 
   // Emergency / card scan path: no Nav, Footer, Auth, Google fonts, or Toaster
   if (lite) {
@@ -78,6 +86,7 @@ export default function RootLayout({
               "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
           }}
         >
+          {simBanner}
           {children}
         </body>
       </html>
@@ -92,6 +101,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-kavach-black font-body text-cream antialiased">
         <AuthProvider>
           <Providers>
+            {simBanner}
             <div className="flex min-h-screen flex-col">
               <Navbar />
               <main className="flex-1">{children}</main>
