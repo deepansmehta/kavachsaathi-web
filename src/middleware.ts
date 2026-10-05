@@ -143,10 +143,12 @@ export function middleware(request: NextRequest) {
     }
     const opensAtMs = Date.now() + launchIn * 1000;
     const res = NextResponse.redirect(dest);
+    // Keep cookie long enough for post-countdown wizard + profile checks
+    // (opens-at value is still now+N; maxAge only controls cookie lifetime)
     res.cookies.set(
       LAUNCH_SIM_COOKIE,
       String(opensAtMs),
-      launchSimCookieOptions(launchIn + 120)
+      launchSimCookieOptions(Math.max(launchIn + 7200, 7200))
     );
     return res;
   }
