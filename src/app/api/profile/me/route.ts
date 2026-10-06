@@ -118,6 +118,7 @@ export async function GET() {
         insurance: redactInsuranceForProfile(data.insurance),
         cardStatus: card ? normalizeCardStatus(card.status) : "unactivated",
         validTill: card?.validTill || null,
+        validFrom: (card as { validFrom?: string | null })?.validFrom || card?.activated_at || null,
         lastSeenScansAt: data.lastSeenScansAt?.toDate?.()?.toISOString?.() || null,
       },
     });

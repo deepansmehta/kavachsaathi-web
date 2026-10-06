@@ -14,6 +14,7 @@ import { BLOOD_GROUPS, RELATIONS } from "@/lib/types";
 import { COMMON_TPAS } from "@/lib/documentTypes";
 import type { BloodGroup } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Pack3ProfileTools } from "@/components/profile/Pack3ProfileTools";
 import {
   CRITICAL_ALERT_OPTIONS,
   profileCompleteness,
@@ -71,6 +72,7 @@ type Profile = {
   } | null;
   cardStatus?: "unactivated" | "activated" | "blocked";
   validTill?: string | null;
+  validFrom?: string | null;
 };
 
 type ScanRow = {
@@ -701,6 +703,31 @@ export default function MyProfilePage() {
                   Renewal due soon — valid till {profile.validTill}
                 </p>
               )}
+
+              <Pack3ProfileTools
+                flags={featureFlags}
+                healthId={profile.health_id}
+                name={profile.full_name}
+                bloodGroup={profile.blood_group}
+                allergies={profile.allergies || []}
+                criticalTags={Object.entries(profile.criticalAlerts || {})
+                  .filter(([, v]) => v)
+                  .map(([k]) => k)}
+                contacts={profile.emergency_contacts || []}
+                validFrom={profile.validFrom}
+                validTill={profile.validTill}
+                cardStatus={profile.cardStatus}
+                onProfileRefresh={() => {
+                  void (async () => {
+                    const r = await fetch("/api/profile/me");
+                    if (r.ok) {
+                      const d = await r.json();
+                      if (d.profile) setProfile(d.profile);
+                    }
+                  })();
+                }}
+              />
+
 
               <div className="no-print">
                 <div className="mb-1 flex justify-between text-xs text-[var(--text-soft)]">

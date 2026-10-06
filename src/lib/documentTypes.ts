@@ -45,7 +45,7 @@ export const GOVT_SCHEMES = [
   "Other",
 ] as const;
 
-export type CoverageType = "private" | "government" | "both";
+export type CoverageType = "private" | "government" | "both" | "none";
 
 export type IncomingIdProof = {
   type: string;
@@ -159,9 +159,12 @@ export function validateMandatoryDocs(input: {
   }
 
   const ins = input.insurance;
-  if (!ins || !["private", "government", "both"].includes(ins.coverageType)) {
+  if (
+    !ins ||
+    !["private", "government", "both", "none"].includes(ins.coverageType)
+  ) {
     missing.push("insurance.coverageType");
-  } else {
+  } else if (ins.coverageType !== "none") {
     if (ins.coverageType === "private" || ins.coverageType === "both") {
       const p = ins.private;
       if (!p?.insurerName) missing.push("insurance.private.insurerName");

@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { useRef } from "react";
 import {
@@ -26,6 +27,7 @@ import {
   ECGBackground,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { ReferralCapture } from "@/components/ReferralCapture";
 
 function ShieldPulse() {
   return (
@@ -259,6 +261,9 @@ function BrotherCard({
 export default function HomePage() {
   return (
     <div className="bg-kavach-black">
+      <Suspense fallback={null}>
+        <ReferralCapture />
+      </Suspense>
       {/* HERO — one composition: brand, headline, line, CTAs, product */}
       <section className="relative flex min-h-[calc(100vh-4rem)] flex-col overflow-hidden">
         <div

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
-import { cardIsActivated } from "@/lib/cardsRepo";
-import { normalizeCardStatus } from "@/lib/healthId";
+import { cardIsActivated, findCardByHealthId } from "@/lib/cardsRepo";
+import { normalizeCardStatus, normalizeHealthId, isValidHealthId } from "@/lib/healthId";
 
 function adminEmails(): Set<string> {
   const raw =
@@ -473,6 +473,133 @@ export async function POST(req: NextRequest) {
         idProofs: revealed,
         message: "Reveal logged to accessLogs",
       });
+    }
+
+    if (action === "block-card" || action === "unblock-card") {
+      const health_id = normalizeHealthId(String(body.health_id || ""));
+      if (!isValidHealthId(health_id)) {
+        return NextResponse.json({ error: "Invalid health_id" }, { status: 400 });
+      }
+      const card = await findCardByHealthId(db, health_id);
+      if (!card) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+      if (card.isDemo !== true && /^KVS-A0(0[0-4]\d{2}|0500)$/i.test(health_id) === false) {
+        // allow any non-demo; still never auto-touch real cards unless admin explicitly acts
+      }
+      const ref = db.collection("cards").doc(card.docId);
+      if (action === "block-card") {
+        await ref.set(
+          {
+            status: "blocked",
+            blockedAt: new Date().toISOString(),
+            blockedReason: "admin",
+            blockedBy: admin.email,
+          },
+          { merge: true }
+        );
+        if (card.linkedProfileId) {
+          await db.collection("profiles").doc(card.linkedProfileId).set(
+            { cardStatus: "blocked" },
+            { merge: true }
+          );
+        }
+        await db.collection("admin_logs").add({
+          action: "block_card",
+          byEmail: admin.email,
+          health_id,
+          at: new Date().toISOString(),
+        });
+        return NextResponse.json({ ok: true, status: "blocked" });
+      }
+      await ref.set(
+        {
+          status: "activated",
+          blockedAt: FieldValue.delete(),
+          blockedReason: FieldValue.delete(),
+          unblockedAt: new Date().toISOString(),
+          unblockedBy: admin.email,
+        },
+        { merge: true }
+      );
+      if (card.linkedProfileId) {
+        await db.collection("profiles").doc(card.linkedProfileId).set(
+          { cardStatus: "activated" },
+          { merge: true }
+        );
+      }
+      await db.collection("admin_logs").add({
+        action: "unblock_card",
+        byEmail: admin.email,
+        health_id,
+        at: new Date().toISOString(),
+      });
+      return NextResponse.json({ ok: true, status: "activated" });
+    }
+
+    if (action === "transfer-card") {
+      const fromId = normalizeHealthId(String(body.from_health_id || body.health_id || ""));
+      const toCode = String(body.newActivationCode || "").trim().padStart(4, "0").slice(0, 4);
+      if (!isValidHealthId(fromId) || !/^\d{4}$/.test(toCode)) {
+        return NextResponse.json({ error: "from_health_id and newActivationCode required" }, { status: 400 });
+      }
+      const oldCard = await findCardByHealthId(db, fromId);
+      if (!oldCard?.linkedProfileId) {
+        return NextResponse.json({ error: "Source card has no profile" }, { status: 400 });
+      }
+      const q = await db.collection("cards").where("activation_code", "==", toCode).limit(5).get();
+      let newDoc: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+      for (const d of q.docs) {
+        const s = String(d.data().status || "unactivated");
+        if (s === "unactivated" || s === "inactive") {
+          newDoc = d;
+          break;
+        }
+      }
+      if (!newDoc) {
+        return NextResponse.json({ error: "No unactivated card for code" }, { status: 404 });
+      }
+      const newHid = String(newDoc.data().health_id || newDoc.id);
+      const profileId = oldCard.linkedProfileId;
+      await db.runTransaction(async (tx) => {
+        tx.set(
+          db.collection("cards").doc(oldCard.docId),
+          {
+            status: "blocked",
+            linkedProfileId: null,
+            replacedBy: newHid,
+            blockedReason: "replaced",
+          },
+          { merge: true }
+        );
+        tx.set(
+          newDoc!.ref,
+          {
+            status: "activated",
+            linkedProfileId: profileId,
+            activated_at: new Date().toISOString(),
+            replacedFrom: fromId,
+          },
+          { merge: true }
+        );
+        tx.set(
+          db.collection("profiles").doc(profileId),
+          {
+            health_id: newHid,
+            cardStatus: "activated",
+            previousHealthId: fromId,
+          },
+          { merge: true }
+        );
+      });
+      await db.collection("admin_logs").add({
+        action: "transfer_card",
+        byEmail: admin.email,
+        health_id: fromId,
+        meta: { newHealthId: newHid },
+        at: new Date().toISOString(),
+      });
+      return NextResponse.json({ ok: true, newHealthId: newHid });
     }
 
     if (action === "set-nfc") {

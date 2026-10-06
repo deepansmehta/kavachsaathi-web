@@ -21,8 +21,27 @@ import {
   buildAdmissionSheetPdf,
 } from "./admissionPdf";
 import { noStoreHeaders } from "./pdfCommon";
+import { computeValidity, pastGraceResponseBody } from "@/lib/validity";
+import { loadFeatureFlags } from "@/lib/features/server";
 
 export type FormAccessMode = "pin_form" | "pin_sheet" | "emergency_sheet";
+
+async function rejectIfOwnerPastGrace(card: { validFrom?: unknown; validTill?: unknown; activated_at?: unknown } | null | undefined) {
+  const flags = await loadFeatureFlags().catch(() => null);
+  if (!flags?.cardValidity || !card) return null;
+  const v = computeValidity({
+    validFrom: card.validFrom || card.activated_at,
+    validTill: card.validTill,
+    activatedAt: card.activated_at,
+  });
+  if (v.ownerFeaturesLocked) {
+    return Response.json(pastGraceResponseBody(), {
+      status: 403,
+      headers: noStoreHeaders(),
+    });
+  }
+  return null;
+}
 
 async function loadProfile(health_id: string) {
   const db = getAdminDb();

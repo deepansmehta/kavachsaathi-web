@@ -27,6 +27,7 @@ export type CardRecord = {
   activated_at?: unknown;
   created_at?: unknown;
   validTill?: string | null;
+  validFrom?: string | null;
   lastScanLoggedAt?: unknown;
   lastScanDocId?: string | null;
   isDemo?: boolean;
@@ -48,6 +49,7 @@ function mapCard(
     activated_at: data.activated_at ?? null,
     created_at: data.created_at ?? null,
     validTill: data.validTill ? String(data.validTill) : null,
+    validFrom: data.validFrom ? String(data.validFrom) : null,
     lastScanLoggedAt: data.lastScanLoggedAt ?? null,
     lastScanDocId: data.lastScanDocId ? String(data.lastScanDocId) : null,
     isDemo: data.isDemo === true,

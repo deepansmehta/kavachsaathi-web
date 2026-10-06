@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import toast from "react-hot-toast";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { FeedbackModal } from "@/components/FeedbackModal";
 import { Shield, Plus, Trash2, Camera } from "lucide-react";
 import { GoldButton, GoldInput, TagInput } from "@/components/ui";
 import { BLOOD_GROUPS, RELATIONS } from "@/lib/types";
@@ -46,7 +48,20 @@ export function ActivationForm({
   onActivated: () => void;
 }) {
   const [step, setStep] = useState<Step>(1);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackOn, setFeedbackOn] = useState(false);
+  const [regionalLangOn, setRegionalLangOn] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/features")
+      .then((r) => r.json())
+      .then((d) => {
+        setFeedbackOn(Boolean(d.flags?.feedback));
+        setRegionalLangOn(Boolean(d.flags?.regionalLang));
+      })
+      .catch(() => {});
+  }, []);
   const [activationCode, setActivationCode] = useState("");
   const [sessionReady, setSessionReady] = useState(false);
   const [captcha, setCaptcha] = useState<Captcha | null>(null);
@@ -276,6 +291,7 @@ export function ActivationForm({
         toast.error("Select coverage type");
         return false;
       }
+      if (coverageType === "none") return true;
       if (coverageType === "private" || coverageType === "both") {
         if (
           !insurerName ||
@@ -363,7 +379,7 @@ export function ActivationForm({
           govtCardPath,
         };
       }
-      if (hasOtherMediclaim) {
+      if (coverageType !== "none" && hasOtherMediclaim) {
         insurance.otherMediclaim = {
           hasOther: hasOtherMediclaim === "yes",
           companyName: otherCompany.trim() || null,
@@ -453,6 +469,7 @@ export function ActivationForm({
       }
       confetti({ particleCount: 90, spread: 70, origin: { y: 0.65 } });
       toast.success("Card activated");
+      setShowFeedback(true);
       onActivated();
     } catch {
       toast.error("Network error");
@@ -463,6 +480,10 @@ export function ActivationForm({
 
   return (
     <div className="mx-auto max-w-lg space-y-5">
+      <LanguageSwitcher enabled={regionalLangOn} compact />
+      {showFeedback ? (
+        <FeedbackModal enabled={feedbackOn} context="activation" />
+      ) : null}
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#FCE49A] to-[#B8860B]">
           <Shield className="h-6 w-6 text-black" />
@@ -924,7 +945,14 @@ export function ActivationForm({
               <option value="private">Private</option>
               <option value="government">Government</option>
               <option value="both">Both</option>
+              <option value="none">No insurance / कोई बीमा नहीं</option>
             </select>
+            {coverageType === "none" && (
+              <p className="rounded-lg border border-[#333] bg-[#141410] p-3 text-sm text-[#A8A59C]">
+                No policy details needed — you can continue. Emergency card will
+                not show an insurer. / बीमा नहीं है तो आगे बढ़ सकते हैं।
+              </p>
+            )}
             {(coverageType === "private" || coverageType === "both") && (
               <div className="space-y-2 rounded-lg border border-[#333] p-3">
                 <select
@@ -1065,6 +1093,8 @@ export function ActivationForm({
                 }
                 inputMode="numeric"
               />
+              {coverageType !== "none" && (
+                <>
               <select
                 className="w-full rounded-lg border border-[#333] bg-[#1a1a14] p-3 text-white"
                 value={tpaName}
@@ -1134,6 +1164,8 @@ export function ActivationForm({
                     value={otherPolicyNumber}
                     onChange={(e) => setOtherPolicyNumber(e.target.value)}
                   />
+                </>
+              )}
                 </>
               )}
               <select

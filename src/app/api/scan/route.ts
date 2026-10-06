@@ -14,6 +14,7 @@ import {
   logScanAtomic,
 } from "@/lib/scans";
 import { verifyScanToken } from "@/lib/scanToken";
+import { recordAggEvent } from "@/lib/analytics";
 
 /**
  * POST /api/scan
@@ -116,6 +117,18 @@ export async function POST(req: NextRequest) {
         { error: result.error },
         { status: result.status }
       );
+    }
+
+    // Aggregated analytics — date/batch/type + coarse geo only (no card id / IP)
+    if (!result.deduped) {
+      const geo = String(cityApprox || "");
+      const parts = geo.split(",").map((s) => s.trim());
+      void recordAggEvent(db, {
+        type: "scan",
+        batch: (card as { batch?: number | string }).batch ?? null,
+        city: parts[0] || null,
+        state: parts[1] || null,
+      });
     }
 
     return NextResponse.json({

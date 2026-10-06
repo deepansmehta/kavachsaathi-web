@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { PublicEmergencyProfile } from "@/lib/cardsRepo";
 import { loadLang, saveLang, t, type Lang } from "@/lib/i18n-emergency";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { telLink, whatsappLink } from "@/lib/profileFields";
 import { FullDetailsModal } from "./FullDetailsModal";
 
@@ -93,10 +94,13 @@ export function EmergencyView({
 
   return (
     <div style={{ maxWidth: 480, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 12 }}>
-        <LangBtn active={lang === "en"} onClick={() => setLanguage("en")}>EN</LangBtn>
-        <LangBtn active={lang === "hi"} onClick={() => setLanguage("hi")}>हिंदी</LangBtn>
-      </div>
+      <LanguageSwitcher
+        enabled
+        onLangChange={(l) => {
+          setLang(l);
+          saveLang(l);
+        }}
+      />
 
       {hasCritical && (
         <div

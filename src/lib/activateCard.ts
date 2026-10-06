@@ -27,6 +27,8 @@ import {
 } from "./documents";
 import { hasEncKey } from "./crypto";
 import { isStorageConfigured, moveObject, deletePrefix } from "./storage";
+import { defaultValidTillFrom } from "./validity";
+import { trackAgg } from "./analytics";
 
 export type ActivateInput = {
   health_id: string;
@@ -236,6 +238,9 @@ export async function activateCardAtomic(
   const pin_hash = await hashPin(pin);
   const profileRef = db.collection("profiles").doc();
   const cardRef = db.collection("cards").doc(card.docId);
+  const activatedAtIso = new Date().toISOString();
+  const validFrom = activatedAtIso;
+  const validTill = defaultValidTillFrom(activatedAtIso);
 
   const doctorName = String(
     input.familyDoctorName || input.family_doctor?.name || ""
@@ -325,6 +330,8 @@ export async function activateCardAtomic(
         pin_hash,
         lastSeenScansAt: null,
         profileComplete: Boolean(docFields),
+        validFrom,
+        validTill,
         ...(docFields || {}),
         created_at: FieldValue.serverTimestamp(),
         updated_at: FieldValue.serverTimestamp(),
@@ -334,7 +341,9 @@ export async function activateCardAtomic(
         status: "activated",
         linkedProfileId: profileRef.id,
         activated_at: FieldValue.serverTimestamp(),
-        // never overwrite health_id / activation_code / created_at / tier / validTill
+        validFrom,
+        validTill,
+        // never overwrite health_id / activation_code / created_at / tier
       });
     });
   } catch (err) {
@@ -349,6 +358,12 @@ export async function activateCardAtomic(
     console.error("activateCardAtomic", err);
     return { ok: false, status: 500, error: message };
   }
+
+  trackAgg({
+    type: "activation",
+    batch: card.tier || null,
+    city: city || null,
+  });
 
   return { ok: true, profileId: profileRef.id, health_id };
 }

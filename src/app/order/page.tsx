@@ -17,8 +17,14 @@ const WHATSAPP_NUMBER =
 
 function OrderContent() {
   const openWhatsApp = () => {
+    let ref = "";
+    try {
+      const m = document.cookie.match(/(?:^|; )ks_ref=([^;]*)/);
+      if (m) ref = decodeURIComponent(m[1]);
+    } catch { /* */ }
+    const refLine = ref ? `\nReferral code: ${ref}` : "";
     const text = encodeURIComponent(
-      `Namaste! I want to order KavachSaathi Smart Health Card.\n\nMRP: ₹${CARD_MRP}\nOffer price: ₹${CARD_PRICE}\nValidity: 1 year (renew ₹${RENEWAL_PRICE}/year)\n\nName: \nCity: \nPhone: `
+      `Namaste! I want to order KavachSaathi Smart Health Card.${refLine}\n\nMRP: ₹${CARD_MRP}\nOffer price: ₹${CARD_PRICE}\nValidity: 1 year (renew ₹${RENEWAL_PRICE}/year)\n\nName: \nCity: \nPhone: `
     );
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, "_blank");
   };

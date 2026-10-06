@@ -801,3 +801,9 @@ input:-webkit-autofill:focus {
   background: rgba(212, 175, 55, 0.35);
   color: #fff;
 }
+
+/* Pack 3 elderly mode */
+html.ks-elderly body, html.ks-elderly .ks-e { font-size: 118%; }
+html.ks-elderly button, html.ks-elderly a.ks-call { min-height: 48px; font-size: 1.1em; }
+html.ks-elderly .ks-name { font-size: 1.35em; }
+html.ks-elderly .ks-blood { font-size: 1.25em; }

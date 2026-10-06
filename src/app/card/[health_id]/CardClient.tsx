@@ -6,7 +6,7 @@ import { ActivationForm } from "@/components/card/ActivationForm";
 type Props =
   | { mode: "invalid"; message: string }
   | { mode: "rate"; message: string }
-  | { mode: "blocked" }
+  | { mode: "blocked"; message?: string }
   | { mode: "unactivated"; healthId: string };
 
 const BG = "#080808";
@@ -38,8 +38,11 @@ export function CardClient(props: Props) {
 
       {props.mode === "blocked" ? (
         <Empty
-          title="Card blocked"
-          body="This KavachSaathi card is temporarily blocked. Contact support if this is your card."
+          title="Card reported lost"
+          body={
+            props.message ||
+            "This KavachSaathi card has been reported lost. If found, please contact +91 94161 06511."
+          }
         />
       ) : null}
 

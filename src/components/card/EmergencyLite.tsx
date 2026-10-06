@@ -1,11 +1,18 @@
+"use client";
+
 /**
- * Server-rendered public emergency profile for /card/{health_id} (activated).
- * Phase 1 badges SSR; Alert Family / Quick Call as deferred client island.
+ * Public emergency profile for /card/{health_id} (activated).
+ * Chrome labels respect regionalLang; user data is never translated.
  */
 import type { PublicEmergencyProfile } from "@/lib/cardsRepo";
 import type { FeatureFlags } from "@/lib/features/flags";
 import { EmergencyActions } from "./EmergencyActions";
 import { EmergencyPhase1 } from "./EmergencyPhase1";
+import { EmergencyEaseControls } from "./EmergencyEaseControls";
+import {
+  LanguageSwitcher,
+  useEmergencyLabels,
+} from "@/components/LanguageSwitcher";
 
 const css = `
 .ks-e{max-width:480px;margin:0 auto;padding:16px 12px 88px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#F0EEE8;background:#080808;min-height:100vh;box-sizing:border-box}
@@ -31,14 +38,22 @@ export function EmergencyLite({
   profile,
   scanToken,
   flags,
+  validityExpired = false,
 }: {
   profile: PublicEmergencyProfile;
   scanToken: string;
   flags: FeatureFlags;
+  validityExpired?: boolean;
 }) {
+  const langOn = flags.regionalLang === true;
+  const { label, setLang } = useEmergencyLabels(langOn);
+
   const contact = profile.emergency_contacts[0];
-  const allergies =
-    profile.allergies.length > 0 ? profile.allergies.join(", ") : "None reported";
+  // User data — never machine-translated
+  const allergiesRaw =
+    profile.allergies.length > 0
+      ? profile.allergies.join(", ")
+      : label("noneReported");
   const tel = contact?.phone
     ? `tel:${String(contact.phone).replace(/\D/g, "")}`
     : null;
@@ -55,20 +70,43 @@ export function EmergencyLite({
   return (
     <div className="ks-e">
       <style dangerouslySetInnerHTML={{ __html: css }} />
-      <p className="ks-brand">KavachSaathi · Protect · Inform · Save</p>
-      <div className="ks-banner">Emergency medical info</div>
+      <LanguageSwitcher
+        enabled={langOn}
+        onLangChange={setLang}
+      />
+      <p className="ks-brand">KavachSaathi · {label("tagline")}</p>
+      <div className="ks-banner">{label("emergencyMedical")}</div>
+      {validityExpired ? (
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: 12,
+            color: "#FCE49A",
+            margin: "0 0 12px",
+            padding: "8px",
+            border: "1px solid rgba(212,175,55,0.35)",
+            borderRadius: 8,
+          }}
+        >
+          Card validity expired — renew at kavachsaathi.in
+        </p>
+      ) : null}
 
       {badgeLabels.length > 0 ? (
-        <div className="ks-badge-wrap" role="status" aria-label="Critical medical flags">
-          {badgeLabels.map((label) => (
-            <div key={label} className="ks-badge">
-              {label}
+        <div
+          className="ks-badge-wrap"
+          role="status"
+          aria-label={label("criticalAlerts")}
+        >
+          {badgeLabels.map((b) => (
+            <div key={b} className="ks-badge">
+              {b}
             </div>
           ))}
         </div>
       ) : profile.criticalAlertLabels.length > 0 && !flags.criticalBadges ? (
         <div className="ks-crit">
-          Critical: {profile.criticalAlertLabels.join(" · ")}
+          {label("critical")}: {profile.criticalAlertLabels.join(" · ")}
         </div>
       ) : null}
 
@@ -90,7 +128,9 @@ export function EmergencyLite({
         <div>
           <h1 className="ks-name">{profile.name}</h1>
           {profile.city ? (
-            <p className="ks-meta">City: {profile.city}</p>
+            <p className="ks-meta">
+              {label("city")}: {profile.city}
+            </p>
           ) : null}
           {profile.insurerName ? (
             <p className="ks-meta">Insured with: {profile.insurerName}</p>
@@ -98,25 +138,25 @@ export function EmergencyLite({
         </div>
       </div>
 
-      <div className="ks-blood" aria-label="Blood group">
+      <div className="ks-blood" aria-label={label("bloodGroup")}>
         {profile.blood_group}
       </div>
 
       <section className="ks-card">
-        <h2 className="ks-h">Allergies</h2>
-        <p className="ks-body">{allergies}</p>
+        <h2 className="ks-h">{label("allergies")}</h2>
+        <p className="ks-body">{allergiesRaw}</p>
       </section>
 
       {contact ? (
         <section className="ks-card">
-          <h2 className="ks-h">Emergency contact</h2>
+          <h2 className="ks-h">{label("contacts")}</h2>
           <p className="ks-body">
             {contact.name}
             {contact.relation ? ` · ${contact.relation}` : ""}
           </p>
           {tel ? (
             <a className="ks-call" href={tel}>
-              Call {contact.name || "contact"}
+              {label("call")} {contact.name || ""}
             </a>
           ) : null}
         </section>
@@ -125,10 +165,13 @@ export function EmergencyLite({
       {(profile.chronic_conditions.length > 0 ||
         profile.medications.length > 0) && (
         <section className="ks-card">
-          <h2 className="ks-h">Conditions / medications</h2>
+          <h2 className="ks-h">
+            {label("chronic")} / {label("medications")}
+          </h2>
           <p className="ks-body">
-            {[...profile.chronic_conditions, ...profile.medications].join(" · ") ||
-              "—"}
+            {[...profile.chronic_conditions, ...profile.medications].join(
+              " · "
+            ) || "—"}
           </p>
         </section>
       )}
@@ -145,6 +188,22 @@ export function EmergencyLite({
         healthId={profile.health_id || ""}
         contacts={profile.emergency_contacts}
         firstName={firstName}
+      />
+
+      <EmergencyEaseControls
+        elderlyOn={flags.elderlyMode === true}
+        readText={[
+          profile.name,
+          `Blood group ${profile.blood_group || ""}`,
+          `Allergies ${allergiesRaw}`,
+          profile.chronic_conditions.join(", "),
+          profile.medications.join(", "),
+          profile.emergency_contacts
+            .map((c) => `${c.name} ${c.phone}`)
+            .join(". "),
+        ]
+          .filter(Boolean)
+          .join(". ")}
       />
     </div>
   );

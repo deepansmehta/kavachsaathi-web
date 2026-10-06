@@ -1,13 +1,15 @@
 /**
  * Feature flags — Firestore `config/features` + env defaults.
- * Phase 1 defaults ON; Phase 2/3 default OFF.
+ * Phase 1 defaults ON; Phase 2/3 + Pack 3 default OFF.
  * Flag OFF ⇒ UI hidden and feature APIs return 404.
  */
 
 export const FEATURE_KEYS = [
+  // Phase 1
   "alertFamily",
   "criticalBadges",
   "quickCall",
+  // Phase 2
   "cashlessTimer",
   "recordsVault",
   "claimFormPrefill",
@@ -16,8 +18,19 @@ export const FEATURE_KEYS = [
   "hospitalPortal",
   "orgDashboard",
   "regionalLang",
+  // Phase 3
   "donorDirective",
   "nfcInfo",
+  // Pack 3 — Business / Growth / Ease (F46–F54) — all default OFF
+  "cardValidity",
+  "lostCard",
+  "dataExport",
+  "adminAnalytics",
+  "vehicleSticker",
+  "referral",
+  "feedback",
+  "elderlyMode",
+  "offlineEmergency",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_KEYS)[number];
@@ -39,6 +52,15 @@ export const DEFAULT_FEATURES: FeatureFlags = {
   regionalLang: false,
   donorDirective: false,
   nfcInfo: false,
+  cardValidity: false,
+  lostCard: false,
+  dataExport: false,
+  adminAnalytics: false,
+  vehicleSticker: false,
+  referral: false,
+  feedback: false,
+  elderlyMode: false,
+  offlineEmergency: false,
 };
 
 const ENV_MAP: Record<FeatureKey, string> = {
@@ -55,6 +77,15 @@ const ENV_MAP: Record<FeatureKey, string> = {
   regionalLang: "FEATURE_REGIONAL_LANG",
   donorDirective: "FEATURE_DONOR_DIRECTIVE",
   nfcInfo: "FEATURE_NFC_INFO",
+  cardValidity: "FEATURE_CARD_VALIDITY",
+  lostCard: "FEATURE_LOST_CARD",
+  dataExport: "FEATURE_DATA_EXPORT",
+  adminAnalytics: "FEATURE_ADMIN_ANALYTICS",
+  vehicleSticker: "FEATURE_VEHICLE_STICKER",
+  referral: "FEATURE_REFERRAL",
+  feedback: "FEATURE_FEEDBACK",
+  elderlyMode: "FEATURE_ELDERLY_MODE",
+  offlineEmergency: "FEATURE_OFFLINE_EMERGENCY",
 };
 
 function envBool(name: string): boolean | null {
@@ -106,4 +137,13 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   regionalLang: "Regional languages (Phase 2)",
   donorDirective: "Donor / directive (Phase 3)",
   nfcInfo: "NFC info (Phase 3)",
+  cardValidity: "Card validity & renewal (Pack 3)",
+  lostCard: "Lost card / replace (Pack 3)",
+  dataExport: "Download my data (Pack 3)",
+  adminAnalytics: "Admin analytics (Pack 3)",
+  vehicleSticker: "Vehicle QR sticker (Pack 3)",
+  referral: "Referral program (Pack 3)",
+  feedback: "Post-activation feedback (Pack 3)",
+  elderlyMode: "Elderly / large text mode (Pack 3)",
+  offlineEmergency: "Emergency wallpaper (Pack 3)",
 };

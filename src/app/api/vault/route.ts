@@ -12,6 +12,9 @@ import {
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getSignedGetUrl, isStorageConfigured } from "@/lib/storage";
 import { noStoreHeaders } from "@/lib/forms/pdfCommon";
+import { computeValidity, pastGraceResponseBody } from "@/lib/validity";
+import { loadFeatureFlags } from "@/lib/features/server";
+import { findCardByHealthId } from "@/lib/cardsRepo";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,6 +22,29 @@ export const runtime = "nodejs";
 const MAX_VAULT_RECORDS = 30;
 const VAULT_COLLECTION = "vault";
 const SIGNED_URL_TTL_MS = 5 * 60_000; // 5 minutes
+
+async function assertOwnerNotPastGrace(profileId: string) {
+  const flags = await loadFeatureFlags().catch(() => null);
+  if (!flags?.cardValidity) return null;
+  const db = getAdminDb();
+  const p = await db.collection("profiles").doc(profileId).get();
+  if (!p.exists) return null;
+  const hid = String(p.data()?.health_id || "");
+  const card = await findCardByHealthId(db, hid);
+  if (!card) return null;
+  const v = computeValidity({
+    validFrom: card.validFrom || card.activated_at,
+    validTill: card.validTill,
+    activatedAt: card.activated_at,
+  });
+  if (v.ownerFeaturesLocked) {
+    return NextResponse.json(pastGraceResponseBody(), {
+      status: 403,
+      headers: noStoreHeaders(),
+    });
+  }
+  return null;
+}
 
 export type VaultRecordType =
   | "discharge_summary"

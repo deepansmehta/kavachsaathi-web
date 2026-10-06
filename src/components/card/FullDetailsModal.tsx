@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, type CSSProperties } from "react";
 import toast from "react-hot-toast";
 import QRCode from "react-qr-code";
+import { FeedbackModal } from "@/components/FeedbackModal";
 
 type Captcha = { token: string; question: string };
 
@@ -65,13 +66,7 @@ type CashlessTimerData = {
   disclaimer: string;
 };
 
-type FeatureFlags = {
-  cashlessTimer?: boolean;
-  recordsVault?: boolean;
-  claimFormPrefill?: boolean;
-  abhaLink?: boolean;
-  donorDirective?: boolean;
-};
+type FeatureFlags = Record<string, boolean>;
 
 async function downloadPdf(url: string, fallbackName: string) {
   const res = await fetch(url, { credentials: "same-origin" });
@@ -701,6 +696,9 @@ export function FullDetailsModal({
                 <p style={{ fontSize: 12, color: "#D4AF37", marginBottom: 8 }}>
                   Donor &amp; Advance Directive
                 </p>
+                <p style={{ fontSize: 10, color: "#A8A59C", marginBottom: 8, lineHeight: 1.4 }}>
+                  As declared by the cardholder. Not a legal document. Doctors follow hospital protocol.
+                </p>
                 <p style={{ fontSize: 12 }}>
                   Blood donor:{" "}
                   <span style={{ color: "#FCE49A" }}>
@@ -788,6 +786,10 @@ export function FullDetailsModal({
           </div>
         )}
       </div>
+      <FeedbackModal
+        enabled={Boolean(flags.feedback) && Boolean(details)}
+        context="full_details"
+      />
     </div>
   );
 }

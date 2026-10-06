@@ -1,61 +1,80 @@
-export type Lang = "en" | "hi";
+/**
+ * Expand emergency/activation UI strings across locales.
+ * User-entered data is NEVER translated — only chrome labels.
+ */
+import en from "../../locales/en.json";
+import hi from "../../locales/hi.json";
+import pa from "../../locales/pa.json";
+import bn from "../../locales/bn.json";
+import gu from "../../locales/gu.json";
+import mr from "../../locales/mr.json";
+import ta from "../../locales/ta.json";
+import te from "../../locales/te.json";
+import kn from "../../locales/kn.json";
 
-const DICT = {
-  emergencyMedical: { en: "Emergency medical info", hi: "आपातकालीन चिकित्सा जानकारी" },
-  critical: { en: "CRITICAL", hi: "गंभीर" },
-  criticalAlerts: { en: "Critical alerts", hi: "गंभीर चेतावनियाँ" },
-  bloodGroup: { en: "Blood group", hi: "ब्लड ग्रुप" },
-  allergies: { en: "Allergies", hi: "एलर्जी" },
-  chronic: { en: "Chronic conditions", hi: "दीर्घकालिक रोग" },
-  medications: { en: "Medications", hi: "दवाइयाँ" },
-  contacts: { en: "Emergency contacts", hi: "आपातकालीन संपर्क" },
-  familyDoctor: { en: "Family doctor", hi: "पारिवारिक चिकित्सक" },
-  preferredHospital: { en: "Preferred hospital", hi: "पसंदीदा अस्पताल" },
-  organDonor: { en: "Organ donor", hi: "अंगदाता" },
-  city: { en: "City", hi: "शहर" },
-  noneReported: { en: "None reported", hi: "कोई जानकारी नहीं" },
-  notProvided: { en: "Not provided", hi: "उपलब्ध नहीं" },
-  yes: { en: "Yes", hi: "हाँ" },
-  no: { en: "No", hi: "नहीं" },
-  call: { en: "Call", hi: "कॉल" },
-  whatsapp: { en: "WhatsApp", hi: "व्हाट्सऐप" },
-  callAmbulance: { en: "Call 108 Ambulance", hi: "108 एम्बुलेंस कॉल करें" },
-  nearbyHospitals: { en: "Nearby hospitals", hi: "नज़दीकी अस्पताल" },
-  shareLocation: {
-    en: "Share your location to help family find you? (optional)",
-    hi: "परिवार को खोजने में मदद के लिए स्थान साझा करें? (वैकल्पिक)",
-  },
-  allowLocation: { en: "Allow", hi: "अनुमति दें" },
-  dismiss: { en: "Not now", hi: "अभी नहीं" },
-  locationShared: { en: "Location shared for maps", hi: "मानचित्र के लिए स्थान साझा" },
-  thisIsEmergency: {
-    en: "This is an emergency",
-    hi: "यह आपात स्थिति है",
-  },
-  emergencySent: {
-    en: "Emergency flagged for the card owner",
-    hi: "कार्ड मालिक को आपात संकेत भेजा गया",
-  },
-  blockedTitle: { en: "Card blocked", hi: "कार्ड ब्लॉक है" },
-  blockedBody: {
-    en: "This card has been blocked by its owner. If you found it, please contact the owner or KavachSaathi support.",
-    hi: "इस कार्ड को मालिक ने ब्लॉक कर दिया है। यदि आपको मिला है, तो मालिक या कवचसाथी सपोर्ट से संपर्क करें।",
-  },
-  tagline: { en: "Protect · Inform · Save", hi: "रक्षा · सूचना · सुरक्षा" },
-} as const;
+export type Lang = "en" | "hi" | "pa" | "bn" | "gu" | "mr" | "ta" | "te" | "kn";
 
-export type DictKey = keyof typeof DICT;
+export const SUPPORTED_LANGS: { code: Lang; label: string; reviewed: boolean }[] =
+  [
+    { code: "en", label: "EN", reviewed: true },
+    { code: "hi", label: "हिंदी", reviewed: true },
+    { code: "pa", label: "ਪੰ", reviewed: false },
+    { code: "bn", label: "বাং", reviewed: false },
+    { code: "gu", label: "ગુજ", reviewed: false },
+    { code: "mr", label: "मर", reviewed: false },
+    { code: "ta", label: "தமிழ்", reviewed: false },
+    { code: "te", label: "తెల", reviewed: false },
+    { code: "kn", label: "ಕನ್", reviewed: false },
+  ];
 
-export function t(key: DictKey, lang: Lang): string {
-  return DICT[key][lang] || DICT[key].en;
+function asTable(mod: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!mod || typeof mod !== "object") return out;
+  for (const [k, v] of Object.entries(mod as Record<string, unknown>)) {
+    if (k.startsWith("_")) continue;
+    if (typeof v === "string") out[k] = v;
+  }
+  return out;
+}
+
+const TABLES: Record<Lang, Record<string, string>> = {
+  en: asTable(en),
+  hi: asTable(hi),
+  pa: asTable(pa),
+  bn: asTable(bn),
+  gu: asTable(gu),
+  mr: asTable(mr),
+  ta: asTable(ta),
+  te: asTable(te),
+  kn: asTable(kn),
+};
+
+export type DictKey = keyof typeof en;
+
+export function t(key: DictKey | string, lang: Lang): string {
+  const table = TABLES[lang] || TABLES.en;
+  const v = table[key];
+  if (typeof v === "string" && !v.startsWith("_")) return v;
+  const fallback = TABLES.en[key];
+  return typeof fallback === "string" ? fallback : String(key);
+}
+
+export function isReviewedLang(lang: Lang): boolean {
+  return SUPPORTED_LANGS.find((l) => l.code === lang)?.reviewed === true;
 }
 
 export function loadLang(): Lang {
   try {
     const v = localStorage.getItem("kavach_lang");
-    if (v === "hi" || v === "en") return v;
+    if (v && TABLES[v as Lang]) return v as Lang;
   } catch {
-    /* ignore */
+    /* */
+  }
+  try {
+    const nav = (navigator.language || "en").slice(0, 2).toLowerCase();
+    if (TABLES[nav as Lang]) return nav as Lang;
+  } catch {
+    /* */
   }
   return "en";
 }
@@ -64,6 +83,9 @@ export function saveLang(lang: Lang): void {
   try {
     localStorage.setItem("kavach_lang", lang);
   } catch {
-    /* ignore */
+    /* */
   }
 }
+
+export const REVIEW_NOTICE =
+  "Translation under review — English/Hindi is authoritative";

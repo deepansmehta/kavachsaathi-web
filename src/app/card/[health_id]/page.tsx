@@ -81,7 +81,33 @@ export default async function CardPage({ params }: PageProps) {
     }
 
     if (cardIsBlocked(card)) {
-      return <CardClient mode="blocked" />;
+      const { HELPLINE_DISPLAY, lostCardFoundMessage } = await import(
+        "@/lib/config/links"
+      );
+      void HELPLINE_DISPLAY;
+      return (
+        <CardClient mode="blocked" message={lostCardFoundMessage()} />
+      );
+    }
+
+    // Vehicle sticker public picker (F50)
+    {
+      const rawSnap = await db.collection("cards").doc(card.docId).get();
+      const raw = rawSnap.data();
+      if (raw?.isVehicle === true && Array.isArray(raw.linkedRiders)) {
+        const flags = await loadFeatureFlags().catch(() => featuresFromEnv());
+        if (flags.vehicleSticker) {
+          const { VehicleRiders } = await import(
+            "@/components/card/VehicleRiders"
+          );
+          return (
+            <VehicleRiders
+              vehicleLabel={String(raw.vehicleLabel || "") || null}
+              healthId={healthId}
+            />
+          );
+        }
+      }
     }
 
     if (!cardIsActivated(card)) {
@@ -125,8 +151,21 @@ export default async function CardPage({ params }: PageProps) {
     }
     const scanToken = makeScanToken(healthId);
     const flags = await loadFeatureFlags().catch(() => featuresFromEnv());
+    const { computeValidity } = await import("@/lib/validity");
+    const validity = computeValidity({
+      validFrom: (card as { validFrom?: unknown }).validFrom,
+      validTill: card.validTill,
+      activatedAt: card.activated_at,
+    });
     return (
-      <EmergencyLite profile={profile} scanToken={scanToken} flags={flags} />
+      <EmergencyLite
+        profile={profile}
+        scanToken={scanToken}
+        flags={flags}
+        validityExpired={
+          flags.cardValidity === true && validity.expired === true
+        }
+      />
     );
   } catch (e) {
     console.error("card page", e);

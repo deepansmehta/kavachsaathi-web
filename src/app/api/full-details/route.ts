@@ -20,6 +20,8 @@ import {
   makeMathCaptcha,
   verifyMathCaptcha,
 } from "@/lib/rateLimit";
+import { computeValidity, pastGraceResponseBody } from "@/lib/validity";
+import { loadFeatureFlags } from "@/lib/features/server";
 
 async function loadProfile(health_id: string) {
   const db = getAdminDb();
@@ -146,6 +148,19 @@ export async function POST(req: NextRequest) {
       const found = await loadProfile(health_id);
       if (!found) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+      {
+        const flags = await loadFeatureFlags().catch(() => null);
+        if (flags?.cardValidity) {
+          const v = computeValidity({
+            validFrom: found.card?.validFrom || found.card?.activated_at,
+            validTill: found.card?.validTill,
+            activatedAt: found.card?.activated_at,
+          });
+          if (v.ownerFeaturesLocked) {
+            return NextResponse.json(pastGraceResponseBody(), { status: 403 });
+          }
+        }
       }
       const pin = normalizePin(body.pin);
       const ok = await verifyPin(pin, String(found.data.pin_hash || ""));

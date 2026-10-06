@@ -95,7 +95,16 @@ function isPreLaunchApiAllowed(pathname: string): boolean {
     pathname === "/api/donor-directive" ||
     pathname.startsWith("/api/donor-directive/") ||
     pathname === "/api/admin" ||
-    pathname.startsWith("/api/admin/")
+    pathname.startsWith("/api/admin/") ||
+    pathname === "/api/profile/renewal-request" ||
+    pathname === "/api/profile/lost-card" ||
+    pathname === "/api/profile/data-export" ||
+    pathname === "/api/feedback" ||
+    pathname.startsWith("/api/feedback/") ||
+    pathname === "/api/referral" ||
+    pathname.startsWith("/api/referral/") ||
+    pathname === "/api/vehicle" ||
+    pathname.startsWith("/api/vehicle/")
   );
 }
 

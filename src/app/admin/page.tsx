@@ -14,6 +14,7 @@ import toast from "react-hot-toast";
 import { Shield, Download, RefreshCw, Search, LogOut } from "lucide-react";
 import { GoldButton, OutlineButton, ECGBackground } from "@/components/ui";
 import { auth, initPersistentAuth } from "@/lib/firebase";
+import { AdminFeatureFlags } from "@/components/admin/AdminFeatureFlags";
 
 type CardRow = {
   health_id: string;
@@ -481,6 +482,28 @@ export default function AdminPage() {
               <LogOut className="h-4 w-4" /> Out
             </button>
           </div>
+        </div>
+
+        <div className="mb-6 flex flex-wrap gap-3 text-sm">
+          <Link href="/admin/analytics" className="text-[var(--gold)] underline">
+            Analytics
+          </Link>
+          <Link href="/admin/validity" className="text-[var(--gold)] underline">
+            Expiring cards
+          </Link>
+          <Link href="/admin/pack3" className="text-[var(--gold)] underline">
+            Pack 3 tools
+          </Link>
+          <Link href="/admin/hospitals" className="text-[var(--gold)] underline">
+            Hospitals
+          </Link>
+          <Link href="/admin/nfc" className="text-[var(--gold)] underline">
+            NFC
+          </Link>
+        </div>
+
+        <div className="mb-6">
+          <AdminFeatureFlags getToken={token} />
         </div>
 
         <div className="mb-4 flex flex-wrap gap-3">
