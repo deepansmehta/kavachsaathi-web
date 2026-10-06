@@ -1,22 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHash, randomInt } from "crypto";
+import { randomInt } from "crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import { requireFeature } from "@/lib/features/server";
 import { requireOwnerSession } from "@/lib/patientEase/auth";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { noStoreHeaders } from "@/lib/forms/pdfCommon";
 import { checkRateLimit, clientIp } from "@/lib/rateLimit";
+import { CODE_TTL_MS, hashConsentCode } from "@/lib/hospitalConsent";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-const CODE_TTL_MS = 10 * 60_000;
-
-function hashCode(code: string, healthId: string): string {
-  return createHash("sha256")
-    .update(`${healthId}:${code}`)
-    .digest("hex");
-}
 
 /**
  * POST /api/profile/hospital-consent
@@ -56,7 +49,7 @@ export async function POST(req: NextRequest) {
   await db.collection("hospitalConsentCodes").doc(sess.healthId).set({
     healthId: sess.healthId,
     profileId: sess.profileId,
-    codeHash: hashCode(code, sess.healthId),
+    codeHash: hashConsentCode(code, sess.healthId),
     expiresAt: expiresAt.toISOString(),
     used: false,
     createdAt: FieldValue.serverTimestamp(),
@@ -73,5 +66,3 @@ export async function POST(req: NextRequest) {
     { headers: noStoreHeaders() }
   );
 }
-
-export { hashCode, CODE_TTL_MS };

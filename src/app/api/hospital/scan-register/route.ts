@@ -13,8 +13,8 @@ import { ageFromDob } from "@/lib/forms/pdfCommon";
 import {
   HOSPITAL_SESSION_COOKIE,
   verifyHospitalSessionToken,
-} from "../login/route";
-import { hashCode } from "../../profile/hospital-consent/route";
+} from "@/lib/hospitalSession";
+import { hashConsentCode } from "@/lib/hospitalConsent";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -235,7 +235,7 @@ export async function POST(req: NextRequest) {
         { status: 401, headers: noStoreHeaders() }
       );
     }
-    if (c.codeHash !== hashCode(code, healthId)) {
+    if (c.codeHash !== hashConsentCode(code, healthId)) {
       return NextResponse.json(
         { error: "Invalid consent code" },
         { status: 401, headers: noStoreHeaders() }

@@ -5,7 +5,7 @@ import { noStoreHeaders } from "@/lib/forms/pdfCommon";
 import {
   HOSPITAL_SESSION_COOKIE,
   verifyHospitalSessionToken,
-} from "./login/route";
+} from "@/lib/hospitalSession";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
