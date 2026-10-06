@@ -116,6 +116,7 @@ export async function POST(req: NextRequest) {
       insurance: body.insurance || null,
       consents: body.consents || null,
       requireFullDocs: body.requireFullDocs !== false,
+      referralCode: body.referralCode || body.referral_code || null,
     });
 
     if (!result.ok) {

@@ -1,0 +1,17 @@
+{
+  "snappedAt": "2026-10-06T09:36:33.566Z",
+  "links": {
+    "whatsappDigits": "919416106511",
+    "whatsappDisplay": "+91 94161 06511",
+    "callDisplay": "+91 72730 00075",
+    "callDigits": "917273000075",
+    "email": "gdmtechnoworld@gmail.com",
+    "siteUrl": "https://kavachsaathi.in"
+  },
+  "policy": {
+    "validityDays": 365,
+    "graceDays": 30,
+    "referralRewardDays": 30,
+    "referralMaxMonthsPerYear": 12
+  }
+}

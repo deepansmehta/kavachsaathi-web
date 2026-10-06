@@ -143,6 +143,16 @@ export function ActivationForm({
   const [consentLegal, setConsentLegal] = useState(false);
   const [pin, setPin] = useState("");
   const [pinConfirm, setPinConfirm] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+
+  useEffect(() => {
+    try {
+      const m = document.cookie.match(/(?:^|;\s*)ks_ref=([^;]+)/);
+      if (m?.[1]) setReferralCode(decodeURIComponent(m[1]).toUpperCase());
+    } catch {
+      /* */
+    }
+  }, []);
 
   const progress = useMemo(
     () => STEPS.map((s) => ({ ...s, active: s.n === step, done: s.n < step })),
@@ -453,6 +463,7 @@ export function ActivationForm({
             dpdpConsent: consentDpdp,
           },
           requireFullDocs: true,
+          referralCode: referralCode.trim() || null,
           captchaToken: captcha?.token,
           captchaAnswer,
         }),
@@ -1268,6 +1279,19 @@ export function ActivationForm({
                 setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 6))
               }
             />
+            <GoldInput
+              label="Referred by — code (optional)"
+              value={referralCode}
+              onChange={(e) =>
+                setReferralCode(
+                  e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 16)
+                )
+              }
+              placeholder="e.g. KS123456"
+            />
+            <p className="text-[11px] text-[#A8A59C]">
+              Optional. Enter a friend&apos;s referral code if they shared KavachSaathi with you.
+            </p>
             {captcha && (
               <>
                 <p className="text-sm text-[#FCE49A]">{captcha.question}</p>

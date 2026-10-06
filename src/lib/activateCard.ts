@@ -27,8 +27,16 @@ import {
 } from "./documents";
 import { hasEncKey } from "./crypto";
 import { isStorageConfigured, moveObject, deletePrefix } from "./storage";
-import { defaultValidTillFrom } from "./validity";
 import { trackAgg } from "./analytics";
+import { loadSiteConfig } from "./config/siteConfig";
+import {
+  applyReferralRewardInTx,
+  findProfileByReferralCode,
+  makeReferralCode,
+  referralRewardLog,
+} from "./referralReward";
+import { isFeatureOn, mergeFeatureFlags } from "./features/flags";
+import { addDaysIso } from "./validity";
 
 export type ActivateInput = {
   health_id: string;
@@ -57,6 +65,8 @@ export type ActivateInput = {
   occupation?: string | null;
   alternateContact?: string | null;
   hasFamilyPhysician?: boolean | null;
+  /** Optional Pack 3 referral code from activation step 7 */
+  referralCode?: string | null;
   /** Full-details mandatory docs (Part A/B) */
 
   photoPath?: string | null;
@@ -239,8 +249,55 @@ export async function activateCardAtomic(
   const profileRef = db.collection("profiles").doc();
   const cardRef = db.collection("cards").doc(card.docId);
   const activatedAtIso = new Date().toISOString();
+  const { policy } = await loadSiteConfig(db);
   const validFrom = activatedAtIso;
-  const validTill = defaultValidTillFrom(activatedAtIso);
+  const validTill = addDaysIso(activatedAtIso, policy.validityDays);
+
+  const referralRaw = String(input.referralCode || "")
+    .trim()
+    .toUpperCase()
+    .slice(0, 16);
+
+  // Resolve referral only when flag ON and code provided
+  let referralTarget: Awaited<
+    ReturnType<typeof findProfileByReferralCode>
+  > = null;
+  let referrerCardRef: FirebaseFirestore.DocumentReference | null = null;
+  if (referralRaw) {
+    const featSnap = await db.collection("config").doc("features").get();
+    const flags = mergeFeatureFlags(featSnap.data() || {});
+    if (isFeatureOn(flags, "referral")) {
+      referralTarget = await findProfileByReferralCode(db, referralRaw);
+      if (!referralTarget) {
+        return {
+          ok: false,
+          status: 400,
+          error: "Invalid referral code",
+        };
+      }
+      const refHid = normalizeHealthId(
+        String(
+          referralTarget.data.health_id || referralTarget.data.healthId || ""
+        )
+      );
+      if (!refHid) {
+        return {
+          ok: false,
+          status: 400,
+          error: "Referral code is not from an activated card",
+        };
+      }
+      const refCard = await findCardByHealthId(db, refHid);
+      if (!refCard || !cardIsActivated(refCard)) {
+        return {
+          ok: false,
+          status: 400,
+          error: "Referral code is not from an activated card",
+        };
+      }
+      referrerCardRef = db.collection("cards").doc(refCard.docId);
+    }
+  }
 
   const doctorName = String(
     input.familyDoctorName || input.family_doctor?.name || ""
@@ -291,6 +348,44 @@ export async function activateCardAtomic(
         );
       }
 
+      // Referral reward (atomic with activation)
+      let referredBy: string | null = null;
+      if (referralTarget) {
+        const refFresh = await tx.get(referralTarget.ref);
+        if (!refFresh.exists) {
+          throw Object.assign(new Error("Invalid referral code"), {
+            status: 400,
+          });
+        }
+        const reward = applyReferralRewardInTx(tx, {
+          referrerRef: referralTarget.ref,
+          referrerData: refFresh.data()!,
+          newPhoneNormalized: phoneNormalized,
+          newFamilyGroupId: null,
+          newHealthId: health_id,
+          policy,
+        });
+        if (!reward.ok) {
+          throw Object.assign(new Error(reward.error), { status: 400 });
+        }
+        referredBy = referralRaw;
+        if (referrerCardRef) {
+          tx.update(referrerCardRef, { validTill: reward.newValidTill });
+        }
+        const logRef = db.collection("referral_events").doc();
+        tx.set(
+          logRef,
+          referralRewardLog({
+            referrerHealthId: reward.referrerHealthId,
+            referredHealthId: health_id,
+            referrerProfileId: reward.referrerProfileId,
+            newValidTill: reward.newValidTill,
+            code: referralRaw,
+            days: policy.referralRewardDays,
+          })
+        );
+      }
+
       tx.set(profileRef, {
         health_id,
         activation_code: storedCode, // forgot-PIN only — never public
@@ -332,6 +427,8 @@ export async function activateCardAtomic(
         profileComplete: Boolean(docFields),
         validFrom,
         validTill,
+        referralCode: makeReferralCode(profileRef.id),
+        ...(referredBy ? { referredBy } : {}),
         ...(docFields || {}),
         created_at: FieldValue.serverTimestamp(),
         updated_at: FieldValue.serverTimestamp(),
@@ -352,7 +449,7 @@ export async function activateCardAtomic(
         ? Number((err as { status: number }).status)
         : 500;
     const message = err instanceof Error ? err.message : "Activation failed";
-    if (status === 403 || status === 409 || status === 404) {
+    if (status === 400 || status === 403 || status === 409 || status === 404) {
       return { ok: false, status, error: message };
     }
     console.error("activateCardAtomic", err);

@@ -44,6 +44,8 @@ export function Pack3ProfileTools({
     clicks: number;
     conversions: number;
     shareWhatsapp: string;
+    referralRewardCount?: number;
+    earnedMessage?: string | null;
   } | null>(null);
   const [replaceCode, setReplaceCode] = useState("");
 
@@ -325,6 +327,11 @@ export function Pack3ProfileTools({
           <p className="text-sm text-[var(--cream)]">
             Clicks: {referral.clicks} · Conversions: {referral.conversions}
           </p>
+          {referral.earnedMessage ? (
+            <p className="rounded-lg bg-[var(--gold-faint,#2a2410)] px-3 py-2 text-sm text-[var(--gold)]">
+              {referral.earnedMessage}
+            </p>
+          ) : null}
           <a
             href={referral.shareWhatsapp}
             target="_blank"

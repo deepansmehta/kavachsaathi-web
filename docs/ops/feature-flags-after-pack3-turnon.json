@@ -1,0 +1,23 @@
+{
+  "abhaLink": true,
+  "updatedBy": "enable-features-script",
+  "cashlessTimer": true,
+  "recordsVault": true,
+  "familyPlan": true,
+  "orgDashboard": true,
+  "nfcInfo": true,
+  "hospitalPortal": true,
+  "claimFormPrefill": true,
+  "regionalLang": true,
+  "donorDirective": true,
+  "feedback": true,
+  "referral": true,
+  "lostCard": true,
+  "adminAnalytics": true,
+  "offlineEmergency": true,
+  "cardValidity": true,
+  "elderlyMode": true,
+  "dataExport": true,
+  "updatedAt": "2026-10-06T09:36:37.485Z",
+  "vehicleSticker": true
+}

@@ -1,0 +1,18 @@
+{
+  "snappedAt": "2026-10-06T09:36:29.944Z",
+  "exists": true,
+  "data": {
+    "abhaLink": true,
+    "updatedBy": "enable-features-script",
+    "cashlessTimer": true,
+    "recordsVault": true,
+    "familyPlan": true,
+    "orgDashboard": true,
+    "nfcInfo": true,
+    "hospitalPortal": true,
+    "claimFormPrefill": true,
+    "regionalLang": true,
+    "donorDirective": true,
+    "updatedAt": "2026-10-06T08:29:35.464Z"
+  }
+}

@@ -1,6 +1,6 @@
 /**
  * Public / company contact links (no secrets).
- * Used by renewal WhatsApp, lost-card helpline, order+referral, etc.
+ * Defaults match production business settings; Firestore config/links can override at runtime (server).
  */
 
 export const SITE_URL =
@@ -8,19 +8,46 @@ export const SITE_URL =
   process.env.NEXT_PUBLIC_BASE_URL ||
   "https://kavachsaathi.in";
 
-/** Digits only, with country code (default India). */
+/** Digits only, with country code (WhatsApp / wa.me). */
 export const COMPANY_WHATSAPP = String(
   process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "919416106511"
 ).replace(/\D/g, "");
 
-export const HELPLINE_DISPLAY =
-  process.env.NEXT_PUBLIC_HELPLINE_DISPLAY || "+91 94161 06511";
+/** Primary display for WhatsApp / text contact */
+export const HELPLINE_WHATSAPP_DISPLAY =
+  process.env.NEXT_PUBLIC_WHATSAPP_DISPLAY || "+91 94161 06511";
 
-/** Alias used in Pack 3 docs / specs */
-export const HELP_LINE_DISPLAY = HELPLINE_DISPLAY;
+/** Call helpline (voice) */
+export const HELPLINE_CALL_DISPLAY =
+  process.env.NEXT_PUBLIC_HELPLINE_CALL || "+91 72730 00075";
+
+export const HELPLINE_CALL_TEL = `tel:+${String(
+  process.env.NEXT_PUBLIC_HELPLINE_CALL_DIGITS || "917273000075"
+).replace(/\D/g, "")}`;
+
+export const HELPLINE_WHATSAPP_TEL = `tel:+${COMPANY_WHATSAPP}`;
+
+/** @deprecated use HELPLINE_WHATSAPP_DISPLAY — kept for older imports */
+export const HELPLINE_DISPLAY = HELPLINE_WHATSAPP_DISPLAY;
+export const HELP_LINE_DISPLAY = HELPLINE_WHATSAPP_DISPLAY;
 
 export const HELPLINE_EMAIL =
-  process.env.NEXT_PUBLIC_HELPLINE_EMAIL || "hello@kavachsaathi.in";
+  process.env.NEXT_PUBLIC_HELPLINE_EMAIL || "gdmtechnoworld@gmail.com";
+
+/** Both numbers shown on renewal / lost-card contact sections */
+export const CONTACT_PHONES: { label: string; display: string; tel: string }[] =
+  [
+    {
+      label: "WhatsApp / SMS",
+      display: HELPLINE_WHATSAPP_DISPLAY,
+      tel: HELPLINE_WHATSAPP_TEL,
+    },
+    {
+      label: "Call",
+      display: HELPLINE_CALL_DISPLAY,
+      tel: HELPLINE_CALL_TEL,
+    },
+  ];
 
 export function waMeLink(text: string, phone = COMPANY_WHATSAPP): string {
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
@@ -35,7 +62,7 @@ export function renewalWaLink(serial: string, name: string): string {
 }
 
 export function lostCardFoundMessage(): string {
-  return `This KavachSaathi card has been reported lost. If found, please contact ${HELPLINE_DISPLAY}.`;
+  return `This KavachSaathi card has been reported lost. If found, please contact ${HELPLINE_WHATSAPP_DISPLAY} or ${HELPLINE_CALL_DISPLAY}.`;
 }
 
 export function orderWaWithRef(refCode?: string | null): string {
@@ -45,8 +72,9 @@ export function orderWaWithRef(refCode?: string | null): string {
   );
 }
 
-export function referralShareMessage(code: string, link: string): string {
-  return `I use KavachSaathi — India's smart emergency health card. Get yours: ${link} (code ${code})`;
+/** Hindi share copy for wa.me (F51) */
+export function referralShareMessage(code: string): string {
+  return `Main KavachSaathi Smart Health Card use karta/karti hu — emergency mein ek scan se meri medical info mil jaati hai. Mera referral code ${code} use karein: kavachsaathi.in`;
 }
 
 export function googleCalendarReminderUrl(opts: {

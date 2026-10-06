@@ -10,14 +10,9 @@ import { requireAdminUser } from "@/lib/adminAuth";
 import { recordAggEvent } from "@/lib/analytics";
 import { SITE_URL, referralShareMessage, waMeLink } from "@/lib/config/links";
 import { NO_STORE_HEADERS } from "@/lib/activationGate";
+import { makeReferralCode } from "@/lib/referralReward";
 
 export const dynamic = "force-dynamic";
-
-function makeCode(seed: string): string {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  return `KS${(h % 1000000).toString().padStart(6, "0")}`;
-}
 
 /** GET /api/referral/me */
 export async function GET(req: NextRequest) {
@@ -36,11 +31,22 @@ export async function GET(req: NextRequest) {
     const snap = await db.collection("referral_events").limit(500).get();
     let clicks = 0;
     let conversions = 0;
-    const byCode: Record<string, { clicks: number; conversions: number }> = {};
+    let rewardMonths = 0;
+    const byCode: Record<
+      string,
+      { clicks: number; conversions: number; rewardMonths: number }
+    > = {};
+    const rewards: {
+      code: string;
+      referrer: string;
+      referred: string;
+      at: string;
+    }[] = [];
     for (const d of snap.docs) {
       const x = d.data();
       const code = String(x.code || "");
-      if (!byCode[code]) byCode[code] = { clicks: 0, conversions: 0 };
+      if (!byCode[code])
+        byCode[code] = { clicks: 0, conversions: 0, rewardMonths: 0 };
       if (x.type === "click") {
         clicks += 1;
         byCode[code].clicks += 1;
@@ -49,9 +55,19 @@ export async function GET(req: NextRequest) {
         conversions += 1;
         byCode[code].conversions += 1;
       }
+      if (x.type === "referral_reward") {
+        rewardMonths += 1;
+        byCode[code].rewardMonths += 1;
+        rewards.push({
+          code,
+          referrer: String(x.referrer_health_id || ""),
+          referred: String(x.referred_health_id || ""),
+          at: String(x.at || ""),
+        });
+      }
     }
     return NextResponse.json(
-      { clicks, conversions, byCode },
+      { clicks, conversions, rewardMonths, byCode, rewards: rewards.slice(0, 100) },
       { headers: NO_STORE_HEADERS }
     );
   }
@@ -70,7 +86,7 @@ export async function GET(req: NextRequest) {
   const p = snap.data()!;
   let code = String(p.referralCode || "");
   if (!code) {
-    code = makeCode(session.profileId);
+    code = makeReferralCode(session.profileId);
     await pref.set({ referralCode: code }, { merge: true });
   }
   const link = `${SITE_URL}/?ref=${code}`;
@@ -91,7 +107,19 @@ export async function GET(req: NextRequest) {
       link,
       clicks,
       conversions,
-      shareWhatsapp: waMeLink(referralShareMessage(code, link)),
+      referralRewardCount: Number(p.referralRewardCount || 0),
+      referralRewardMonthsThisYear: (() => {
+        const y = new Date().getUTCFullYear();
+        return Number(p.referralRewardYear) === y
+          ? Number(p.referralRewardMonthsThisYear || 0)
+          : 0;
+      })(),
+      validTill: p.validTill || null,
+      shareWhatsapp: waMeLink(referralShareMessage(code)),
+      earnedMessage:
+        Number(p.referralRewardCount || 0) > 0
+          ? `You earned +1 month validity — ${Number(p.referralRewardCount || 0)} referrals`
+          : null,
     },
     { headers: NO_STORE_HEADERS }
   );

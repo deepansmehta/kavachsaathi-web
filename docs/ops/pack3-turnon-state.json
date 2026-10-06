@@ -1,0 +1,44 @@
+{
+  "at": "2026-10-06T09:51:56.092Z",
+  "features": {
+    "abhaLink": true,
+    "updatedBy": "enable-features-script",
+    "cashlessTimer": true,
+    "recordsVault": true,
+    "familyPlan": true,
+    "orgDashboard": true,
+    "nfcInfo": true,
+    "hospitalPortal": true,
+    "claimFormPrefill": true,
+    "regionalLang": true,
+    "donorDirective": true,
+    "feedback": true,
+    "referral": true,
+    "lostCard": true,
+    "adminAnalytics": true,
+    "offlineEmergency": true,
+    "cardValidity": true,
+    "elderlyMode": true,
+    "dataExport": true,
+    "updatedAt": "2026-10-06T09:36:37.485Z",
+    "vehicleSticker": true
+  },
+  "links": {
+    "callDigits": "917273000075",
+    "siteUrl": "https://kavachsaathi.in",
+    "updatedBy": "seed-site-config",
+    "callDisplay": "+91 72730 00075",
+    "whatsappDigits": "919416106511",
+    "email": "gdmtechnoworld@gmail.com",
+    "whatsappDisplay": "+91 94161 06511",
+    "updatedAt": "2026-10-06T09:36:33.570Z"
+  },
+  "policy": {
+    "updatedBy": "seed-site-config",
+    "graceDays": 30,
+    "referralRewardDays": 30,
+    "referralMaxMonthsPerYear": 12,
+    "updatedAt": "2026-10-06T09:36:33.570Z",
+    "validityDays": 365
+  }
+}

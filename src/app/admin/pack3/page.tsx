@@ -1,19 +1,71 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
 
-/** Pack 3 admin tools: vehicle batch (dry-run), referral conversion, feedback summary */
+/** Pack 3 admin tools: site config, vehicle batch (dry-run), referral, feedback */
 export default function AdminPack3Page() {
   const [log, setLog] = useState("");
   const [refCode, setRefCode] = useState("");
   const [vehicleCount, setVehicleCount] = useState(5);
+  const [links, setLinks] = useState({
+    whatsappDigits: "919416106511",
+    whatsappDisplay: "+91 94161 06511",
+    callDisplay: "+91 72730 00075",
+    callDigits: "917273000075",
+    email: "gdmtechnoworld@gmail.com",
+    siteUrl: "https://kavachsaathi.in",
+  });
+  const [policy, setPolicy] = useState({
+    validityDays: 365,
+    graceDays: 30,
+    referralRewardDays: 30,
+    referralMaxMonthsPerYear: 12,
+  });
 
   const token = async () => {
     const u = auth.currentUser;
     if (!u) throw new Error("Sign in via /admin first");
     return u.getIdToken();
+  };
+
+  const loadSiteConfig = async () => {
+    try {
+      const t = await token();
+      const r = await fetch("/api/admin/site-config", {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      const j = await r.json();
+      if (j.links) setLinks(j.links);
+      if (j.policy) setPolicy(j.policy);
+      setLog(JSON.stringify(j, null, 2));
+    } catch (e) {
+      setLog(e instanceof Error ? e.message : "error");
+    }
+  };
+
+  useEffect(() => {
+    void loadSiteConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const saveSiteConfig = async () => {
+    try {
+      const t = await token();
+      const r = await fetch("/api/admin/site-config", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${t}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ links, policy }),
+      });
+      const j = await r.json();
+      setLog(JSON.stringify(j, null, 2));
+    } catch (e) {
+      setLog(e instanceof Error ? e.message : "error");
+    }
   };
 
   const vehicleBatch = async (dryRun: boolean) => {
@@ -92,6 +144,74 @@ export default function AdminPack3Page() {
       </Link>
       <h1 className="font-rajdhani text-3xl text-gold">Pack 3 tools</h1>
 
+      <section className="space-y-3 rounded-xl border border-gold-border p-4">
+        <h2 className="text-lg text-gold">
+          Business settings (config/links + policy)
+        </h2>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {(
+            [
+              ["whatsappDisplay", "WhatsApp display"],
+              ["whatsappDigits", "WhatsApp digits"],
+              ["callDisplay", "Call display"],
+              ["callDigits", "Call digits"],
+              ["email", "Email"],
+              ["siteUrl", "Site URL"],
+            ] as const
+          ).map(([k, label]) => (
+            <label key={k} className="text-xs text-cream-soft">
+              {label}
+              <input
+                value={links[k]}
+                onChange={(e) =>
+                  setLinks((prev) => ({ ...prev, [k]: e.target.value }))
+                }
+                className="mt-1 w-full rounded border border-gold-border bg-black/40 px-2 py-1 text-sm text-cream"
+              />
+            </label>
+          ))}
+          {(
+            [
+              ["validityDays", "Validity days"],
+              ["graceDays", "Grace days"],
+              ["referralRewardDays", "Referral reward days"],
+              ["referralMaxMonthsPerYear", "Max referral months / year"],
+            ] as const
+          ).map(([k, label]) => (
+            <label key={k} className="text-xs text-cream-soft">
+              {label}
+              <input
+                type="number"
+                value={policy[k]}
+                onChange={(e) =>
+                  setPolicy((prev) => ({
+                    ...prev,
+                    [k]: Number(e.target.value) || 0,
+                  }))
+                }
+                className="mt-1 w-full rounded border border-gold-border bg-black/40 px-2 py-1 text-sm text-cream"
+              />
+            </label>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => void loadSiteConfig()}
+            className="rounded-lg border border-gold-border px-3 py-2 text-sm"
+          >
+            Reload
+          </button>
+          <button
+            type="button"
+            onClick={() => void saveSiteConfig()}
+            className="rounded-lg border border-gold px-3 py-2 text-sm text-gold"
+          >
+            Save settings
+          </button>
+        </div>
+      </section>
+
       <section className="rounded-xl border border-gold-border p-4">
         <h2 className="text-lg text-gold">Vehicle batch (F50)</h2>
         <p className="text-sm text-cream-soft">
@@ -132,7 +252,7 @@ export default function AdminPack3Page() {
           onClick={() => void loadReferrals()}
           className="rounded-lg border border-gold px-3 py-2 text-sm text-gold"
         >
-          Load counts
+          Load counts + rewards
         </button>
         <div className="mt-2 flex gap-2">
           <input
@@ -158,12 +278,12 @@ export default function AdminPack3Page() {
           onClick={() => void loadFeedback()}
           className="rounded-lg border border-gold px-3 py-2 text-sm text-gold"
         >
-          Load average + list
+          Load feedback
         </button>
       </section>
 
-      <pre className="overflow-auto rounded-xl border border-gold-border bg-black/50 p-3 text-xs">
-        {log || "Output…"}
+      <pre className="overflow-auto rounded-xl border border-gold-border bg-black/50 p-3 text-xs text-cream-soft">
+        {log || "—"}
       </pre>
     </main>
   );

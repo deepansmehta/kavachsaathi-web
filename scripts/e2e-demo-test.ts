@@ -105,6 +105,13 @@ async function main() {
           { name: "Demo Contact", phone: "9876501234", relation: "Friend" },
         ],
         family_doctor: { name: "Dr Demo", phone: "9876512345" },
+        organDonor: "yes",
+        consents: {
+          dataAccurate: true,
+          privacyAccepted: true,
+          termsAccepted: true,
+        },
+        requireFullDocs: false,
       }),
     });
     const data = await readJson(res);
@@ -156,6 +163,12 @@ async function main() {
         emergency_contacts: [
           { name: "Demo Contact", phone: "9876501234" },
         ],
+        requireFullDocs: false,
+        consents: {
+          dataAccurate: true,
+          privacyAccepted: true,
+          termsAccepted: true,
+        },
       }),
     });
     const data = await readJson(res);

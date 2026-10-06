@@ -41,7 +41,7 @@ export function CardClient(props: Props) {
           title="Card reported lost"
           body={
             props.message ||
-            "This KavachSaathi card has been reported lost. If found, please contact +91 94161 06511."
+            "This KavachSaathi card has been reported lost. If found, please contact +91 94161 06511 or +91 72730 00075."
           }
         />
       ) : null}
