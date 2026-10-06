@@ -10,7 +10,10 @@ type Props = {
   compact?: boolean;
 };
 
-/** F23 — Need Blood (allowed on emergency view when flag ON) */
+/**
+ * F23 — Need Blood UI.
+ * Parent must gate on `needBlood` flag (EmergencyLite / EmergencyView / Full Details).
+ */
 export function NeedBloodButton({ healthId, bloodGroup, compact }: Props) {
   const [open, setOpen] = useState(false);
   const [hospital, setHospital] = useState("");
@@ -26,7 +29,10 @@ export function NeedBloodButton({ healthId, bloodGroup, compact }: Props) {
       const r = await fetch("/api/need-blood", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ health_id: healthId, hospital: hospital.trim() }),
+        body: JSON.stringify({
+          health_id: healthId,
+          hospital: hospital.trim(),
+        }),
       });
       const j = await r.json();
       if (!r.ok) {
@@ -35,7 +41,6 @@ export function NeedBloodButton({ healthId, bloodGroup, compact }: Props) {
       }
       if (j.whatsappUrl) window.open(j.whatsappUrl, "_blank");
       if (j.eRaktKoshUrl) {
-        // secondary tab for official blood bank portal
         window.open(j.eRaktKoshUrl, "_blank", "noopener,noreferrer");
       }
       toast.success("WhatsApp message ready");

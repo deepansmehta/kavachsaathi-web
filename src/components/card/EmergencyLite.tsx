@@ -9,6 +9,7 @@ import type { FeatureFlags } from "@/lib/features/flags";
 import { EmergencyActions } from "./EmergencyActions";
 import { EmergencyPhase1 } from "./EmergencyPhase1";
 import { EmergencyEaseControls } from "./EmergencyEaseControls";
+import { NeedBloodButton } from "./NeedBloodButton";
 import {
   LanguageSwitcher,
   useEmergencyLabels,
@@ -141,6 +142,14 @@ export function EmergencyLite({
       <div className="ks-blood" aria-label={label("bloodGroup")}>
         {profile.blood_group}
       </div>
+
+      {flags.needBlood === true && profile.health_id ? (
+        <NeedBloodButton
+          healthId={profile.health_id}
+          bloodGroup={profile.blood_group}
+          compact
+        />
+      ) : null}
 
       <section className="ks-card">
         <h2 className="ks-h">{label("allergies")}</h2>
