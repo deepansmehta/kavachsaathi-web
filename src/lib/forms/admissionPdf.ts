@@ -51,6 +51,19 @@ export async function buildAdmissionSheetPdf(
   );
   y -= 18;
 
+  if (fields.autoSummaryEn || fields.autoSummaryHi) {
+    const sum = [fields.autoSummaryEn, fields.autoSummaryHi]
+      .filter(Boolean)
+      .join("\n");
+    note(sum);
+    for (const l of wrapText(blank(sum), fonts.regular, 9, contentW, fonts)) {
+      if (y < MARGIN + FOOTER_H + 20) break;
+      drawMixedText(page, fonts, l, MARGIN, y, 9, ink);
+      y -= 12;
+    }
+    y -= 8;
+  }
+
   // Photo
   if (fields.photoBytes && fields.photoBytes.length > 100) {
     try {

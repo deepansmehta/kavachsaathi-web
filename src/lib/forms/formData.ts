@@ -47,6 +47,8 @@ export type AdmissionSheetFields = {
   memberId: string;
   schemeName: string;
   govtCardNumber: string;
+  autoSummaryEn?: string;
+  autoSummaryHi?: string;
 };
 
 function safeDecrypt(enc: unknown): string {

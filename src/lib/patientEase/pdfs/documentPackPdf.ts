@@ -20,6 +20,8 @@ export type DocPackCover = {
   aadhaarMasked?: string;
   sections: string[];
   vaultTitles?: string[];
+  autoSummaryEn?: string;
+  autoSummaryHi?: string;
 };
 
 export async function buildDocumentPackPdf(cover: DocPackCover): Promise<Uint8Array> {
@@ -37,6 +39,14 @@ export async function buildDocumentPackPdf(cover: DocPackCover): Promise<Uint8Ar
   };
   drawMixedText(page, fonts, "KavachSaathi Document Pack", MARGIN, y, 16, ink);
   y -= 24;
+  if (cover.autoSummaryEn) {
+    line(cover.autoSummaryEn, 10);
+    y -= 4;
+  }
+  if (cover.autoSummaryHi) {
+    line(cover.autoSummaryHi, 10);
+    y -= 6;
+  }
   line(`Name: ${blank(cover.name)}`);
   line(`Insurer: ${blank(cover.insurer)}`);
   line(`TPA: ${blank(cover.tpa)}`);

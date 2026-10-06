@@ -15,6 +15,10 @@ import {
   type CriticalFlags,
   type OrganDonorValue,
 } from "./profileFields";
+import {
+  buildAutoSummaryPair,
+  summaryFromPublicProfile,
+} from "./autoSummary";
 
 export type CardRecord = {
   docId: string;
@@ -113,6 +117,9 @@ export type PublicEmergencyProfile = {
   insurerName?: string | null;
   schemeName?: string | null;
   health_id?: string | null;
+  /** F56 — computed public-only auto summary (EN/HI) */
+  autoSummaryEn?: string | null;
+  autoSummaryHi?: string | null;
 };
 
 export async function loadEmergencyProfile(
@@ -214,7 +221,7 @@ function mapPublicProfile(
       }
     | undefined;
 
-  return {
+  const base = {
     name: String(data.full_name || data.name || "").trim() || "Not provided",
     blood_group: String(data.blood_group || data.bloodGroup || "").trim() || "—",
     allergies,
@@ -239,6 +246,12 @@ function mapPublicProfile(
     insurerName: insurance?.private?.insurerName || null,
     schemeName: insurance?.government?.schemeName || null,
     health_id: String(data.health_id || "").trim() || null,
+  };
+  const pair = buildAutoSummaryPair(summaryFromPublicProfile(base));
+  return {
+    ...base,
+    autoSummaryEn: pair.en || null,
+    autoSummaryHi: pair.hi || null,
   };
 }
 

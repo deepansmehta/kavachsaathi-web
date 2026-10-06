@@ -220,6 +220,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsDemo(false);
     setProfile(null);
     setSessionCookie(false);
+    try {
+      const { clearOfflineCardOnLogout } = await import("@/lib/pwa/offlineCard");
+      await clearOfflineCardOnLogout();
+    } catch {
+      /* */
+    }
     const { auth } = await import("@/lib/firebase");
     const { signOut: firebaseSignOut } = await import("firebase/auth");
     if (auth.currentUser) await firebaseSignOut(auth);

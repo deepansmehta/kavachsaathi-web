@@ -77,6 +77,25 @@ export function EmergencyLite({
       />
       <p className="ks-brand">KavachSaathi · {label("tagline")}</p>
       <div className="ks-banner">{label("emergencyMedical")}</div>
+      {flags.autoSummary === true &&
+      (profile.autoSummaryEn || profile.autoSummaryHi) ? (
+        <div
+          className="ks-card"
+          style={{ borderColor: "rgba(212,175,55,.45)", marginBottom: 14 }}
+          role="status"
+          aria-label="Clinical summary"
+        >
+          <p className="ks-h">Auto summary</p>
+          {profile.autoSummaryEn ? (
+            <p className="ks-body">{profile.autoSummaryEn}</p>
+          ) : null}
+          {profile.autoSummaryHi ? (
+            <p className="ks-body" style={{ marginTop: 6, opacity: 0.92 }}>
+              {profile.autoSummaryHi}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       {validityExpired ? (
         <p
           style={{

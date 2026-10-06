@@ -1,10 +1,10 @@
-# KavachSaathi — Complete feature inventory (54)
+# KavachSaathi — Complete feature inventory (58)
 
 Source of truth in code: `src/lib/features/inventory.ts`  
 Live flags: Firestore `config/features` via `/api/features`  
 Admin UI: [/admin/features](https://kavachsaathi.in/admin/features)
 
-**Counts:** Core 20 · Phase 1 3 · Phase 2/3 10 · Patient Ease 12 · Pack 3 9 = **54**
+**Counts:** Core 20 · Phase 1 3 · Phase 2/3 10 · Patient Ease 12 · Pack 3 9 · Pack 4 4 = **58**
 
 Production status below matches verification at last deploy (flags LIVE when ON in Firestore; always-on LIVE when HTTP surface responds as expected).
 
@@ -99,12 +99,29 @@ Production status below matches verification at last deploy (flags LIVE when ON 
 
 ---
 
+## F) Pack 4 flags (4) — F55–F58
+
+| ID | Name | What it does | Where | Flag | Status | Test |
+|----|------|--------------|-------|------|--------|------|
+| F55 | PWA + offline emergency card | Installable app; SW caches shell+/offline only (never `/card/*` or `/api/*`); owner PIN-encrypted offline card. | manifest; `/offline`; `/my-profile` | `pwaApp` | PENDING | `scripts/test-pack4.ts` |
+| F56 | Doctor auto summary | Rule-based EN+HI clinical summary (~300 chars) on emergency view + doctor/admission/doc-pack PDFs. | EmergencyLite; PDFs | `autoSummary` | PENDING | `scripts/test-pack4.ts` |
+| F57 | FHIR R4 export | PIN-gated FHIR R4 Bundle (ABDM-oriented); no Aadhaar; 5/day; logged `fhir_export`. | `/api/profile/fhir-export` | `fhirExport` | PENDING | `scripts/test-pack4.ts` |
+| F58 | Hospital Scan & Register | Verified staff registration after patient PIN or 6-digit consent; 15-min access; logged. | `/hospital`; `/api/hospital/scan-register` | `scanRegister` | PENDING | `scripts/test-pack4.ts` |
+
+---
+
 ## Totals
 
 | Bucket | Count |
 |--------|------:|
 | Core always-on | 20 |
-| Flagged (Phase 1 + 2/3 + Patient Ease + Pack 3) | 34 |
-| **All features** | **54** |
+| Flagged (Phase 1 + 2/3 + Patient Ease + Pack 3 + Pack 4) | 38 |
+| **All features** | **58** |
+
+### Pack 4 flag rollback
+
+```bash
+npx --yes tsx scripts/enable-features.ts --pack4 --off
+```
 
 Toggle flagged features in `/admin` (Feature flags) or `/admin/features` (inventory view).

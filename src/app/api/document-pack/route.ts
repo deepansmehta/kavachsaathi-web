@@ -12,6 +12,9 @@ import {
   maskAadhaar,
 } from "@/lib/patientEase/documentPack";
 import { buildDocumentPackPdf } from "@/lib/patientEase/pdfs/documentPackPdf";
+import { loadFeatureFlags } from "@/lib/features/server";
+import { isFeatureOn } from "@/lib/features/flags";
+import { buildAutoSummaryPair } from "@/lib/autoSummary";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -59,6 +62,23 @@ export async function POST(req: NextRequest) {
       })
       .slice(0, 3) || [];
 
+  const flags = await loadFeatureFlags();
+  const contacts = Array.isArray(p.emergency_contacts) ? p.emergency_contacts : [];
+  const summaryPair = isFeatureOn(flags, "autoSummary")
+    ? buildAutoSummaryPair({
+        dateOfBirth: p.dateOfBirth as string,
+        gender: p.gender as string,
+        bloodGroup: String(p.blood_group || ""),
+        criticalFlags: (p.criticalAlerts?.tags ||
+          p.criticalFlags?.tags ||
+          []) as string[],
+        conditions: (p.chronic_conditions || []) as string[],
+        medications: (p.medications || []) as string[],
+        allergies: (p.allergies || []) as string[],
+        emergencyContact: contacts[0] || null,
+      })
+    : { en: "", hi: "" };
+
   const bytes = await buildDocumentPackPdf({
     name: String(p.full_name || ""),
     insurer: String(priv.insurerName || ""),
@@ -68,6 +88,8 @@ export async function POST(req: NextRequest) {
     aadhaarMasked: maskAadhaar(aadhaar?.number),
     sections: wanted,
     vaultTitles: wanted.includes("vault") ? vaultTitles : [],
+    autoSummaryEn: summaryPair.en || undefined,
+    autoSummaryHi: summaryPair.hi || undefined,
   });
 
   await db.collection("document_pack_logs").add({

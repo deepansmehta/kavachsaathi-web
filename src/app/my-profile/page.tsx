@@ -291,6 +291,12 @@ export default function MyProfilePage() {
   };
 
   const logout = async () => {
+    try {
+      const { clearOfflineCardOnLogout } = await import("@/lib/pwa/offlineCard");
+      await clearOfflineCardOnLogout();
+    } catch {
+      /* */
+    }
     await fetch("/api/profile/me", { method: "DELETE" });
     setProfile(null);
     setScans([]);
@@ -717,6 +723,8 @@ export default function MyProfilePage() {
                 name={profile.full_name}
                 bloodGroup={profile.blood_group}
                 allergies={profile.allergies || []}
+                conditions={profile.chronic_conditions || []}
+                medicines={profile.medications || []}
                 criticalTags={Object.entries(profile.criticalAlerts || {})
                   .filter(([, v]) => v)
                   .map(([k]) => k)}

@@ -123,3 +123,7 @@ npx ts-node --skipProject --compiler-options '{"module":"commonjs","esModuleInte
 - PIN stored as bcrypt `pin_hash`
 - Activation uses Firestore `runTransaction`
 - Rate limits + CAPTCHA on card activate & profile login
+
+## FHIR / ABDM note (F57)
+
+`POST /api/profile/fhir-export` produces an ABDM-oriented FHIR R4 Bundle for personal/hospital use. **Real ABDM HIP/HIU integration needs NHA registration** (future step) — this export is not a live HIP submission.

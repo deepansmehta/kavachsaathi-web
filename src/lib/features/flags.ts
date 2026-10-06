@@ -44,6 +44,11 @@ export const FEATURE_KEYS = [
   "feedback",
   "elderlyMode",
   "offlineEmergency",
+  // Pack 4 — PWA / Auto Summary / FHIR / Scan & Register (F55–F58)
+  "pwaApp",
+  "autoSummary",
+  "fhirExport",
+  "scanRegister",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_KEYS)[number];
@@ -86,6 +91,10 @@ export const DEFAULT_FEATURES: FeatureFlags = {
   feedback: false,
   elderlyMode: false,
   offlineEmergency: false,
+  pwaApp: false,
+  autoSummary: false,
+  fhirExport: false,
+  scanRegister: false,
 };
 
 const ENV_MAP: Record<FeatureKey, string> = {
@@ -123,6 +132,10 @@ const ENV_MAP: Record<FeatureKey, string> = {
   feedback: "FEATURE_FEEDBACK",
   elderlyMode: "FEATURE_ELDERLY_MODE",
   offlineEmergency: "FEATURE_OFFLINE_EMERGENCY",
+  pwaApp: "FEATURE_PWA_APP",
+  autoSummary: "FEATURE_AUTO_SUMMARY",
+  fhirExport: "FEATURE_FHIR_EXPORT",
+  scanRegister: "FEATURE_SCAN_REGISTER",
 };
 
 function envBool(name: string): boolean | null {
@@ -195,4 +208,8 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   feedback: "Post-activation feedback (Pack 3)",
   elderlyMode: "Elderly / large text mode (Pack 3)",
   offlineEmergency: "Emergency wallpaper (Pack 3)",
+  pwaApp: "Install as app + offline emergency card (Pack 4 F55)",
+  autoSummary: "Doctor auto summary EN+HI (Pack 4 F56)",
+  fhirExport: "FHIR R4 / ABDM-ready export (Pack 4 F57)",
+  scanRegister: "Hospital Scan & Register (Pack 4 F58)",
 };

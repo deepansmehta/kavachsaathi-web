@@ -8,6 +8,7 @@ import {
 import { buildDoctorSummaryPdf } from "@/lib/patientEase/pdfs/doctorSummaryPdf";
 import { loadFeatureFlags } from "@/lib/features/server";
 import { isFeatureOn } from "@/lib/features/flags";
+import { buildAutoSummaryPair } from "@/lib/autoSummary";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -17,6 +18,21 @@ async function loadSummary(profileId: string) {
   const snap = await db.collection("profiles").doc(profileId).get();
   const p = snap.data() || {};
   const flags = await loadFeatureFlags();
+  const contacts = Array.isArray(p.emergency_contacts) ? p.emergency_contacts : [];
+  const summaryPair = isFeatureOn(flags, "autoSummary")
+    ? buildAutoSummaryPair({
+        dateOfBirth: p.dateOfBirth as string,
+        gender: p.gender as string,
+        bloodGroup: String(p.blood_group || ""),
+        criticalFlags: (p.criticalAlerts?.tags ||
+          p.criticalFlags?.tags ||
+          []) as string[],
+        conditions: (p.chronic_conditions || []) as string[],
+        medications: (p.medications || []) as string[],
+        allergies: (p.allergies || []) as string[],
+        emergencyContact: contacts[0] || null,
+      })
+    : { en: "", hi: "" };
   return {
     name: String(p.full_name || ""),
     bloodGroup: String(p.blood_group || ""),
@@ -46,6 +62,8 @@ async function loadSummary(profileId: string) {
       phone: p.familyDoctorPhone,
     },
     includeJanAushadhi: isFeatureOn(flags, "janAushadhi"),
+    autoSummaryEn: summaryPair.en || undefined,
+    autoSummaryHi: summaryPair.hi || undefined,
   };
 }
 

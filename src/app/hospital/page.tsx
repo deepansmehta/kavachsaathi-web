@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import { Shield, LogOut } from "lucide-react";
 import { GoldButton, GoldInput, ECGBackground } from "@/components/ui";
 import { auth, initPersistentAuth } from "@/lib/firebase";
+import { ScanRegisterPanel } from "@/components/hospital/ScanRegisterPanel";
 
 type HospitalInfo = {
   id: string;
@@ -35,10 +36,14 @@ export default function HospitalPortalPage() {
 
   // Check feature flag first
   const [featureOn, setFeatureOn] = useState<boolean | null>(null);
+  const [scanRegisterOn, setScanRegisterOn] = useState(false);
   useEffect(() => {
     fetch("/api/features")
       .then((r) => r.json())
-      .then((d) => setFeatureOn(Boolean(d.flags?.hospitalPortal)))
+      .then((d) => {
+        setFeatureOn(Boolean(d.flags?.hospitalPortal));
+        setScanRegisterOn(Boolean(d.flags?.scanRegister));
+      })
       .catch(() => setFeatureOn(false));
   }, []);
 
@@ -158,6 +163,7 @@ export default function HospitalPortalPage() {
             <h1 className="text-xl text-white">{hospital.name}</h1>
             <p className="text-sm text-[var(--text-soft)]">
               {hospital.type} · {hospital.city}
+              {hospital.verified ? " · Verified" : " · Unverified"}
             </p>
             <p className="text-xs text-[var(--gold)]">{loggedInEmail}</p>
           </div>
@@ -169,6 +175,14 @@ export default function HospitalPortalPage() {
             <LogOut className="h-4 w-4" /> Out
           </button>
         </div>
+
+        {hospital.verified ? (
+          <ScanRegisterPanel featureOn={scanRegisterOn} />
+        ) : (
+          <p className="rounded-xl border border-red-500/40 p-3 text-sm text-red-300">
+            Hospital account is not verified — Scan &amp; Register is unavailable.
+          </p>
+        )}
 
         <div className="rounded-2xl border border-[var(--gold-border)] bg-[var(--kavach-s1)] p-4">
           <h2 className="mb-3 text-sm uppercase tracking-wider text-[var(--gold)]">

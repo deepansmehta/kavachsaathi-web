@@ -1,5 +1,5 @@
 /**
- * Complete KavachSaathi feature inventory (54 features).
+ * Complete KavachSaathi feature inventory (58 features).
  * Source of truth for docs/FEATURES.md and /admin/features.
  */
 
@@ -10,7 +10,8 @@ export type FeatureGroup =
   | "phase1"
   | "phase2_3"
   | "patientEase"
-  | "pack3";
+  | "pack3"
+  | "pack4";
 
 export type InventoryRow = {
   id: string;
@@ -32,6 +33,7 @@ export const FEATURE_GROUPS: {
   { id: "phase2_3", title: "C) Phase 2/3 flags", count: 10 },
   { id: "patientEase", title: "D) Patient Ease flags", count: 12 },
   { id: "pack3", title: "E) Pack 3 flags", count: 9 },
+  { id: "pack4", title: "F) Pack 4 flags", count: 4 },
 ];
 
 export const FEATURE_INVENTORY: InventoryRow[] = [
@@ -553,9 +555,50 @@ export const FEATURE_INVENTORY: InventoryRow[] = [
     flag: "offlineEmergency",
     test: "scripts/test-pack3.ts",
   },
+  // ── F) Pack 4 (F55–F58) ────────────────────────────────────────────────
+  {
+    id: "F55",
+    group: "pack4",
+    name: "PWA + offline emergency card",
+    summary:
+      "Installable app; SW caches shell+/offline only (never /card/* or /api/*); owner PIN-encrypted offline card in IndexedDB.",
+    where: "manifest; /offline; /my-profile OfflineCard",
+    flag: "pwaApp",
+    test: "scripts/test-pack4.ts",
+  },
+  {
+    id: "F56",
+    group: "pack4",
+    name: "Doctor auto summary",
+    summary:
+      "Rule-based EN+HI clinical summary (~300 chars) at top of emergency view and doctor/admission/doc-pack PDFs.",
+    where: "EmergencyLite; doctor-summary / admission / document-pack PDFs",
+    flag: "autoSummary",
+    test: "scripts/test-pack4.ts",
+  },
+  {
+    id: "F57",
+    group: "pack4",
+    name: "FHIR R4 export",
+    summary:
+      "PIN-gated FHIR R4 Bundle (ABDM-oriented); no Aadhaar; 5/day; logged fhir_export.",
+    where: "/my-profile; Full Details; /api/profile/fhir-export",
+    flag: "fhirExport",
+    test: "scripts/test-pack4.ts",
+  },
+  {
+    id: "F58",
+    group: "pack4",
+    name: "Hospital Scan & Register",
+    summary:
+      "Verified hospital staff registration panel after patient PIN or 6-digit consent code; 15-min access; logged.",
+    where: "/hospital ScanRegister; /api/hospital/scan-register",
+    flag: "scanRegister",
+    test: "scripts/test-pack4.ts",
+  },
 ];
 
-export const TOTAL_FEATURES = FEATURE_INVENTORY.length; // 54
+export const TOTAL_FEATURES = FEATURE_INVENTORY.length; // 58
 
 export function inventoryByGroup(group: FeatureGroup): InventoryRow[] {
   return FEATURE_INVENTORY.filter((r) => r.group === group);

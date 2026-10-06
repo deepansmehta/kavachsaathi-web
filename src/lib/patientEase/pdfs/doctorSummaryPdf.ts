@@ -27,6 +27,8 @@ export type DoctorSummaryData = {
   vaccinations?: VaccinationEntry[];
   familyDoctor?: { name?: string; phone?: string } | null;
   includeJanAushadhi?: boolean;
+  autoSummaryEn?: string;
+  autoSummaryHi?: string;
 };
 
 export async function buildDoctorSummaryPdf(
@@ -49,6 +51,14 @@ export async function buildDoctorSummaryPdf(
   };
   drawMixedText(page, fonts, "Doctor Summary / चिकित्सक सारांश", MARGIN, y, 14, ink);
   y -= 22;
+  if (data.autoSummaryEn) {
+    p(data.autoSummaryEn);
+    y -= 4;
+  }
+  if (data.autoSummaryHi) {
+    p(data.autoSummaryHi);
+    y -= 6;
+  }
   p(`Name: ${blank(data.name)}`);
   p(`Blood group: ${blank(data.bloodGroup)}`);
   p(`Allergies: ${(data.allergies || []).map(blank).filter(Boolean).join(", ") || "—"}`);

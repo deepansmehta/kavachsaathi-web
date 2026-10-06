@@ -52,6 +52,13 @@ const PACK3: FeatureKey[] = [
   "offlineEmergency",
 ];
 
+const PACK4: FeatureKey[] = [
+  "pwaApp",
+  "autoSummary",
+  "fhirExport",
+  "scanRegister",
+];
+
 async function main() {
   const args = process.argv.slice(2);
   const off = args.includes("--off");
@@ -64,6 +71,9 @@ async function main() {
   }
   if (args.includes("--pack3")) {
     keys = [...keys, ...PACK3];
+  }
+  if (args.includes("--pack4")) {
+    keys = [...keys, ...PACK4];
   }
   const ki = args.indexOf("--keys");
   if (ki >= 0) {
@@ -83,7 +93,7 @@ async function main() {
   keys = keys.filter((k) => !skip.has(k));
   if (!keys.length) {
     console.error(
-      "Usage: --phase2 | --pack2 | --pack3 | --keys a,b [--skip x] [--off]"
+      "Usage: --phase2 | --pack2 | --pack3 | --pack4 | --keys a,b [--skip x] [--off]"
     );
     process.exit(1);
   }

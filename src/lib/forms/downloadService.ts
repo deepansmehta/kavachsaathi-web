@@ -217,6 +217,35 @@ export async function handleAdmissionDownload(req: NextRequest) {
   const limited = session.scope === "emergency";
   const photoBytes = await loadPhotoBytes(found.data);
   const fields = extractAdmissionFields(found.data, { limited, photoBytes });
+  try {
+    const { loadFeatureFlags } = await import("@/lib/features/server");
+    const { isFeatureOn } = await import("@/lib/features/flags");
+    const { buildAutoSummaryPair } = await import("@/lib/autoSummary");
+    const flags = await loadFeatureFlags();
+    if (isFeatureOn(flags, "autoSummary")) {
+      const d = found.data as Record<string, unknown>;
+      const contacts = Array.isArray(d.emergency_contacts)
+        ? (d.emergency_contacts as { name?: string; phone?: string; relation?: string }[])
+        : [];
+      const pair = buildAutoSummaryPair({
+        publicOnly: limited,
+        dateOfBirth: limited ? null : (d.dateOfBirth as string) || (d.dob as string),
+        gender: limited ? null : (d.gender as string),
+        bloodGroup: String(d.blood_group || ""),
+        criticalFlags: ((d.criticalAlerts as { tags?: string[] })?.tags ||
+          (d.criticalFlags as { tags?: string[] })?.tags ||
+          []) as string[],
+        conditions: (d.chronic_conditions as string[]) || [],
+        medications: (d.medications as string[]) || [],
+        allergies: (d.allergies as string[]) || [],
+        emergencyContact: contacts[0] || null,
+      });
+      fields.autoSummaryEn = pair.en || undefined;
+      fields.autoSummaryHi = pair.hi || undefined;
+    }
+  } catch {
+    /* optional */
+  }
   const { bytes } = await buildAdmissionSheetPdf(fields, { limited });
 
   // Pull last emergency hospital fields if present on recent log (best-effort)

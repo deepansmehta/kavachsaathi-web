@@ -28,6 +28,7 @@ type Hospital = {
   city: string;
   verified: boolean;
   staffEmails: string[];
+  scanRegisterCount?: number;
 };
 
 type FormState = {
@@ -220,6 +221,7 @@ export default function AdminHospitalsPage() {
                 <th className="px-3 py-3">Type</th>
                 <th className="px-3 py-3">City</th>
                 <th className="px-3 py-3">Staff</th>
+                <th className="px-3 py-3">Scan&amp;Reg</th>
                 <th className="px-3 py-3">Actions</th>
               </tr>
             </thead>
@@ -231,6 +233,9 @@ export default function AdminHospitalsPage() {
                   <td className="px-3 py-2 text-[var(--text-soft)]">{h.city}</td>
                   <td className="px-3 py-2 text-xs text-[var(--text-soft)]">
                     {(h.staffEmails || []).join(", ") || "—"}
+                  </td>
+                  <td className="px-3 py-2 text-[var(--text-soft)]">
+                    {h.scanRegisterCount ?? 0}
                   </td>
                   <td className="px-3 py-2">
                     <button type="button" onClick={() => void deleteHospital(h.id)} className="text-red-400">

@@ -99,6 +99,8 @@ function isPreLaunchApiAllowed(pathname: string): boolean {
     pathname === "/api/profile/renewal-request" ||
     pathname === "/api/profile/lost-card" ||
     pathname === "/api/profile/data-export" ||
+    pathname === "/api/profile/fhir-export" ||
+    pathname === "/api/profile/hospital-consent" ||
     pathname === "/api/feedback" ||
     pathname.startsWith("/api/feedback/") ||
     pathname === "/api/referral" ||
@@ -169,6 +171,10 @@ export function middleware(request: NextRequest) {
       return NextResponse.next();
     }
     if (pathname.startsWith("/pass/")) {
+      return NextResponse.next();
+    }
+    // PWA offline shell (F55) — must work without launch / preview
+    if (pathname === "/offline" || pathname.startsWith("/offline/")) {
       return NextResponse.next();
     }
 

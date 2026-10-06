@@ -5,6 +5,8 @@ import toast from "react-hot-toast";
 import { ValidityBar } from "@/components/profile/ValidityBar";
 import { EmergencyWallpaper } from "@/components/profile/EmergencyWallpaper";
 import { ElderlyToggle } from "@/components/ElderlyMode";
+import { OfflineCardControls } from "@/components/pwa/OfflineCardControls";
+import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 
 type Flags = Record<string, boolean>;
 
@@ -14,8 +16,10 @@ type Props = {
   name: string;
   bloodGroup: string;
   allergies: string[];
+  conditions?: string[];
+  medicines?: string[];
   criticalTags: string[];
-  contacts: { name: string; phone: string }[];
+  contacts: { name: string; phone: string; relation?: string }[];
   validFrom?: string | null;
   validTill?: string | null;
   cardStatus?: string;
@@ -29,6 +33,8 @@ export function Pack3ProfileTools({
   name,
   bloodGroup,
   allergies,
+  conditions = [],
+  medicines = [],
   criticalTags,
   contacts,
   validFrom,
@@ -38,6 +44,8 @@ export function Pack3ProfileTools({
 }: Props) {
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
+  const [consentCode, setConsentCode] = useState<string | null>(null);
+  const [consentExp, setConsentExp] = useState<string | null>(null);
   const [referral, setReferral] = useState<{
     code: string;
     link: string;
@@ -219,17 +227,77 @@ export function Pack3ProfileTools({
     }
   };
 
+  const exportFhir = async () => {
+    if (!pin || pin.length < 4) {
+      toast.error("Re-enter your PIN");
+      return;
+    }
+    setBusy(true);
+    try {
+      const r = await fetch("/api/profile/fhir-export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        toast.error(j.error || "FHIR export failed");
+        return;
+      }
+      const blob = new Blob([JSON.stringify(j.bundle, null, 2)], {
+        type: "application/fhir+json",
+      });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = j.filename || "kavachsaathi-fhir.json";
+      a.click();
+      toast.success(
+        j.validation?.valid
+          ? "FHIR bundle downloaded (validated)"
+          : "FHIR downloaded — check validation result"
+      );
+      setPin("");
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const shareHospital = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/profile/hospital-consent", { method: "POST" });
+      const j = await r.json();
+      if (!r.ok) {
+        toast.error(j.error || "Could not create code");
+        return;
+      }
+      setConsentCode(j.code);
+      setConsentExp(j.expiresAt);
+      toast.success("Share this code with hospital staff (10 min, once)");
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const any =
     flags.cardValidity ||
     flags.lostCard ||
     flags.dataExport ||
     flags.referral ||
     flags.elderlyMode ||
-    flags.offlineEmergency;
+    flags.offlineEmergency ||
+    flags.pwaApp ||
+    flags.fhirExport ||
+    flags.scanRegister;
   if (!any) return null;
 
   return (
     <div className="no-print space-y-4">
+      <PwaInstallPrompt featureOn={!!flags.pwaApp} />
       <ValidityBar
         enabled={!!flags.cardValidity}
         validFrom={validFrom}
@@ -248,7 +316,7 @@ export function Pack3ProfileTools({
         </div>
       )}
 
-      {(flags.lostCard || flags.dataExport) && (
+      {(flags.lostCard || flags.dataExport || flags.fhirExport) && (
         <div className="space-y-3 rounded-xl border border-[var(--gold-border)] p-4">
           <p className="font-rajdhani text-sm font-bold uppercase tracking-wider text-[var(--gold)]">
             Security actions
@@ -312,6 +380,45 @@ export function Pack3ProfileTools({
               Download my data (DPDP)
             </button>
           )}
+          {flags.fhirExport && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void exportFhir()}
+              className="w-full rounded-lg border border-[var(--gold)] px-3 py-2 text-sm text-[var(--gold)]"
+            >
+              Download health record (FHIR)
+            </button>
+          )}
+        </div>
+      )}
+
+      {flags.scanRegister && (
+        <div className="space-y-2 rounded-xl border border-[var(--gold-border)] p-4">
+          <p className="font-rajdhani text-sm font-bold uppercase tracking-wider text-[var(--gold)]">
+            Share with hospital
+          </p>
+          <p className="text-xs text-[var(--text-soft)]">
+            One-time 6-digit consent code for hospital Scan &amp; Register (10 min).
+          </p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void shareHospital()}
+            className="w-full rounded-lg border border-[var(--gold)] px-3 py-2 text-sm text-[var(--gold)]"
+          >
+            Share with hospital
+          </button>
+          {consentCode ? (
+            <p className="rounded-lg bg-black/40 p-3 text-center font-mono text-2xl tracking-[0.3em] text-[var(--gold)]">
+              {consentCode}
+              {consentExp ? (
+                <span className="mt-1 block font-sans text-xs tracking-normal text-[var(--text-soft)]">
+                  Expires {new Date(consentExp).toLocaleTimeString("en-IN")}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
         </div>
       )}
 
@@ -342,6 +449,19 @@ export function Pack3ProfileTools({
           </a>
         </div>
       )}
+
+      <OfflineCardControls
+        featureOn={!!flags.pwaApp}
+        healthId={healthId}
+        name={name}
+        bloodGroup={bloodGroup}
+        allergies={allergies}
+        conditions={conditions}
+        medicines={medicines}
+        criticalFlags={criticalTags}
+        contacts={contacts}
+        pin={pin}
+      />
 
       <EmergencyWallpaper
         featureOn={!!flags.offlineEmergency}
