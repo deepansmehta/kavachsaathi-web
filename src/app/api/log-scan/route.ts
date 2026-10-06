@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false }, { status: 400 });
     }
 
-    if (!isFirebaseConfigured || !process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    if (!isFirebaseConfigured || !(process.env.FIREBASE_ADMIN_PRIVATE_KEY || process.env.FIREBASE_SERVICE_ACCOUNT_KEY)) {
       return NextResponse.json({ ok: true, demo: true });
     }
 
