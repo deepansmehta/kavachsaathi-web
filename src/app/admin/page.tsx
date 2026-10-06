@@ -488,6 +488,9 @@ export default function AdminPage() {
           <Link href="/admin/analytics" className="text-[var(--gold)] underline">
             Analytics
           </Link>
+          <Link href="/admin/features" className="text-[var(--gold)] underline">
+            Feature inventory (54)
+          </Link>
           <Link href="/admin/validity" className="text-[var(--gold)] underline">
             Expiring cards
           </Link>
