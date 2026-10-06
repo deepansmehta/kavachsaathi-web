@@ -159,6 +159,10 @@ export async function handleCashlessDownload(req: NextRequest) {
       { status: 404, headers: noStoreHeaders() }
     );
   }
+  {
+    const locked = await rejectIfOwnerPastGrace(found.card);
+    if (locked) return locked;
+  }
 
   const fields = extractCashlessFields(found.data);
   const { bytes } = await buildCashlessFormPdf(fields);
@@ -204,6 +208,10 @@ export async function handleAdmissionDownload(req: NextRequest) {
       { error: "Not found" },
       { status: 404, headers: noStoreHeaders() }
     );
+  }
+  {
+    const locked = await rejectIfOwnerPastGrace(found.card);
+    if (locked) return locked;
   }
 
   const limited = session.scope === "emergency";

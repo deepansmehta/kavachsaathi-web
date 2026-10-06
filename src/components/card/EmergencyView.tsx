@@ -36,11 +36,6 @@ export function EmergencyView({
     setLang(loadLang());
   }, []);
 
-  const setLanguage = (l: Lang) => {
-    setLang(l);
-    saveLang(l);
-  };
-
   const postScan = useCallback(
     async (opts: { locationShared?: boolean; emergencyMode?: boolean }) => {
       try {
@@ -412,34 +407,6 @@ export function EmergencyView({
   );
 }
 
-function LangBtn({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        padding: "6px 12px",
-        borderRadius: 8,
-        border: `1px solid ${active ? GOLD : GOLD + "44"}`,
-        background: active ? "rgba(212,175,55,0.2)" : "transparent",
-        color: active ? GOLD_LIGHT : MUTED,
-        fontWeight: 700,
-        fontSize: 13,
-        cursor: "pointer",
-      }}
-    >
-      {children}
-    </button>
-  );
-}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

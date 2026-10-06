@@ -110,6 +110,9 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  const locked = await assertOwnerNotPastGrace(profileId);
+  if (locked) return locked;
+
   const snap = await db
     .collection("profiles")
     .doc(profileId)

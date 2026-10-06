@@ -6,8 +6,7 @@ import { requireAdminUser, writeAdminLog } from "@/lib/adminAuth";
 import { cookies } from "next/headers";
 import {
   PROFILE_SESSION_COOKIE,
-  verifyProfileSessionToken,
-} from "@/lib/profileSession";
+  } from "@/lib/profileSession";
 import { findCardByHealthId } from "@/lib/cardsRepo";
 import { verifyPin } from "@/lib/pin";
 import { normalizeHealthId, isValidHealthId } from "@/lib/healthId";
