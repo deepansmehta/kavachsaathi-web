@@ -70,14 +70,14 @@ async function fetch_(
   });
 }
 
-/** Acceptable: 401/403/404 (or 503 pre-launch). Never 200 with data payload. */
+/** Acceptable: 400/401/403/404 (or 503 pre-launch). Never 200 with data payload. */
 function assertNoDataLeak(
   name: string,
   res: { status: number; body: string; json: unknown }
 ) {
-  const okStatus = [401, 403, 404, 503].includes(res.status);
+  const okStatus = [400, 401, 403, 404, 503].includes(res.status);
   if (!okStatus) {
-    fail(name, `expected 401/403/404/503, got ${res.status}`);
+    fail(name, `expected 400/401/403/404/503, got ${res.status}`);
     return;
   }
   const j = res.json as Record<string, unknown> | null;

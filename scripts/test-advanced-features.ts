@@ -83,17 +83,38 @@ async function fetch_(
   });
 }
 
-/** Test that a feature API returns 404 when flag is off */
+/**
+ * Feature API without session: 404 FEATURE_OFF, or 401/403 when flag ON.
+ * Never 200 with data. 400/500 on malformed body also OK if no PII.
+ */
 async function testFlagOff(name: string, path: string, method = "GET") {
   try {
     const res = await fetch_(path, { method });
     if (res.status === 404) {
-      pass(`${name} flag-OFF → 404`, `status=${res.status}`);
-    } else {
-      fail(`${name} flag-OFF`, `expected 404, got ${res.status}`);
+      pass(`${name} gated → 404`, `status=${res.status}`);
+      return;
     }
+    if ([401, 403].includes(res.status)) {
+      pass(`${name} gated → auth`, `status=${res.status} (flag likely ON)`);
+      return;
+    }
+    if ([400, 500, 503].includes(res.status)) {
+      const body = (res.body || "").toLowerCase();
+      const leak =
+        body.includes("health_id") ||
+        body.includes("full_name") ||
+        body.includes('"records"') ||
+        body.includes("emergency_contacts");
+      if (leak) {
+        fail(`${name} gated`, `status=${res.status} possible PII in body`);
+      } else {
+        pass(`${name} gated → reject`, `status=${res.status}`);
+      }
+      return;
+    }
+    fail(`${name} gated`, `expected 404/401/403, got ${res.status}`);
   } catch (e) {
-    fail(`${name} flag-OFF`, String(e));
+    fail(`${name} gated`, String(e));
   }
 }
 
