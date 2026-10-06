@@ -15,6 +15,7 @@ import { COMMON_TPAS } from "@/lib/documentTypes";
 import type { BloodGroup } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Pack3ProfileTools } from "@/components/profile/Pack3ProfileTools";
+import { Pack2ProfileTools } from "@/components/profile/Pack2ProfileTools";
 import {
   CRITICAL_ALERT_OPTIONS,
   profileCompleteness,
@@ -703,6 +704,12 @@ export default function MyProfilePage() {
                   Renewal due soon — valid till {profile.validTill}
                 </p>
               )}
+
+              <Pack2ProfileTools
+                flags={featureFlags}
+                healthId={profile.health_id}
+                name={profile.full_name}
+              />
 
               <Pack3ProfileTools
                 flags={featureFlags}

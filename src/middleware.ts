@@ -104,7 +104,29 @@ function isPreLaunchApiAllowed(pathname: string): boolean {
     pathname === "/api/referral" ||
     pathname.startsWith("/api/referral/") ||
     pathname === "/api/vehicle" ||
-    pathname.startsWith("/api/vehicle/")
+    pathname.startsWith("/api/vehicle/") ||
+    // Pack 2 — Patient Ease (handlers still 404 when flags OFF)
+    pathname === "/api/coverage" ||
+    pathname.startsWith("/api/coverage/") ||
+    pathname === "/api/discharge-checklist" ||
+    pathname.startsWith("/api/discharge-checklist/") ||
+    pathname === "/api/document-pack" ||
+    pathname.startsWith("/api/document-pack/") ||
+    pathname === "/api/bill-letter" ||
+    pathname.startsWith("/api/bill-letter/") ||
+    pathname === "/api/claim-deadline" ||
+    pathname.startsWith("/api/claim-deadline/") ||
+    pathname === "/api/attendant-pass" ||
+    pathname.startsWith("/api/attendant-pass/") ||
+    pathname.startsWith("/api/pass/") ||
+    pathname === "/api/doctor-summary" ||
+    pathname.startsWith("/api/doctor-summary/") ||
+    pathname === "/api/follow-up" ||
+    pathname.startsWith("/api/follow-up/") ||
+    pathname === "/api/need-blood" ||
+    pathname.startsWith("/api/need-blood/") ||
+    pathname === "/api/disclosure-vault" ||
+    pathname.startsWith("/api/disclosure-vault/")
   );
 }
 
@@ -140,6 +162,14 @@ export function middleware(request: NextRequest) {
       const requestHeaders = new Headers(request.headers);
       requestHeaders.set("x-kavach-lite", "1");
       return NextResponse.next({ request: { headers: requestHeaders } });
+    }
+
+    // Public Pack 2 pages (scheme guide + attendant pass link)
+    if (pathname === "/schemes" || pathname.startsWith("/schemes/")) {
+      return NextResponse.next();
+    }
+    if (pathname.startsWith("/pass/")) {
+      return NextResponse.next();
     }
 
     if (isPreLaunchApiAllowed(pathname)) {

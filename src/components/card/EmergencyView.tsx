@@ -6,6 +6,7 @@ import { loadLang, saveLang, t, type Lang } from "@/lib/i18n-emergency";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { telLink, whatsappLink } from "@/lib/profileFields";
 import { FullDetailsModal } from "./FullDetailsModal";
+import { NeedBloodButton } from "./NeedBloodButton";
 
 const GOLD = "#D4AF37";
 const GOLD_LIGHT = "#FCE49A";
@@ -31,9 +32,17 @@ export function EmergencyView({
   const [locShared, setLocShared] = useState(false);
   const [emergencySent, setEmergencySent] = useState(false);
   const [fullDetailsOpen, setFullDetailsOpen] = useState(false);
+  const [needBloodOn, setNeedBloodOn] = useState(false);
 
   useEffect(() => {
     setLang(loadLang());
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/features")
+      .then((r) => r.json())
+      .then((d) => setNeedBloodOn(!!d.flags?.needBlood))
+      .catch(() => setNeedBloodOn(false));
   }, []);
 
   const postScan = useCallback(
@@ -280,6 +289,14 @@ export function EmergencyView({
           {profile.blood_group}
         </p>
       </section>
+
+      {needBloodOn && profile.health_id && (
+        <NeedBloodButton
+          healthId={profile.health_id}
+          bloodGroup={profile.blood_group}
+          compact
+        />
+      )}
 
       {hasCritical && (
         <Section title={t("criticalAlerts", lang)}>

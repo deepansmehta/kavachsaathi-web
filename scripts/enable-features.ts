@@ -25,6 +25,21 @@ const PHASE2_3: FeatureKey[] = [
   "donorDirective",
 ];
 
+const PACK2: FeatureKey[] = [
+  "coverageSnapshot",
+  "dischargeChecklist",
+  "documentPack",
+  "billRequestLetter",
+  "claimDeadline",
+  "attendantPass",
+  "doctorSummary",
+  "followUpPlanner",
+  "schemeGuide",
+  "needBlood",
+  "janAushadhi",
+  "disclosureVault",
+];
+
 const PACK3: FeatureKey[] = [
   "cardValidity",
   "lostCard",
@@ -43,6 +58,9 @@ async function main() {
   let keys: FeatureKey[] = [];
   if (args.includes("--phase2") || args.includes("--phase2-3")) {
     keys = [...PHASE2_3];
+  }
+  if (args.includes("--pack2")) {
+    keys = [...keys, ...PACK2];
   }
   if (args.includes("--pack3")) {
     keys = [...keys, ...PACK3];
@@ -65,7 +83,7 @@ async function main() {
   keys = keys.filter((k) => !skip.has(k));
   if (!keys.length) {
     console.error(
-      "Usage: --phase2 | --pack3 | --keys a,b [--skip x] [--off]"
+      "Usage: --phase2 | --pack2 | --pack3 | --keys a,b [--skip x] [--off]"
     );
     process.exit(1);
   }
