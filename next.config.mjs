@@ -116,6 +116,10 @@ const withPWA = withPWAInit({
 
 const nextConfig = {
   reactStrictMode: true,
+  // Expose to Edge middleware at build time (Netlify production env only).
+  env: {
+    PRELAUNCH_PREVIEW_SECRET: process.env.PRELAUNCH_PREVIEW_SECRET || "",
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [],

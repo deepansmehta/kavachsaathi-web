@@ -44,11 +44,11 @@ function isProductionRuntime(): boolean {
 }
 
 /**
- * Production-only preview secret from env.
- * Empty / unset / non-production → null (no bypass possible).
+ * Preview secret from env PRELAUNCH_PREVIEW_SECRET (set on Netlify production only).
+ * Empty / unset / too short → null (no bypass). No hardcoded fallback.
+ * Netlify deploy-preview/branch contexts do not have this var → no bypass there.
  */
 export function getPrelaunchPreviewSecret(): string | null {
-  if (!isProductionRuntime()) return null;
   const s = String(process.env.PRELAUNCH_PREVIEW_SECRET || "").trim();
   if (s.length < 16) return null;
   return s;

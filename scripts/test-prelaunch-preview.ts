@@ -112,11 +112,10 @@ async function main() {
     pass("5 after launch → no effect");
   } else fail("5 after launch → no effect", "still active");
 
-  // 6) Non-production → secret ignored (production-only)
+  // 6) Unset secret in any env → no bypass (Netlify DP has no var)
   resetEnv({
     NODE_ENV: "development",
     ACTIVATION_OPENS_AT: OPENS,
-    PRELAUNCH_PREVIEW_SECRET: SECRET,
   });
   L = load();
   if (
@@ -126,8 +125,8 @@ async function main() {
       now: new Date(BEFORE),
     })
   ) {
-    pass("6 non-prod → no bypass");
-  } else fail("6 non-prod → no bypass", "allowed");
+    pass("6 unset secret → no bypass");
+  } else fail("6 unset secret → no bypass", "allowed");
 
   // 7) Cookie max-age is 2 hours
   resetEnv({ NODE_ENV: "production", PRELAUNCH_PREVIEW_SECRET: SECRET });
