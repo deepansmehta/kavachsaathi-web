@@ -601,19 +601,19 @@ async function main() {
     await page.waitForTimeout(800);
     // Prefer stable testid (accessible name can flake on em-dash); not a UI bug —
     // modal was on PIN/view tab or name match failed after prior unlock.
-    // Ensure choose tab is visible (PIN session cookie must not skip chooser).
-    await page
-      .locator('[data-testid="ks-hospital-emergency"]')
-      .or(
-        page.getByRole("button", {
-          name: /Patient is unconscious|Hospital emergency access/i,
-        })
-      )
-      .first()
-      .click({ timeout: 20000, force: true });
-    await page.waitForTimeout(600);
+    // Choose tab → hospital emergency (UI label is correct; prior flake = tab/overlay).
+    const back = page.getByRole("button", { name: /^Back$/i });
+    if ((await back.count()) > 0) await back.first().click().catch(() => {});
+    await page.waitForTimeout(400);
+    const emgChoice = page.locator('[data-testid="ks-hospital-emergency"]');
+    await emgChoice.waitFor({ state: "visible", timeout: 20000 });
+    await emgChoice.click();
+    await page.getByPlaceholder("Hospital name").waitFor({
+      state: "visible",
+      timeout: 15000,
+    });
     await shot(page, "12a-emergency-form");
-    await page.getByPlaceholder(/Hospital name/i).fill("Test Hospital");
+    await page.getByPlaceholder("Hospital name").fill("Test Hospital");
     await page.getByPlaceholder(/Staff name/i).fill("Test Staff");
     await page.getByPlaceholder(/^Role$/i).fill("Doctor");
     await page.getByPlaceholder(/Mobile/i).fill("9999900003");
