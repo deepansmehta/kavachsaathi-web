@@ -228,7 +228,7 @@ async function main() {
     await loginInput.first().fill(E2E2099);
     const pinInput = page.locator('input[type="password"]').first();
     await pinInput.fill("111111");
-    await page.getByRole("button", { name: /Login|Sign in|Continue/i }).first().click();
+    await page.getByRole("button", { name: /^Log in$/i }).click();
     await page.waitForTimeout(1000);
     await shot(page, "11-wrong-pin");
     const wrongHtml = await page.content();
@@ -237,7 +237,7 @@ async function main() {
       : fail("11 wrong PIN");
 
     await pinInput.fill(PIN);
-    await page.getByRole("button", { name: /Login|Sign in|Continue/i }).first().click();
+    await page.getByRole("button", { name: /^Log in$/i }).click();
     await page.waitForTimeout(2500);
     await shot(page, "11-profile");
     const prof = await page.content();
