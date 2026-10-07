@@ -108,6 +108,7 @@ export async function GET(req: NextRequest) {
           health_id: detailId,
           status: normalizeCardStatus(card.status),
           isDemo: card.isDemo === true,
+          isRehearsal: card.isRehearsal === true,
           linkedProfileId: card.linkedProfileId || null,
           activatedAt: card.activated_at?.toDate?.()?.toISOString?.() || null,
           validTill: card.validTill || null,
@@ -137,6 +138,7 @@ export async function GET(req: NextRequest) {
         tier: data.tier || "STANDARD",
         validTill: data.validTill ? String(data.validTill) : null,
         isDemo: data.isDemo === true,
+        isRehearsal: data.isRehearsal === true,
         serial: data.serial ? String(data.serial) : null,
         batch: typeof data.batch === "number" ? data.batch : null,
       };
@@ -165,8 +167,19 @@ export async function GET(req: NextRequest) {
       cards = cards.filter((c) => c.status === statusFilter);
     }
 
-    const inventory = cards.filter((c) => !c.isDemo);
+    const inventory = cards.filter(
+      (c) =>
+        !c.isDemo &&
+        !c.isRehearsal &&
+        !String(c.health_id || "").toUpperCase().startsWith("KVS-2099-") &&
+        !String(c.health_id || "").toUpperCase().startsWith("KVS-DEMO-")
+    );
     const demos = cards.filter((c) => c.isDemo);
+    const rehearsalCount = cards.filter(
+      (c) =>
+        c.isRehearsal === true ||
+        String(c.health_id || "").toUpperCase().startsWith("KVS-2099-")
+    ).length;
     const batchCounts: Record<string, number> = {};
     for (const c of inventory) {
       const key = c.batch != null ? String(c.batch) : "unset";
@@ -176,6 +189,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       count: inventory.length,
       demoCount: demos.length,
+      rehearsalCount,
       inventoryActivated: inventory.filter((c) => c.status === "activated")
         .length,
       batchCounts,

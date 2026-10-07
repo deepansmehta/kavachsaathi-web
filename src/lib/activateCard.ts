@@ -456,11 +456,18 @@ export async function activateCardAtomic(
     return { ok: false, status: 500, error: message };
   }
 
-  trackAgg({
-    type: "activation",
-    batch: card.tier || null,
-    city: city || null,
-  });
+  // Exclude demo / disposable / rehearsal from sold-inventory analytics
+  if (
+    !/^KVS-DEMO-/i.test(health_id) &&
+    !/^KVS-2099-/i.test(health_id) &&
+    card.isDemo !== true
+  ) {
+    trackAgg({
+      type: "activation",
+      batch: card.tier || null,
+      city: city || null,
+    });
+  }
 
   return { ok: true, profileId: profileRef.id, health_id };
 }

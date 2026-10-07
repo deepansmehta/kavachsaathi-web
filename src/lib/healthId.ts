@@ -18,6 +18,16 @@ export function isDemoHealthId(raw: string): boolean {
   return /^KVS-DEMO-[A-Z0-9]{5}$/i.test(normalizeHealthId(raw));
 }
 
+/** Disposable / rehearsal kits (KVS-2099-*) — not sold inventory. */
+export function isDisposableHealthId(raw: string): boolean {
+  return /^KVS-2099-[A-Z0-9]{5}$/i.test(normalizeHealthId(raw));
+}
+
+/** Real sold inventory only (KVS-2026-*). */
+export function isRealInventoryHealthId(raw: string): boolean {
+  return /^KVS-2026-[A-Z0-9]{5}$/i.test(normalizeHealthId(raw));
+}
+
 export function isCardActivatedStatus(status: unknown, activated?: unknown): boolean {
   if (activated === true) return true;
   const s = String(status || "").toLowerCase();

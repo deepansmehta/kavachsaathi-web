@@ -35,6 +35,7 @@ export type CardRecord = {
   lastScanLoggedAt?: unknown;
   lastScanDocId?: string | null;
   isDemo?: boolean;
+  isRehearsal?: boolean;
 };
 
 function mapCard(
@@ -57,6 +58,7 @@ function mapCard(
     lastScanLoggedAt: data.lastScanLoggedAt ?? null,
     lastScanDocId: data.lastScanDocId ? String(data.lastScanDocId) : null,
     isDemo: data.isDemo === true,
+    isRehearsal: data.isRehearsal === true,
   };
 }
 
