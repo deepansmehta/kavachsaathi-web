@@ -512,8 +512,9 @@ export const FEATURE_INVENTORY: InventoryRow[] = [
     id: "F50",
     group: "pack3",
     name: "Vehicle QR sticker",
-    summary: "Vehicle sticker cards link 1–3 profiles (batch dry-run in admin).",
-    where: "/admin/pack3; /api/vehicle",
+    summary:
+      "Vehicle sticker — on order only. Owners request via /my-profile; admin prints QR art after confirmation.",
+    where: "/my-profile; /admin/sticker-orders; /api/profile/sticker-orders",
     flag: "vehicleSticker",
     test: "scripts/test-pack3.ts",
   },

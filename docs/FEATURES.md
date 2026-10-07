@@ -91,7 +91,7 @@ Production status below matches verification at last deploy (flags LIVE when ON 
 | F47 | Lost card / replace | Report lost (blocks scans) and request replacement. | `/my-profile` Pack3 | `lostCard` | LIVE | `scripts/test-pack3.ts` |
 | F48 | Download my data | Owner data export from My Profile. | `/my-profile` | `dataExport` | LIVE | `scripts/test-pack3.ts` |
 | F49 | Admin analytics | Aggregate analytics without storing personal data. | `/admin/analytics` | `adminAnalytics` | LIVE | `scripts/test-pack3.ts` |
-| F50 | Vehicle QR sticker | Vehicle sticker cards link 1–3 profiles. | `/admin/pack3`; `/api/vehicle` | `vehicleSticker` | LIVE | `scripts/test-pack3.ts` |
+| F50 | Vehicle QR sticker | Vehicle sticker — on order only (owner form; admin print after confirm). | `/my-profile`; `/admin/sticker-orders` | `vehicleSticker` | LIVE | `scripts/test-sticker-orders.ts` |
 | F51 | Referral program | Referral codes; +30 days to referrer (max 12 months/year). | `/my-profile`; activation step 7 | `referral` | LIVE | `scripts/test-referral-reward.ts` |
 | F52 | Post-activation feedback | Optional feedback after activation / Full Details. | FeedbackModal | `feedback` | LIVE | `scripts/test-pack3.ts` |
 | F53 | Elderly / large text mode | Larger type + optional read-aloud when supported. | `/card` EmergencyEaseControls | `elderlyMode` | LIVE | `scripts/test-pack3.ts` |
@@ -103,10 +103,10 @@ Production status below matches verification at last deploy (flags LIVE when ON 
 
 | ID | Name | What it does | Where | Flag | Status | Test |
 |----|------|--------------|-------|------|--------|------|
-| F55 | PWA + offline emergency card | Installable app; SW caches shell+/offline only (never `/card/*` or `/api/*`); owner PIN-encrypted offline card. | manifest; `/offline`; `/my-profile` | `pwaApp` | PENDING | `scripts/test-pack4.ts` |
-| F56 | Doctor auto summary | Rule-based EN+HI clinical summary (~300 chars) on emergency view + doctor/admission/doc-pack PDFs. | EmergencyLite; PDFs | `autoSummary` | PENDING | `scripts/test-pack4.ts` |
-| F57 | FHIR R4 export | PIN-gated FHIR R4 Bundle (ABDM-oriented); no Aadhaar; 5/day; logged `fhir_export`. | `/api/profile/fhir-export` | `fhirExport` | PENDING | `scripts/test-pack4.ts` |
-| F58 | Hospital Scan & Register | Verified staff registration after patient PIN or 6-digit consent; 15-min access; logged. | `/hospital`; `/api/hospital/scan-register` | `scanRegister` | PENDING | `scripts/test-pack4.ts` |
+| F55 | PWA + offline emergency card | Installable app; SW caches shell+/offline only (never `/card/*` or `/api/*`); owner PIN-encrypted offline card. | manifest; `/offline`; `/my-profile` | `pwaApp` | LIVE | `scripts/test-pack4.ts` |
+| F56 | Doctor auto summary | Rule-based EN+HI clinical summary (~300 chars) on emergency view + doctor/admission/doc-pack PDFs. | EmergencyLite; PDFs | `autoSummary` | LIVE | `scripts/test-pack4.ts` |
+| F57 | FHIR R4 export | PIN-gated FHIR R4 Bundle (ABDM-oriented); no Aadhaar; 5/day; logged `fhir_export`. | `/api/profile/fhir-export` | `fhirExport` | LIVE | `scripts/test-pack4.ts` |
+| F58 | Hospital Scan & Register | Verified staff registration after patient PIN or 6-digit consent; 15-min access; logged. | `/hospital`; `/api/hospital/scan-register` | `scanRegister` | LIVE | `scripts/test-pack4.ts` |
 
 ---
 

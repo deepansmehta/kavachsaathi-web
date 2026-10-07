@@ -79,7 +79,14 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "link") {
-    // Vehicle owner links 1–3 profiles with each PIN
+    const admin = await requireAdminUser(req);
+    if (admin instanceof NextResponse) {
+      return NextResponse.json(
+        { error: "Forbidden", code: "ADMIN_ONLY" },
+        { status: 403, headers: NO_STORE_HEADERS }
+      );
+    }
+    // Admin links vehicle sticker card to 1–3 profiles (PIN per rider)
     const token = cookies().get(PROFILE_SESSION_COOKIE)?.value;
     // Also allow activation-session style: body.vehicleHealthId + links
     const vehicleId = normalizeHealthId(String(body.vehicleHealthId || ""));

@@ -7,6 +7,7 @@ import { EmergencyWallpaper } from "@/components/profile/EmergencyWallpaper";
 import { ElderlyToggle } from "@/components/ElderlyMode";
 import { OfflineCardControls } from "@/components/pwa/OfflineCardControls";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
+import { CarStickerOrder } from "@/components/profile/CarStickerOrder";
 
 type Flags = Record<string, boolean>;
 
@@ -23,6 +24,8 @@ type Props = {
   validFrom?: string | null;
   validTill?: string | null;
   cardStatus?: string;
+  defaultAddress?: string;
+  defaultPhone?: string;
   onProfileRefresh?: () => void;
 };
 
@@ -40,6 +43,8 @@ export function Pack3ProfileTools({
   validFrom,
   validTill,
   cardStatus,
+  defaultAddress = "",
+  defaultPhone = "",
   onProfileRefresh,
 }: Props) {
   const [pin, setPin] = useState("");
@@ -292,7 +297,8 @@ export function Pack3ProfileTools({
     flags.offlineEmergency ||
     flags.pwaApp ||
     flags.fhirExport ||
-    flags.scanRegister;
+    flags.scanRegister ||
+    flags.vehicleSticker;
   if (!any) return null;
 
   return (
@@ -473,6 +479,14 @@ export function Pack3ProfileTools({
           contacts,
         }}
       />
+
+      {flags.vehicleSticker ? (
+        <CarStickerOrder
+          healthId={healthId}
+          defaultPhone={defaultPhone}
+          defaultAddress={defaultAddress}
+        />
+      ) : null}
     </div>
   );
 }

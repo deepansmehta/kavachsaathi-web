@@ -36,6 +36,7 @@ const PUBLIC_ROUTES = [
   "/my-profile",
   "/privacy",
   "/terms",
+  "/schemes", // F22 scheme guide — always open (public health info)
 ];
 
 const CARD_PATTERN = /^\/card\//;
@@ -101,6 +102,8 @@ function isPreLaunchApiAllowed(pathname: string): boolean {
     pathname === "/api/profile/data-export" ||
     pathname === "/api/profile/fhir-export" ||
     pathname === "/api/profile/hospital-consent" ||
+    pathname === "/api/profile/sticker-orders" ||
+    pathname.startsWith("/api/profile/sticker-orders/") ||
     pathname === "/api/feedback" ||
     pathname.startsWith("/api/feedback/") ||
     pathname === "/api/referral" ||
@@ -164,6 +167,11 @@ export function middleware(request: NextRequest) {
       const requestHeaders = new Headers(request.headers);
       requestHeaders.set("x-kavach-lite", "1");
       return NextResponse.next({ request: { headers: requestHeaders } });
+    }
+
+    // /schemes and /pass/ — always open (public health info + attendant pass)
+    if (pathname === "/schemes" || pathname.startsWith("/pass/")) {
+      return NextResponse.next();
     }
 
     // Public Pack 2 pages (scheme guide + attendant pass link)
