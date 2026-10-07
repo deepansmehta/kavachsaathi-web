@@ -109,6 +109,7 @@ export async function GET(req: NextRequest) {
           status: normalizeCardStatus(card.status),
           isDemo: card.isDemo === true,
           isRehearsal: card.isRehearsal === true,
+          isTest: card.isTest === true,
           linkedProfileId: card.linkedProfileId || null,
           activatedAt: card.activated_at?.toDate?.()?.toISOString?.() || null,
           validTill: card.validTill || null,
@@ -139,6 +140,7 @@ export async function GET(req: NextRequest) {
         validTill: data.validTill ? String(data.validTill) : null,
         isDemo: data.isDemo === true,
         isRehearsal: data.isRehearsal === true,
+        isTest: data.isTest === true,
         serial: data.serial ? String(data.serial) : null,
         batch: typeof data.batch === "number" ? data.batch : null,
       };
@@ -171,6 +173,7 @@ export async function GET(req: NextRequest) {
       (c) =>
         !c.isDemo &&
         !c.isRehearsal &&
+        !c.isTest &&
         !String(c.health_id || "").toUpperCase().startsWith("KVS-2099-") &&
         !String(c.health_id || "").toUpperCase().startsWith("KVS-DEMO-")
     );
@@ -178,6 +181,7 @@ export async function GET(req: NextRequest) {
     const rehearsalCount = cards.filter(
       (c) =>
         c.isRehearsal === true ||
+        c.isTest === true ||
         String(c.health_id || "").toUpperCase().startsWith("KVS-2099-")
     ).length;
     const batchCounts: Record<string, number> = {};

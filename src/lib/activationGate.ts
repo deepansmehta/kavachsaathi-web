@@ -88,7 +88,7 @@ export function isActivationExemptHealthId(raw: string): boolean {
   const id = normalizeHealthId(raw);
   if (isForcedRealForTest(id)) return false;
   if (isDemoHealthId(id)) return true;
-  if (/^KVS-2099-[A-Z0-9]{5}$/i.test(id)) return true;
+  if (/^KVS-2099-[A-Z0-9]{5,6}$/i.test(id)) return true;
   return false;
 }
 

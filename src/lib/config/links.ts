@@ -8,21 +8,29 @@ export const SITE_URL =
   process.env.NEXT_PUBLIC_BASE_URL ||
   "https://kavachsaathi.in";
 
-/** Digits only, with country code (WhatsApp / wa.me). */
+/** Digits only, with country code (WhatsApp / wa.me) — primary business WhatsApp. */
 export const COMPANY_WHATSAPP = String(
-  process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "919416106511"
+  process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "917273000075"
 ).replace(/\D/g, "");
 
 /** Primary display for WhatsApp / text contact */
 export const HELPLINE_WHATSAPP_DISPLAY =
-  process.env.NEXT_PUBLIC_WHATSAPP_DISPLAY || "+91 94161 06511";
+  process.env.NEXT_PUBLIC_WHATSAPP_DISPLAY || "+91 72730 00075";
 
-/** Call helpline (voice) */
+/** Call helpline (voice) — primary */
 export const HELPLINE_CALL_DISPLAY =
   process.env.NEXT_PUBLIC_HELPLINE_CALL || "+91 72730 00075";
 
 export const HELPLINE_CALL_TEL = `tel:+${String(
   process.env.NEXT_PUBLIC_HELPLINE_CALL_DIGITS || "917273000075"
+).replace(/\D/g, "")}`;
+
+/** Second call / support number */
+export const HELPLINE_CALL2_DISPLAY =
+  process.env.NEXT_PUBLIC_HELPLINE_CALL2 || "+91 73001 00102";
+
+export const HELPLINE_CALL2_TEL = `tel:+${String(
+  process.env.NEXT_PUBLIC_HELPLINE_CALL2_DIGITS || "917300100102"
 ).replace(/\D/g, "")}`;
 
 export const HELPLINE_WHATSAPP_TEL = `tel:+${COMPANY_WHATSAPP}`;
@@ -34,18 +42,18 @@ export const HELP_LINE_DISPLAY = HELPLINE_WHATSAPP_DISPLAY;
 export const HELPLINE_EMAIL =
   process.env.NEXT_PUBLIC_HELPLINE_EMAIL || "gdmtechnoworld@gmail.com";
 
-/** Both numbers shown on renewal / lost-card contact sections */
+/** Contact numbers shown on site / renewal / lost-card sections */
 export const CONTACT_PHONES: { label: string; display: string; tel: string }[] =
   [
     {
-      label: "WhatsApp / SMS",
-      display: HELPLINE_WHATSAPP_DISPLAY,
-      tel: HELPLINE_WHATSAPP_TEL,
+      label: "Call / WhatsApp",
+      display: HELPLINE_CALL_DISPLAY,
+      tel: HELPLINE_CALL_TEL,
     },
     {
       label: "Call",
-      display: HELPLINE_CALL_DISPLAY,
-      tel: HELPLINE_CALL_TEL,
+      display: HELPLINE_CALL2_DISPLAY,
+      tel: HELPLINE_CALL2_TEL,
     },
   ];
 

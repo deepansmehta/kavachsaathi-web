@@ -4,7 +4,7 @@ KavachSaathi supports optional NFC tags embedded in or attached to physical card
 
 ## How It Works
 
-1. Each card has a URL: `https://kavachsaathi.com/card/<HEALTH_ID>`
+1. Each card has a URL: `https://kavachsaathi.in/card/<HEALTH_ID>`
 2. This URL is written as an **NDEF URI record** to the NFC chip.
 3. When tapped, Android/iOS launches a browser automatically.
 
@@ -25,7 +25,7 @@ KavachSaathi supports optional NFC tags embedded in or attached to physical card
 
 1. Install **NFC Tools** (by wakdev) — free on Play Store.
 2. Open app → **Write** → **Add a record** → **URL / URI**.
-3. Paste the card URL (e.g. `https://kavachsaathi.com/card/KVS-2026-12345`).
+3. Paste the card URL (e.g. `https://kavachsaathi.in/card/KVS-2026-12345`).
 4. Tap **Write** and touch the NFC tag.
 
 ### iOS (NFC Tools)
@@ -42,10 +42,10 @@ KavachSaathi supports optional NFC tags embedded in or attached to physical card
 ## URL Format
 
 ```
-https://kavachsaathi.com/card/<HEALTH_ID>
+https://kavachsaathi.in/card/<HEALTH_ID>
 ```
 
-Example: `https://kavachsaathi.com/card/KVS-2026-12345`
+Example: `https://kavachsaathi.in/card/KVS-2026-12345`
 
 The URL length is ≈ 50–55 characters, well within NTAG213 capacity.
 

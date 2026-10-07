@@ -75,17 +75,15 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-gold" />
-                <a href="tel:+919416106511" className="hover:text-gold">
-                  +91 94161 06511
-                </a>
-                <span className="text-xs opacity-70">(WhatsApp)</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-gold" />
                 <a href="tel:+917273000075" className="hover:text-gold">
                   +91 72730 00075
                 </a>
-                <span className="text-xs opacity-70">(Call)</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-gold" />
+                <a href="tel:+917300100102" className="hover:text-gold">
+                  +91 73001 00102
+                </a>
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />

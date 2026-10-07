@@ -1,8 +1,11 @@
 /** KavachSaathi health_id formats:
  *  - Production: KVS-YYYY-XXXXX (4-digit year + 5 alphanumeric)
  *  - Demo only:  KVS-DEMO-XXXXX (literal DEMO + 5 alphanumeric)
+ *  - Disposable/test (2099): 5–6 alphanumeric suffix (e.g. REH01, AUTO01)
  */
 export const HEALTH_ID_RE = /^KVS-(?:\d{4}|DEMO)-[A-Z0-9]{5}$/i;
+/** KVS-2099 test/rehearsal kits — 5 or 6 char suffix (AUTO01 etc.). */
+export const DISPOSABLE_HEALTH_ID_RE = /^KVS-2099-[A-Z0-9]{5,6}$/i;
 
 export function normalizeHealthId(raw: string): string {
   return String(raw || "")
@@ -11,16 +14,17 @@ export function normalizeHealthId(raw: string): string {
 }
 
 export function isValidHealthId(raw: string): boolean {
-  return HEALTH_ID_RE.test(normalizeHealthId(raw));
+  const id = normalizeHealthId(raw);
+  return HEALTH_ID_RE.test(id) || DISPOSABLE_HEALTH_ID_RE.test(id);
 }
 
 export function isDemoHealthId(raw: string): boolean {
   return /^KVS-DEMO-[A-Z0-9]{5}$/i.test(normalizeHealthId(raw));
 }
 
-/** Disposable / rehearsal kits (KVS-2099-*) — not sold inventory. */
+/** Disposable / rehearsal / auto-test kits (KVS-2099-*) — not sold inventory. */
 export function isDisposableHealthId(raw: string): boolean {
-  return /^KVS-2099-[A-Z0-9]{5}$/i.test(normalizeHealthId(raw));
+  return DISPOSABLE_HEALTH_ID_RE.test(normalizeHealthId(raw));
 }
 
 /** Real sold inventory only (KVS-2026-*). */

@@ -119,12 +119,12 @@ export function ValidityBar({
       </div>
       <p className="text-xs text-cream-soft">
         Contact:{" "}
-        <a href="tel:+919416106511" className="text-gold underline">
-          +91 94161 06511
-        </a>
-        {" · "}
         <a href="tel:+917273000075" className="text-gold underline">
           +91 72730 00075
+        </a>
+        {" · "}
+        <a href="tel:+917300100102" className="text-gold underline">
+          +91 73001 00102
         </a>
       </p>
     </div>

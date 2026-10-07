@@ -36,6 +36,7 @@ export type CardRecord = {
   lastScanDocId?: string | null;
   isDemo?: boolean;
   isRehearsal?: boolean;
+  isTest?: boolean;
 };
 
 function mapCard(
@@ -59,6 +60,7 @@ function mapCard(
     lastScanDocId: data.lastScanDocId ? String(data.lastScanDocId) : null,
     isDemo: data.isDemo === true,
     isRehearsal: data.isRehearsal === true,
+    isTest: data.isTest === true,
   };
 }
 
