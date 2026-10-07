@@ -14,7 +14,7 @@
  * ACTIVATION_TEST_AS_REAL is ignored in production.
  */
 import { isDemoHealthId, normalizeHealthId } from "./healthId";
-import { getSiteLaunchAt, getSiteLaunchNow } from "./launchConfig";
+import { getSiteLaunchAt } from "./launchConfig";
 
 export type ActivationDenyCode =
   | "ACTIVATION_NOT_OPEN"

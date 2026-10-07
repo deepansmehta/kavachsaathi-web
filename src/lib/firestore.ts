@@ -132,16 +132,12 @@ export async function getUserByActivationCode(
  * @deprecated Legacy client-side activation (status=active + user_uid).
  * Hard-disabled — use POST /api/card/activate (7-step wizard) only.
  */
-export async function activateAndSaveProfile(_params: {
-  uid: string;
-  activation_code: string;
-  tier: CardTier;
+export async function activateAndSaveProfile(_params?: unknown): Promise<{
+  success: boolean;
   health_id?: string;
-  profile: Omit<
-    UserProfile,
-    "uid" | "activation_code" | "health_id" | "created_at" | "updated_at"
-  >;
-}): Promise<{ success: boolean; health_id?: string; error?: string }> {
+  error?: string;
+}> {
+  void _params;
   return {
     success: false,
     error:
