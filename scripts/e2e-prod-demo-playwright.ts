@@ -601,16 +601,16 @@ async function main() {
     await page.waitForTimeout(800);
     // Prefer stable testid (accessible name can flake on em-dash); not a UI bug —
     // modal was on PIN/view tab or name match failed after prior unlock.
-    const emgBtn = page.locator('[data-testid="ks-hospital-emergency"]');
-    if ((await emgBtn.count()) === 0) {
-      await page
-        .getByRole("button", {
+    // Ensure choose tab is visible (PIN session cookie must not skip chooser).
+    await page
+      .locator('[data-testid="ks-hospital-emergency"]')
+      .or(
+        page.getByRole("button", {
           name: /Patient is unconscious|Hospital emergency access/i,
         })
-        .click({ timeout: 15000 });
-    } else {
-      await emgBtn.click({ timeout: 15000 });
-    }
+      )
+      .first()
+      .click({ timeout: 20000, force: true });
     await page.waitForTimeout(600);
     await shot(page, "12a-emergency-form");
     await page.getByPlaceholder(/Hospital name/i).fill("Test Hospital");

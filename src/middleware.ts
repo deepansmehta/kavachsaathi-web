@@ -76,6 +76,9 @@ function withPreviewCookie(res: NextResponse) {
 function isPreLaunchApiAllowed(pathname: string): boolean {
   return (
     pathname.startsWith("/api/card/") ||
+    // Legacy activate paths must reach handlers (return 410 Gone)
+    pathname === "/api/auth/activate" ||
+    pathname === "/api/activate-card" ||
     pathname.startsWith("/api/uploads/") ||
     pathname === "/api/full-details" ||
     pathname.startsWith("/api/forms/") ||
