@@ -3,7 +3,6 @@ import { requireFeature } from "@/lib/features/server";
 import { requireAdminUser } from "@/lib/adminAuth";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { findCardByHealthId } from "@/lib/cardsRepo";
-import { buildVehicleStickerPrintPng } from "@/lib/vehicleStickerPrint";
 import { normalizeHealthId, isValidHealthId } from "@/lib/healthId";
 import { noStoreHeaders } from "@/lib/forms/pdfCommon";
 import { FieldValue } from "firebase-admin/firestore";
@@ -16,6 +15,7 @@ export const runtime = "nodejs";
  * Prefer /api/admin/sticker-orders/{id}/print for order-based fulfilment.
  */
 export async function GET(req: NextRequest) {
+  try {
   const feature = await requireFeature("vehicleSticker");
   if (!feature) {
     return NextResponse.json(
@@ -47,6 +47,9 @@ export async function GET(req: NextRequest) {
     if (p.exists) bloodGroup = String(p.data()?.blood_group || "—");
   }
 
+  const { buildVehicleStickerPrintPng } = await import(
+    "@/lib/vehicleStickerPrint"
+  );
   const png = await buildVehicleStickerPrintPng({ healthId: hid, bloodGroup });
 
   await db.collection("accessLogs").add({
@@ -65,4 +68,10 @@ export async function GET(req: NextRequest) {
       "Content-Disposition": `attachment; filename="sticker-${hid}.png"`,
     },
   });
+  } catch {
+    return NextResponse.json(
+      { error: "Forbidden", code: "ADMIN_ONLY" },
+      { status: 403, headers: noStoreHeaders() }
+    );
+  }
 }
