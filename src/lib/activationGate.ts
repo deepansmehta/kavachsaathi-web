@@ -9,7 +9,9 @@
  * (see src/lib/launchConfig.ts isSiteLaunched).
  *
  * Demo (KVS-DEMO-*), disposable (KVS-2099-*), and isDemo:true cards are always exempt.
- * ACTIVATION_TEST_NOW / ACTIVATION_TEST_AS_REAL are ignored in production.
+ * Real kits (KVS-2026-*) always use wall-clock vs ACTIVATION_OPENS_AT —
+ * ACTIVATION_TEST_NOW never opens them (any environment).
+ * ACTIVATION_TEST_AS_REAL is ignored in production.
  */
 import { isDemoHealthId, normalizeHealthId } from "./healthId";
 import { getSiteLaunchAt, getSiteLaunchNow } from "./launchConfig";
@@ -57,11 +59,12 @@ function isProductionRuntime(): boolean {
 }
 
 /**
- * Mockable clock for tests. ACTIVATION_TEST_NOW is ignored in production.
- * Shared with site pre-launch via getSiteLaunchNow().
+ * Wall clock for real-kit schedule checks.
+ * ACTIVATION_TEST_NOW never opens KVS-2026-* (or any non-exempt) cards —
+ * including local dev. Demo / KVS-2099-* skip the schedule via exemption.
  */
 export function getActivationNow(): Date {
-  return getSiteLaunchNow();
+  return new Date();
 }
 
 export function isActivationScheduleOpen(now = getActivationNow()): boolean {

@@ -13,7 +13,8 @@
  *   SITE_PRELAUNCH_FORCE=open   → treat site as launched
  *   SITE_PRELAUNCH_FORCE=closed → keep pre-launch gate on
  *
- * Mock clock (ignored in production): ACTIVATION_TEST_NOW
+ * Mock clock ACTIVATION_TEST_NOW: site pre-launch middleware only (non-prod).
+ * It NEVER opens real-card activation — see activationGate.getActivationNow().
  * Preview unlock: ?preview=<LAUNCH_PREVIEW_SECRET> (QA only)
  */
 

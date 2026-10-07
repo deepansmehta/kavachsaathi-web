@@ -599,9 +599,18 @@ async function main() {
     await page.waitForTimeout(1500);
     await page.getByText(/Open Full Details/i).click();
     await page.waitForTimeout(800);
-    await page
-      .getByRole("button", { name: /unconscious/i })
-      .click();
+    // Prefer stable testid (accessible name can flake on em-dash); not a UI bug —
+    // modal was on PIN/view tab or name match failed after prior unlock.
+    const emgBtn = page.locator('[data-testid="ks-hospital-emergency"]');
+    if ((await emgBtn.count()) === 0) {
+      await page
+        .getByRole("button", {
+          name: /Patient is unconscious|Hospital emergency access/i,
+        })
+        .click({ timeout: 15000 });
+    } else {
+      await emgBtn.click({ timeout: 15000 });
+    }
     await page.waitForTimeout(600);
     await shot(page, "12a-emergency-form");
     await page.getByPlaceholder(/Hospital name/i).fill("Test Hospital");
@@ -815,27 +824,30 @@ async function main() {
     if (String(d.data().status) === "unactivated") un += 1;
   un === 500 ? pass("11 real 500 unactivated") : fail("11 real", `un=${un}`);
 
-  // Phase 2/3 APIs without session → 404 (flag OFF); features shows Phase1 ON
+  // Prod flags: expect snapshot (do NOT turn flags off). Unauthed APIs still 401/403.
   {
     const feat = await (await fetch(`${BASE}/api/features`)).json();
     const f = feat.flags || {};
-    const p1 =
-      f.alertFamily === true &&
-      f.criticalBadges === true &&
-      f.quickCall === true;
-    const p23off = [
-      "cashlessTimer",
-      "recordsVault",
-      "claimFormPrefill",
-      "familyPlan",
-      "hospitalPortal",
-      "orgDashboard",
-      "donorDirective",
-      "nfcInfo",
-    ].every((k) => f[k] === false);
-    p1 && p23off
-      ? pass("12 flags Phase1 ON / Phase2+3 OFF")
-      : fail("12 flags", JSON.stringify(f));
+    const snapPath = path.join(
+      process.cwd(),
+      "docs/ops/feature-flags-e2e-expected.json"
+    );
+    if (fs.existsSync(snapPath)) {
+      const expected = JSON.parse(fs.readFileSync(snapPath, "utf8")) as Record<
+        string,
+        boolean
+      >;
+      const keys = Object.keys(expected);
+      const mismatch = keys.filter((k) => f[k] !== expected[k]);
+      mismatch.length === 0
+        ? pass(`12 flags match snapshot (${keys.length})`)
+        : fail("12 flags", `mismatch=${mismatch.slice(0, 8).join(",")}`);
+    } else {
+      const on = Object.values(f).filter((v) => v === true).length;
+      on >= 30
+        ? pass(`12 flags ON count=${on} (no snapshot file)`)
+        : fail("12 flags", `on=${on}`);
+    }
 
     for (const [method, url] of [
       ["GET", "/api/cashless-timer"],

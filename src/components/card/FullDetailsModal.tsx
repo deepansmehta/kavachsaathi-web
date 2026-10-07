@@ -377,7 +377,13 @@ export function FullDetailsModal({
             <button type="button" onClick={() => setTab("pin")} style={btn}>
               Patient / family has the PIN
             </button>
-            <button type="button" onClick={() => setTab("emergency")} style={btnOutline}>
+            <button
+              type="button"
+              data-testid="ks-hospital-emergency"
+              aria-label="Patient is unconscious — Hospital emergency access"
+              onClick={() => setTab("emergency")}
+              style={btnOutline}
+            >
               Patient is unconscious — Hospital emergency access
             </button>
           </div>

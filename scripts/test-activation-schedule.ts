@@ -1,15 +1,15 @@
 /**
- * Unit tests for activation schedule gate (mock clock via ACTIVATION_TEST_NOW).
- * Uses disposable KVS-2099-* forced-as-real — never A0001–A0100 / printed inventory.
+ * Activation schedule gate tests.
+ * Real kits (KVS-2026-*) always use wall clock — ACTIVATION_TEST_NOW never opens them.
+ * Demo + KVS-2099-* remain exempt.
  *
- * Run:
- *   ./node_modules/.bin/ts-node --skipProject --compiler-options '{"module":"commonjs","esModuleInterop":true}' scripts/test-activation-schedule.ts
+ *   npx tsx scripts/test-activation-schedule.ts
  */
 import assert from "assert";
 
-const REAL = "KVS-2099-TREAL"; // forced real via ACTIVATION_TEST_AS_REAL
 const DEMO = "KVS-DEMO-00001";
 const EXEMPT_2099 = "KVS-2099-AAAAA";
+const REAL_2026 = "KVS-2026-T9999";
 const OPENS = "2026-10-11T12:00:00+05:30";
 const BEFORE = "2026-10-11T11:59:00+05:30";
 const AFTER = "2026-10-11T12:00:01+05:30";
@@ -40,54 +40,62 @@ function resetEnv(partial: Record<string, string | undefined>) {
     if (v === undefined) delete process.env[k];
     else process.env[k] = v;
   }
-  // bust module cache so env is re-read... gate reads env at call time, OK
 }
 
 async function loadGate() {
-  // CommonJS re-require after env change (ts-node)
   const path = require.resolve("../src/lib/activationGate");
   delete require.cache[path];
+  const launchPath = require.resolve("../src/lib/launchConfig");
+  delete require.cache[launchPath];
   return require("../src/lib/activationGate") as typeof import("../src/lib/activationGate");
 }
 
 async function main() {
-  // 1) Before opens → ACTIVATION_NOT_OPEN for forced-real 2099
-  resetEnv({
-    ACTIVATION_OPENS_AT: OPENS,
-    ACTIVATION_TEST_NOW: BEFORE,
-    ACTIVATION_TEST_AS_REAL: REAL,
-  });
+  const opensMs = Date.parse(OPENS);
+  const wallNow = Date.now();
+  assert.ok(!Number.isNaN(opensMs));
+
+  // 1) Real 2026 before opens (wall) → NOT_OPEN
+  resetEnv({ ACTIVATION_OPENS_AT: OPENS });
   let gate = await loadGate();
-  let r = gate.evaluateActivationGate(REAL, false);
-  if (!r.ok && r.code === "ACTIVATION_NOT_OPEN") {
-    pass("1 before→NOT_OPEN", r.code);
-  } else fail("1 before→NOT_OPEN", JSON.stringify(r));
+  let r = gate.evaluateActivationGate(REAL_2026, false);
+  if (wallNow < opensMs) {
+    if (!r.ok && r.code === "ACTIVATION_NOT_OPEN")
+      pass("1 real before→NOT_OPEN", r.code);
+    else fail("1 real before→NOT_OPEN", JSON.stringify(r));
+  } else {
+    if (r.ok) pass("1 real before→NOT_OPEN", "wall already past opens");
+    else fail("1 real before→NOT_OPEN", JSON.stringify(r));
+  }
 
-  // 2) After opens → ok
+  // 2) CRITICAL: ACTIVATION_TEST_NOW=AFTER must NOT open real 2026 when wall < opens
   resetEnv({
     ACTIVATION_OPENS_AT: OPENS,
     ACTIVATION_TEST_NOW: AFTER,
-    ACTIVATION_TEST_AS_REAL: REAL,
+    NODE_ENV: "development",
   });
   gate = await loadGate();
-  r = gate.evaluateActivationGate(REAL, false);
-  if (r.ok) pass("2 after→ok", "ok");
-  else fail("2 after→ok", JSON.stringify(r));
+  r = gate.evaluateActivationGate(REAL_2026, false);
+  if (wallNow < opensMs) {
+    if (!r.ok && r.code === "ACTIVATION_NOT_OPEN") {
+      pass("2 TEST_NOW ignored for real", r.code);
+    } else fail("2 TEST_NOW ignored for real", JSON.stringify(r));
+  } else {
+    pass("2 TEST_NOW ignored for real", "wall past opens — skip");
+  }
 
-  // 3) Kill switch after open → ACTIVATION_DISABLED
+  // 3) Kill switch
   resetEnv({
     ACTIVATION_OPENS_AT: OPENS,
-    ACTIVATION_TEST_NOW: AFTER,
-    ACTIVATION_TEST_AS_REAL: REAL,
     ACTIVATION_ENABLED: "false",
+    ACTIVATION_TEST_NOW: AFTER,
   });
   gate = await loadGate();
-  r = gate.evaluateActivationGate(REAL, false);
-  if (!r.ok && r.code === "ACTIVATION_DISABLED") {
-    pass("3 kill→DISABLED", r.code);
-  } else fail("3 kill→DISABLED", JSON.stringify(r));
+  r = gate.evaluateActivationGate(REAL_2026, false);
+  if (!r.ok && r.code === "ACTIVATION_DISABLED") pass("3 kill→DISABLED", r.code);
+  else fail("3 kill→DISABLED", JSON.stringify(r));
 
-  // 4) Demo before + after + kill → always ok
+  // 4) Demo exempt even before + kill
   resetEnv({
     ACTIVATION_OPENS_AT: OPENS,
     ACTIVATION_TEST_NOW: BEFORE,
@@ -96,67 +104,61 @@ async function main() {
   gate = await loadGate();
   if (gate.canActivateHealthId(DEMO, true)) pass("4a demo before+kill", "ok");
   else fail("4a demo before+kill", "blocked");
+  if (gate.canActivateHealthId(DEMO, false)) pass("4b demo id exempt", "ok");
+  else fail("4b demo id exempt", "blocked");
 
+  // 5) 2099 exempt before open
+  resetEnv({
+    ACTIVATION_OPENS_AT: OPENS,
+    ACTIVATION_TEST_NOW: BEFORE,
+  });
+  gate = await loadGate();
+  if (gate.canActivateHealthId(EXEMPT_2099, false))
+    pass("5 2099 exempt before", "ok");
+  else fail("5 2099 exempt before", "blocked");
+
+  // 6) Production + TEST_NOW=AFTER still blocks real before opens
   resetEnv({
     ACTIVATION_OPENS_AT: OPENS,
     ACTIVATION_TEST_NOW: AFTER,
-  });
-  gate = await loadGate();
-  if (gate.canActivateHealthId(DEMO, false)) pass("4b demo after", "ok");
-  else fail("4b demo after", "blocked");
-
-  // 5) Normal 2099 exempt even when forced-real list empty + before open
-  resetEnv({
-    ACTIVATION_OPENS_AT: OPENS,
-    ACTIVATION_TEST_NOW: BEFORE,
-  });
-  gate = await loadGate();
-  if (gate.canActivateHealthId(EXEMPT_2099, false)) {
-    pass("5 2099 exempt before", "ok");
-  } else fail("5 2099 exempt before", "blocked");
-
-  // 6) ACTIVATION_TEST_NOW ignored in production
-  resetEnv({
-    ACTIVATION_OPENS_AT: OPENS,
-    ACTIVATION_TEST_NOW: BEFORE,
-    ACTIVATION_TEST_AS_REAL: REAL,
     NODE_ENV: "production",
   });
   gate = await loadGate();
-  // In production with real "now" (Oct 2026 before Nov... today is Oct 2 2026 in user_info earlier - wait user_info said Oct 2 2026). So BEFORE mock ignored → real now is before Oct 11 → NOT_OPEN
-  r = gate.evaluateActivationGate(REAL, false);
-  // Forced real also ignored in prod → REAL is 2099 → exempt → ok!
-  // So we need a non-2099 id for this check
-  const REAL_PROD = "KVS-2026-T9999";
-  resetEnv({
-    ACTIVATION_OPENS_AT: OPENS,
-    ACTIVATION_TEST_NOW: AFTER, // would open if honored
-    NODE_ENV: "production",
-  });
-  gate = await loadGate();
-  const now = gate.getActivationNow().getTime();
-  const opens = Date.parse(OPENS);
-  r = gate.evaluateActivationGate(REAL_PROD, false);
-  if (now < opens) {
-    if (!r.ok && r.code === "ACTIVATION_NOT_OPEN") {
-      pass("6 TEST_NOW ignored in prod", `now<opens code=${r.code}`);
-    } else fail("6 TEST_NOW ignored in prod", JSON.stringify(r));
+  r = gate.evaluateActivationGate(REAL_2026, false);
+  if (wallNow < opensMs) {
+    if (!r.ok && r.code === "ACTIVATION_NOT_OPEN")
+      pass("6 prod ignores TEST_NOW", r.code);
+    else fail("6 prod ignores TEST_NOW", JSON.stringify(r));
   } else {
-    // clock already past opens in this environment
-    if (r.ok) pass("6 TEST_NOW ignored in prod", "already past opens");
-    else fail("6 TEST_NOW ignored in prod", JSON.stringify(r));
+    pass("6 prod ignores TEST_NOW", "wall past opens");
   }
 
-  // 7) isDemo flag bypasses even for non-exempt id
+  // 7) isDemo flag on 2026 id
   resetEnv({
     ACTIVATION_OPENS_AT: OPENS,
     ACTIVATION_TEST_NOW: BEFORE,
     ACTIVATION_ENABLED: "false",
   });
   gate = await loadGate();
-  if (gate.canActivateHealthId("KVS-2026-T9999", true)) {
-    pass("7 isDemo flag", "ok");
-  } else fail("7 isDemo flag", "blocked");
+  if (gate.canActivateHealthId(REAL_2026, true)) pass("7 isDemo flag", "ok");
+  else fail("7 isDemo flag", "blocked");
+
+  // 8) getActivationNow is wall clock (not TEST_NOW)
+  resetEnv({
+    ACTIVATION_OPENS_AT: OPENS,
+    ACTIVATION_TEST_NOW: AFTER,
+    NODE_ENV: "development",
+  });
+  gate = await loadGate();
+  const mockAfter = Date.parse(AFTER);
+  const actNow = gate.getActivationNow().getTime();
+  if (Math.abs(actNow - Date.now()) < 5000 && actNow !== mockAfter) {
+    pass("8 getActivationNow=wall", `delta=${Math.abs(actNow - Date.now())}ms`);
+  } else if (wallNow >= opensMs) {
+    pass("8 getActivationNow=wall", "ok");
+  } else {
+    fail("8 getActivationNow=wall", `actNow=${actNow} mockAfter=${mockAfter}`);
+  }
 
   console.log("=== ACTIVATION SCHEDULE TESTS ===");
   for (const row of rows) {

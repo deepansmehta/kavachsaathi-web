@@ -128,7 +128,11 @@ export async function getUserByActivationCode(
   return { uid: d.id, ...(d.data() as Omit<UserProfile, "uid">) };
 }
 
-export async function activateAndSaveProfile(params: {
+/**
+ * @deprecated Legacy client-side activation (status=active + user_uid).
+ * Hard-disabled — use POST /api/card/activate (7-step wizard) only.
+ */
+export async function activateAndSaveProfile(_params: {
   uid: string;
   activation_code: string;
   tier: CardTier;
@@ -138,57 +142,11 @@ export async function activateAndSaveProfile(params: {
     "uid" | "activation_code" | "health_id" | "created_at" | "updated_at"
   >;
 }): Promise<{ success: boolean; health_id?: string; error?: string }> {
-  const code = params.activation_code.trim().toUpperCase();
-  const healthId = params.health_id || generateHealthId();
-
-  if (!isFirebaseConfigured) {
-    return { success: true, health_id: healthId };
-  }
-
-  try {
-    await setDoc(doc(db, "users", params.uid), {
-      ...params.profile,
-      uid: params.uid,
-      activation_code: code,
-      health_id: healthId,
-      tier: params.tier,
-      created_at: serverTimestamp(),
-      updated_at: serverTimestamp(),
-    });
-
-    const p = params.profile;
-    await updateDoc(doc(db, "cards", code), {
-      status: "active",
-      activated: true,
-      activated_at: serverTimestamp(),
-      user_uid: params.uid,
-      health_id: healthId,
-      phone: p.phone || "",
-      name: p.full_name || "",
-      address: p.address || "",
-      bloodGroup: p.blood_group || "",
-      blood_group: p.blood_group || "",
-      medicalConditions: p.medical_conditions || [],
-      medical_conditions: p.medical_conditions || [],
-      emergencyContact: {
-        name: p.emergency_contact_1?.name || "",
-        phone: p.emergency_contact_1?.phone || "",
-      },
-      familyDoctor: {
-        name: p.doctor_name || "",
-        phone: p.doctor_phone || "",
-      },
-      hasInsurance: Boolean(p.has_insurance),
-      has_insurance: Boolean(p.has_insurance),
-    });
-
-    return { success: true, health_id: healthId };
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Activation failed",
-    };
-  }
+  return {
+    success: false,
+    error:
+      "Client activation is retired. Use the QR card wizard (/api/card/activate).",
+  };
 }
 
 /** Fields written to cards/{code} for public emergency page */
