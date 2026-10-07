@@ -22,8 +22,6 @@
  *   After site launch instant → preview has no effect (cookie cleared).
  */
 
-import { timingSafeEqual } from "crypto";
-
 export const DEFAULT_SITE_LAUNCH_AT = "2026-10-11T12:00:00+05:30";
 
 /** httpOnly cookie set after a valid ?preview= secret (2 hours). */
@@ -47,6 +45,8 @@ function isProductionRuntime(): boolean {
  * Preview secret from env PRELAUNCH_PREVIEW_SECRET (set on Netlify production only).
  * Empty / unset / too short → null (no bypass). No hardcoded fallback.
  * Netlify deploy-preview/branch contexts do not have this var → no bypass there.
+ *
+ * Must work in Edge middleware — do not use Node crypto/Buffer here.
  */
 export function getPrelaunchPreviewSecret(): string | null {
   const s = String(process.env.PRELAUNCH_PREVIEW_SECRET || "").trim();
@@ -54,15 +54,14 @@ export function getPrelaunchPreviewSecret(): string | null {
   return s;
 }
 
+/** Constant-time-ish string compare safe for Edge (no Node crypto). */
 function safeEqualString(a: string, b: string): boolean {
-  try {
-    const ba = Buffer.from(a);
-    const bb = Buffer.from(b);
-    if (ba.length !== bb.length) return false;
-    return timingSafeEqual(ba, bb);
-  } catch {
-    return false;
+  if (a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i++) {
+    out |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
+  return out === 0;
 }
 
 /** True when ?preview= matches PRELAUNCH_PREVIEW_SECRET (production + env set). */
