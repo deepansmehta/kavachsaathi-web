@@ -19,6 +19,15 @@ export type SiteLinks = {
   callDigits: string;
   email: string;
   siteUrl: string;
+  // Pack 2 — optional official-scheme URL overrides (admin-editable via config/links)
+  pmjayEligibilityUrl?: string;
+  pmjayHospitalsUrl?: string;
+  pmjayOfficialUrl?: string;
+  cghsOfficialUrl?: string;
+  echsOfficialUrl?: string;
+  esicOfficialUrl?: string;
+  eRaktKoshUrl?: string;
+  janAushadhiUrl?: string;
 };
 
 export type SitePolicy = {
@@ -84,6 +93,15 @@ export async function loadSiteConfig(db: Firestore): Promise<{
     ),
     email: String(l.email || DEFAULT_LINKS.email),
     siteUrl: String(l.siteUrl || DEFAULT_LINKS.siteUrl),
+    // Optional official-scheme URL overrides
+    ...(l.pmjayEligibilityUrl ? { pmjayEligibilityUrl: String(l.pmjayEligibilityUrl) } : {}),
+    ...(l.pmjayHospitalsUrl ? { pmjayHospitalsUrl: String(l.pmjayHospitalsUrl) } : {}),
+    ...(l.pmjayOfficialUrl ? { pmjayOfficialUrl: String(l.pmjayOfficialUrl) } : {}),
+    ...(l.cghsOfficialUrl ? { cghsOfficialUrl: String(l.cghsOfficialUrl) } : {}),
+    ...(l.echsOfficialUrl ? { echsOfficialUrl: String(l.echsOfficialUrl) } : {}),
+    ...(l.esicOfficialUrl ? { esicOfficialUrl: String(l.esicOfficialUrl) } : {}),
+    ...(l.eRaktKoshUrl ? { eRaktKoshUrl: String(l.eRaktKoshUrl) } : {}),
+    ...(l.janAushadhiUrl ? { janAushadhiUrl: String(l.janAushadhiUrl) } : {}),
   };
   const policy: SitePolicy = {
     validityDays:

@@ -4,6 +4,8 @@ import { useEffect, useState, useRef, type CSSProperties } from "react";
 import toast from "react-hot-toast";
 import QRCode from "react-qr-code";
 import { FeedbackModal } from "@/components/FeedbackModal";
+import { NeedBloodButton } from "./NeedBloodButton";
+import { JAN_AUSHADHI_INFO, SCHEMES } from "@/lib/patientEase/officialLinks";
 
 type Captcha = { token: string; question: string };
 
@@ -781,6 +783,62 @@ export function FullDetailsModal({
                 <p style={{ fontSize: 10, color: "#A8A59C", margin: 0 }}>
                   Signed URLs expire in 5 minutes. Full vault accessible in My Profile.
                 </p>
+              </div>
+            )}
+
+            {/* Pack 2 — F20: Doctor Summary PDF (PIN scope only) */}
+            {details.scope === "pin" && flags.doctorSummary && (
+              <div style={{ padding: 10, border: "1px solid #D4AF3755", borderRadius: 10 }}>
+                <p style={{ fontSize: 12, color: "#D4AF37", marginBottom: 8 }}>Doctor Summary PDF</p>
+                <button
+                  type="button"
+                  disabled={!!dlLoading}
+                  onClick={async () => {
+                    setDlLoading("doctorSummary");
+                    try {
+                      await downloadPdf("/api/doctor-summary?action=pdf", "kavachsaathi-doctor-summary.pdf");
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Download failed");
+                    } finally {
+                      setDlLoading(null);
+                    }
+                  }}
+                  style={btnOutline}
+                >
+                  {dlLoading === "doctorSummary" ? "Preparing…" : "Download Doctor Summary (1-page)"}
+                </button>
+              </div>
+            )}
+
+            {/* Pack 2 — F24: Need Blood (any scope with PIN) */}
+            {details.scope === "pin" && flags.needBlood && (
+              <NeedBloodButton enabled />
+            )}
+
+            {/* Pack 2 — F22: Scheme Guide (PIN scope only) */}
+            {details.scope === "pin" && flags.schemeGuide && (
+              <div style={{ padding: 10, border: "1px solid #D4AF3755", borderRadius: 10 }}>
+                <p style={{ fontSize: 12, color: "#D4AF37", marginBottom: 8 }}>Government Health Schemes</p>
+                <a href="/schemes" target="_blank" rel="noopener noreferrer" style={{ color: "#FCE49A", fontSize: 13 }}>
+                  View scheme guide ↗
+                </a>
+                <div style={{ marginTop: 6, fontSize: 11, color: "#A8A59C" }}>
+                  {SCHEMES.filter((s) => s.verified).slice(0, 3).map((s) => (
+                    <a key={s.id} href={s.officialUrl} target="_blank" rel="noreferrer" style={{ color: "#A8A59C", marginRight: 8 }}>
+                      {s.nameEn} ↗
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Pack 2 — F23: Jan Aushadhi (PIN scope only) */}
+            {details.scope === "pin" && flags.janAushadhi && (
+              <div style={{ padding: 10, border: "1px solid #D4AF3755", borderRadius: 10 }}>
+                <p style={{ fontSize: 12, color: "#D4AF37", marginBottom: 8 }}>Jan Aushadhi — Affordable Generic Medicines</p>
+                <a href={JAN_AUSHADHI_INFO.url} target="_blank" rel="noreferrer" style={{ color: "#FCE49A", fontSize: 13 }}>
+                  Find nearest Janaushadhi Kendra ↗
+                </a>
               </div>
             )}
           </div>

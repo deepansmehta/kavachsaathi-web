@@ -1,89 +1,116 @@
+/**
+ * GET  /api/doctor-summary          → JSON summary
+ * POST /api/doctor-summary?action=pdf → PDF download
+ *
+ * Auth: profile session (owner) OR full-details PIN session.
+ */
 import { NextRequest, NextResponse } from "next/server";
+import { requireFeature } from "@/lib/features/server";
+import {
+  PROFILE_SESSION_COOKIE,
+  verifyProfileSessionToken,
+} from "@/lib/profileSession";
+import {
+  FULL_DETAILS_COOKIE,
+  verifyFullDetailsToken,
+} from "@/lib/fullDetailsSession";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { noStoreHeaders } from "@/lib/forms/pdfCommon";
-import {
-  requireOwnerSession,
-  requirePack2Feature,
-} from "@/lib/patientEase/auth";
+import { buildDoctorSummary } from "@/lib/patientEase/doctorSummary";
 import { buildDoctorSummaryPdf } from "@/lib/patientEase/pdfs/doctorSummaryPdf";
-import { loadFeatureFlags } from "@/lib/features/server";
-import { isFeatureOn } from "@/lib/features/flags";
-import { buildAutoSummaryPair } from "@/lib/autoSummary";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-async function loadSummary(profileId: string) {
+async function resolveProfileData(
+  req: NextRequest
+): Promise<Record<string, unknown> | null> {
   const db = getAdminDb();
-  const snap = await db.collection("profiles").doc(profileId).get();
-  const p = snap.data() || {};
-  const flags = await loadFeatureFlags();
-  const contacts = Array.isArray(p.emergency_contacts) ? p.emergency_contacts : [];
-  const summaryPair = isFeatureOn(flags, "autoSummary")
-    ? buildAutoSummaryPair({
-        dateOfBirth: p.dateOfBirth as string,
-        gender: p.gender as string,
-        bloodGroup: String(p.blood_group || ""),
-        criticalFlags: (p.criticalAlerts?.tags ||
-          p.criticalFlags?.tags ||
-          []) as string[],
-        conditions: (p.chronic_conditions || []) as string[],
-        medications: (p.medications || []) as string[],
-        allergies: (p.allergies || []) as string[],
-        emergencyContact: contacts[0] || null,
-      })
-    : { en: "", hi: "" };
-  return {
-    name: String(p.full_name || ""),
-    bloodGroup: String(p.blood_group || ""),
-    allergies: (p.allergies || []) as string[],
-    criticalFlags: (p.criticalAlerts?.tags ||
-      p.criticalFlags?.tags ||
-      []) as string[],
-    conditions: (p.conditionsDetailed ||
-      (p.chronic_conditions || []).map((n: string) => ({ name: n }))) as {
-      name: string;
-      sinceYear?: string;
-    }[],
-    surgeries: (p.surgeries || []) as {
-      name: string;
-      year?: string;
-      hospital?: string;
-    }[],
-    medicines: (p.medicinesDetailed ||
-      (p.medications || []).map((n: string) => ({ name: n }))) as {
-      name: string;
-      dose?: string;
-      frequency?: string;
-    }[],
-    vaccinations: (p.vaccinations || []) as { name: string; date?: string }[],
-    familyDoctor: p.family_doctor || {
-      name: p.familyDoctorName,
-      phone: p.familyDoctorPhone,
-    },
-    includeJanAushadhi: isFeatureOn(flags, "janAushadhi"),
-    autoSummaryEn: summaryPair.en || undefined,
-    autoSummaryHi: summaryPair.hi || undefined,
-  };
+
+  // Try full-details PIN session first
+  const fdToken = req.cookies.get(FULL_DETAILS_COOKIE)?.value;
+  const fdSession = verifyFullDetailsToken(fdToken);
+  if (fdSession?.scope === "pin") {
+    const q = await db
+      .collection("profiles")
+      .where("health_id", "==", fdSession.healthId)
+      .limit(1)
+      .get();
+    if (!q.empty) return q.docs[0].data() as Record<string, unknown>;
+  }
+
+  // Fall back to profile session
+  const tok = req.cookies.get(PROFILE_SESSION_COOKIE)?.value;
+  const sess = verifyProfileSessionToken(tok);
+  if (!sess) return null;
+  const snap = await db.collection("profiles").doc(sess.profileId).get();
+  if (!snap.exists) return null;
+  return snap.data() as Record<string, unknown>;
 }
 
 export async function GET(req: NextRequest) {
-  const feat = await requirePack2Feature("doctorSummary");
-  if (!feat.ok) return feat.res;
-  const sess = await requireOwnerSession(req);
-  if (!sess.ok) return sess.res;
-  const data = await loadSummary(sess.profileId);
-  const wantPdf = req.nextUrl.searchParams.get("format") === "pdf";
-  if (!wantPdf) {
-    return NextResponse.json({ summary: data }, { headers: noStoreHeaders() });
+  const flags = await requireFeature("doctorSummary");
+  if (!flags) {
+    return NextResponse.json(
+      { error: "Feature not available", code: "FEATURE_OFF" },
+      { status: 404, headers: noStoreHeaders() }
+    );
   }
-  const bytes = await buildDoctorSummaryPdf(data);
-  return new NextResponse(Buffer.from(bytes), {
-    status: 200,
-    headers: {
-      ...noStoreHeaders(),
-      "Content-Type": "application/pdf",
-      "Content-Disposition": 'attachment; filename="doctor-summary.pdf"',
-    },
-  });
+
+  const profileData = await resolveProfileData(req);
+  if (!profileData) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: noStoreHeaders() }
+    );
+  }
+
+  const summary = buildDoctorSummary(profileData);
+  return NextResponse.json({ summary }, { headers: noStoreHeaders() });
+}
+
+export async function POST(req: NextRequest) {
+  const flags = await requireFeature("doctorSummary");
+  if (!flags) {
+    return NextResponse.json(
+      { error: "Feature not available", code: "FEATURE_OFF" },
+      { status: 404, headers: noStoreHeaders() }
+    );
+  }
+
+  const action = req.nextUrl.searchParams.get("action");
+  if (action !== "pdf") {
+    return NextResponse.json(
+      { error: "Unknown action. Use ?action=pdf" },
+      { status: 400, headers: noStoreHeaders() }
+    );
+  }
+
+  const profileData = await resolveProfileData(req);
+  if (!profileData) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: noStoreHeaders() }
+    );
+  }
+
+  try {
+    const summary = buildDoctorSummary(profileData);
+    const pdfBuffer = await buildDoctorSummaryPdf(summary);
+    const name = `kavachsaathi-doctor-summary.pdf`;
+    return new NextResponse(pdfBuffer as unknown as BodyInit, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${name}"`,
+        ...noStoreHeaders(),
+      },
+    });
+  } catch (err) {
+    console.error("doctor-summary pdf", err);
+    return NextResponse.json(
+      { error: "PDF generation failed" },
+      { status: 500, headers: noStoreHeaders() }
+    );
+  }
 }

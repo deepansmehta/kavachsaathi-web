@@ -1,6 +1,9 @@
 /**
  * Official government / public-health links for Pack 2 (F22–F24).
  * Only URLs verified HTTP 200 (curl -L, 2026-10-06) are marked verified.
+ *
+ * The OfficialScheme shape is the canonical type used by F22 scheme guide.
+ * Added in Pack 2 implementation: E_RAKT_KOSH object + JAN_AUSHADHI_INFO object.
  */
 
 export type OfficialScheme = {
@@ -16,6 +19,9 @@ export type OfficialScheme = {
   /** false = do not show until verified 200 */
   verified: boolean;
 };
+
+/** @deprecated Use OfficialScheme. Alias for code referencing SchemeRecord. */
+export type SchemeRecord = OfficialScheme;
 
 export const OFFICIAL_LINKS = {
   pmjay: "https://nha.gov.in/PM-JAY",
@@ -96,8 +102,33 @@ export const SCHEMES: OfficialScheme[] = [
   // CGHS omitted until an official URL returns HTTP 200 from this environment
 ];
 
+/** String URL — kept for backward compatibility */
 export const JAN_AUSHADHI_LOCATOR = OFFICIAL_LINKS.janAushadhiLocator;
+/** String URL — kept for backward compatibility */
 export const E_RAKTKOSH_URL = OFFICIAL_LINKS.eRaktKosh;
+
+/** Rich object for Pack 2 components (NeedBloodButton, schemes page, etc.) */
+export const E_RAKT_KOSH = {
+  labelEn: "e-RaktKosh — National Blood Transfusion Council",
+  labelHi: "e-RaktKosh — राष्ट्रीय रक्त आधान परिषद",
+  url: OFFICIAL_LINKS.eRaktKosh,
+  descEn:
+    "Official Ministry of Health & Family Welfare portal to locate blood banks and check real-time blood stock across India.",
+  descHi:
+    "भारत भर में रक्त बैंक खोजने और रीयल-टाइम रक्त उपलब्धता जांचने के लिए स्वास्थ्य एवं परिवार कल्याण मंत्रालय का आधिकारिक पोर्टल।",
+} as const;
+
+/** Rich object for Pack 2 components */
+export const JAN_AUSHADHI_INFO = {
+  labelEn: "Jan Aushadhi — Affordable Generic Medicines",
+  labelHi: "जन औषधि — सस्ती जेनेरिक दवाएं",
+  url: OFFICIAL_LINKS.janAushadhi,
+  locatorUrl: OFFICIAL_LINKS.janAushadhiLocator,
+  descEn:
+    "Pradhan Mantri Bhartiya Janaushadhi Pariyojana — quality generic medicines at affordable prices. Find nearest Janaushadhi Kendra.",
+  descHi:
+    "प्रधानमंत्री भारतीय जनऔषधि परियोजना — किफायती मूल्य पर गुणवत्तापूर्ण जेनेरिक दवाएं। निकटतम जनऔषधि केंद्र खोजें।",
+} as const;
 
 export function verifiedSchemes(): OfficialScheme[] {
   return SCHEMES.filter((s) => s.verified);
@@ -107,4 +138,9 @@ export function schemesFooterNote(lang: "en" | "hi" = "en"): string {
   return lang === "hi"
     ? "आधिकारिक पोर्टल पर सत्यापित करें।"
     : "Verify on the official portal.";
+}
+
+/** Lookup by id */
+export function findScheme(id: string): OfficialScheme | undefined {
+  return SCHEMES.find((s) => s.id === id);
 }

@@ -1,112 +1,168 @@
+/**
+ * Doctor Summary PDF — 1-page A4 PDF for handing to a doctor.
+ * Uses the same pdf-lib + font pattern as other forms.
+ */
+import "regenerator-runtime/runtime";
 import {
   A4,
   MARGIN,
-  blank,
-  createPdfDoc,
-  drawMixedText,
   ink,
   muted,
+  lineColor,
+  createPdfDoc,
+  drawWatermark,
+  drawFooter,
+  formatIstStamp,
+  blank,
+  drawMixedText,
   wrapText,
 } from "@/lib/forms/pdfCommon";
-import { JAN_AUSHADHI_LOCATOR } from "@/lib/patientEase/officialLinks";
-import type {
-  ConditionEntry,
-  MedicineEntry,
-  SurgeryEntry,
-  VaccinationEntry,
-} from "@/lib/patientEase/helpers";
+import { rgb } from "pdf-lib";
+import type { DoctorSummaryData } from "@/lib/patientEase/doctorSummary";
 
-export type DoctorSummaryData = {
-  name: string;
-  bloodGroup?: string;
-  allergies?: string[];
-  criticalFlags?: string[];
-  conditions?: ConditionEntry[];
-  surgeries?: SurgeryEntry[];
-  medicines?: MedicineEntry[];
-  vaccinations?: VaccinationEntry[];
-  familyDoctor?: { name?: string; phone?: string } | null;
-  includeJanAushadhi?: boolean;
-  autoSummaryEn?: string;
-  autoSummaryHi?: string;
-};
+const GOLD = rgb(0.831, 0.686, 0.216);
+const SECTION_GAP = 14;
+const ROW_H = 13;
 
 export async function buildDoctorSummaryPdf(
   data: DoctorSummaryData
-): Promise<Uint8Array> {
+): Promise<Buffer> {
   const { pdf, fonts } = await createPdfDoc();
   const page = pdf.addPage([A4.width, A4.height]);
-  let y = A4.height - MARGIN;
-  const maxW = A4.width - MARGIN * 2;
-  const h = (t: string) => {
-    drawMixedText(page, fonts, t, MARGIN, y, 12, ink);
-    y -= 16;
-  };
-  const p = (t: string, size = 10) => {
-    for (const l of wrapText(blank(t), fonts.regular, size, maxW, fonts)) {
-      if (y < MARGIN + 36) return;
-      drawMixedText(page, fonts, l, MARGIN, y, size, ink);
-      y -= size + 3;
+  const { width, height } = page.getSize();
+  drawWatermark(page);
+
+  let y = height - MARGIN;
+
+  // ── Header ─────────────────────────────────────────────────────────────
+  page.drawText("KavachSaathi", {
+    x: MARGIN,
+    y,
+    size: 10,
+    font: fonts.bold,
+    color: GOLD,
+  });
+  page.drawText("Doctor Summary Sheet", {
+    x: width - MARGIN - 130,
+    y,
+    size: 10,
+    font: fonts.bold,
+    color: GOLD,
+  });
+  y -= 14;
+  page.drawLine({
+    start: { x: MARGIN, y },
+    end: { x: width - MARGIN, y },
+    thickness: 0.8,
+    color: GOLD,
+  });
+  y -= 12;
+
+  // ── Patient bio row ─────────────────────────────────────────────────────
+  const nameLabel = "Patient: ";
+  page.drawText(nameLabel, { x: MARGIN, y, size: 9, font: fonts.regular, color: muted });
+  const nx = MARGIN + fonts.regular.widthOfTextAtSize(nameLabel, 9);
+  drawMixedText(page, fonts, blank(data.name) || "—", nx, y, 11, ink);
+
+  // Blood group badge
+  const bgText = data.bloodGroup || "—";
+  const bgW = fonts.bold.widthOfTextAtSize(bgText, 14) + 12;
+  const bgX = width - MARGIN - bgW;
+  page.drawRectangle({ x: bgX, y: y - 4, width: bgW, height: 18, color: rgb(0.95, 0.92, 0.80), borderColor: GOLD, borderWidth: 0.6, borderOpacity: 0.6, opacity: 1 });
+  page.drawText(bgText, { x: bgX + 6, y: y + 1, size: 14, font: fonts.bold, color: GOLD });
+  y -= ROW_H;
+
+  // Age / Gender
+  const ageGender = [
+    data.age ? `Age: ${data.age}y${data.ageMonths ? ` ${data.ageMonths}m` : ""}` : null,
+    data.gender ? `Gender: ${data.gender}` : null,
+  ]
+    .filter(Boolean)
+    .join("   ");
+  if (ageGender) {
+    page.drawText(ageGender, { x: MARGIN, y, size: 9, font: fonts.regular, color: muted });
+    y -= ROW_H;
+  }
+
+  y -= 4;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: width - MARGIN, y }, thickness: 0.4, color: lineColor });
+  y -= SECTION_GAP;
+
+  const drawSection = (title: string, items: string[]) => {
+    if (!items.length) return;
+    page.drawText(title.toUpperCase(), { x: MARGIN, y, size: 8, font: fonts.bold, color: GOLD });
+    y -= 10;
+    for (const item of items) {
+      const lines = wrapText(item, fonts.regular, 9, width - MARGIN * 2 - 14, fonts);
+      for (let i = 0; i < lines.length; i++) {
+        if (i === 0) {
+          page.drawText("•", { x: MARGIN, y, size: 9, font: fonts.regular, color: muted });
+          drawMixedText(page, fonts, lines[i], MARGIN + 10, y, 9, ink);
+        } else {
+          drawMixedText(page, fonts, lines[i], MARGIN + 10, y, 9, ink);
+        }
+        y -= ROW_H;
+        if (y < 80) return; // safety guard
+      }
     }
+    y -= 4;
   };
-  drawMixedText(page, fonts, "Doctor Summary / चिकित्सक सारांश", MARGIN, y, 14, ink);
-  y -= 22;
-  if (data.autoSummaryEn) {
-    p(data.autoSummaryEn);
+
+  // Critical flags
+  if (data.criticalFlags.length) {
+    page.drawText("CRITICAL FLAGS", { x: MARGIN, y, size: 8, font: fonts.bold, color: rgb(0.9, 0.3, 0.3) });
+    y -= 10;
+    for (const f of data.criticalFlags) {
+      drawMixedText(page, fonts, `⚠ ${f}`, MARGIN + 10, y, 9, rgb(0.9, 0.3, 0.3));
+      y -= ROW_H;
+    }
     y -= 4;
   }
-  if (data.autoSummaryHi) {
-    p(data.autoSummaryHi);
-    y -= 6;
+
+  drawSection("Allergies", data.allergies);
+  drawSection("Chronic Conditions", data.conditions);
+
+  // Medications
+  if (data.medications.length) {
+    page.drawText("MEDICATIONS", { x: MARGIN, y, size: 8, font: fonts.bold, color: GOLD });
+    y -= 10;
+    for (const med of data.medications) {
+      const medStr = [med.name, med.dose, med.freq].filter(Boolean).join("  ·  ");
+      const lines = wrapText(medStr, fonts.regular, 9, width - MARGIN * 2 - 14, fonts);
+      for (let i = 0; i < lines.length; i++) {
+        if (i === 0) page.drawText("•", { x: MARGIN, y, size: 9, font: fonts.regular, color: muted });
+        drawMixedText(page, fonts, lines[i], MARGIN + 10, y, 9, ink);
+        y -= ROW_H;
+      }
+    }
+    y -= 4;
   }
-  p(`Name: ${blank(data.name)}`);
-  p(`Blood group: ${blank(data.bloodGroup)}`);
-  p(`Allergies: ${(data.allergies || []).map(blank).filter(Boolean).join(", ") || "—"}`);
-  p(
-    `Critical flags: ${(data.criticalFlags || []).map(blank).filter(Boolean).join(", ") || "—"}`
-  );
-  h("Conditions");
-  if (!data.conditions?.length) p("—");
-  else
-    for (const c of data.conditions)
-      p(`${blank(c.name)}${c.sinceYear ? ` (since ${blank(c.sinceYear)})` : ""}`);
-  h("Surgeries / hospitalisations");
-  if (!data.surgeries?.length) p("—");
-  else
-    for (const s of data.surgeries)
-      p(
-        `${blank(s.name)}${s.year ? ` (${blank(s.year)})` : ""}${s.hospital ? ` — ${blank(s.hospital)}` : ""}`
-      );
-  h("Medicines");
-  if (!data.medicines?.length) p("—");
-  else
-    for (const m of data.medicines)
-      p(
-        `${blank(m.name)}${m.dose ? ` — ${blank(m.dose)}` : ""}${m.frequency ? `, ${blank(m.frequency)}` : ""}`
-      );
-  h("Vaccinations");
-  if (!data.vaccinations?.length) p("—");
-  else
-    for (const v of data.vaccinations)
-      p(`${blank(v.name)}${v.date ? ` — ${blank(v.date)}` : ""}`);
-  h("Family doctor");
-  p(
-    `${blank(data.familyDoctor?.name)}${data.familyDoctor?.phone ? ` · ${blank(data.familyDoctor.phone)}` : ""}` ||
-      "—"
-  );
-  if (data.includeJanAushadhi) {
-    y -= 8;
-    p(`Jan Aushadhi Kendra locator: ${JAN_AUSHADHI_LOCATOR}`, 8);
+
+  drawSection("Surgeries / Procedures", data.surgeries);
+  drawSection("Vaccinations", data.vaccinations);
+
+  // Family Doctor
+  if (data.familyDoctor?.name || data.familyDoctor?.phone) {
+    page.drawText("FAMILY DOCTOR", { x: MARGIN, y, size: 8, font: fonts.bold, color: GOLD });
+    y -= 10;
+    const fdParts = [
+      data.familyDoctor.name,
+      data.familyDoctor.clinic,
+      data.familyDoctor.phone ? `☎ ${data.familyDoctor.phone}` : null,
+    ].filter(Boolean);
+    drawMixedText(page, fonts, fdParts.join("  ·  "), MARGIN + 10, y, 9, ink);
+    y -= ROW_H + 4;
   }
-  y -= 10;
-  drawMixedText(
-    page,
-    fonts,
-    "For treating clinician reference. Confirm with patient records.",
-    MARGIN,
-    y,
-    8,
-    muted
+
+  // Disclaimer
+  const stamp = formatIstStamp();
+  page.drawText(
+    `Generated by KavachSaathi on ${stamp}. Verify all details with patient/attendant.`,
+    { x: MARGIN, y: Math.max(y, 58), size: 7, font: fonts.regular, color: muted }
   );
-  return pdf.save();
+
+  drawFooter(page, fonts, stamp);
+
+  const bytes = await pdf.save();
+  return Buffer.from(bytes);
 }

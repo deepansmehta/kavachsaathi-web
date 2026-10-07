@@ -1,68 +1,143 @@
-/** F18 — Claim deadline countdown */
+/**
+ * F18 — Claim Deadline Tracker
+ * Countdown helpers, required-docs list, and calendar reminder builders.
+ */
 
 import {
-  buildIcs,
   googleCalendarReminderUrl,
+  buildIcs,
 } from "@/lib/config/links";
 
-export const CLAIM_REQUIRED_DOCS = [
-  "Itemized final bill",
-  "Discharge summary",
-  "Investigation reports",
-  "Pharmacy bills",
-  "Claim form (insurer/TPA)",
-  "ID & policy card copies",
-  "Cancelled cheque / bank details (if reimbursement)",
+export type ClaimDeadlineData = {
+  dischargeDate: string; // ISO date string e.g. "2026-10-01"
+  windowDays: number;    // typical 30 or 60 or 90 days
+};
+
+export type CountdownResult = {
+  deadlineDate: string;       // ISO date
+  daysRemaining: number;
+  hoursRemaining: number;     // total hours remaining
+  isExpired: boolean;
+  urgencyLevel: "safe" | "warning" | "critical" | "expired";
+};
+
+export const REQUIRED_CLAIM_DOCS: { id: string; label: string; labelHi: string }[] = [
+  {
+    id: "claim_form",
+    label: "Signed claim form (from insurer / TPA)",
+    labelHi: "हस्ताक्षरित दावा फ़ॉर्म (बीमा कंपनी / TPA से)",
+  },
+  {
+    id: "discharge_summary",
+    label: "Discharge summary (original)",
+    labelHi: "डिस्चार्ज सारांश (मूल प्रति)",
+  },
+  {
+    id: "hospital_bill",
+    label: "Final hospital bill with receipts (original)",
+    labelHi: "अंतिम अस्पताल बिल और रसीदें (मूल प्रति)",
+  },
+  {
+    id: "pharmacy_bills",
+    label: "Pharmacy bills with prescriptions",
+    labelHi: "फार्मेसी बिल और पर्चे",
+  },
+  {
+    id: "lab_reports",
+    label: "Lab / investigation reports (original)",
+    labelHi: "लैब / जाँच रिपोर्टें (मूल प्रति)",
+  },
+  {
+    id: "id_proof",
+    label: "Patient photo ID proof copy",
+    labelHi: "मरीज़ का फोटो पहचान प्रमाण (फोटोकॉपी)",
+  },
+  {
+    id: "policy_copy",
+    label: "Insurance policy / card copy",
+    labelHi: "बीमा पॉलिसी / कार्ड की फोटोकॉपी",
+  },
+  {
+    id: "bank_details",
+    label: "Cancelled cheque / bank details for NEFT",
+    labelHi: "रद्द चेक / NEFT के लिए बैंक विवरण",
+  },
+  {
+    id: "admission_sheet",
+    label: "Admission sheet / OPD registration",
+    labelHi: "भर्ती पत्र / OPD पंजीकरण",
+  },
 ];
 
-export function claimDueDate(dischargeDate: string, windowDays: number): Date {
-  const d = new Date(dischargeDate);
-  d.setHours(23, 59, 59, 999);
-  d.setDate(d.getDate() + Math.max(1, Math.min(365, Number(windowDays) || 30)));
-  return d;
-}
+/** Calculate deadline and countdown from discharge date */
+export function computeClaimCountdown(data: ClaimDeadlineData): CountdownResult {
+  const discharge = new Date(data.dischargeDate);
+  const deadline = new Date(discharge);
+  deadline.setDate(deadline.getDate() + data.windowDays);
 
-export function claimCountdown(dischargeDate: string, windowDays: number, now = new Date()) {
-  const due = claimDueDate(dischargeDate, windowDays);
-  const ms = due.getTime() - now.getTime();
-  const daysLeft = Math.ceil(ms / (24 * 60 * 60 * 1000));
+  const now = new Date();
+  const msRemaining = deadline.getTime() - now.getTime();
+  const daysRemaining = Math.floor(msRemaining / (1000 * 60 * 60 * 24));
+  const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
+  const isExpired = msRemaining <= 0;
+
+  let urgencyLevel: CountdownResult["urgencyLevel"] = "safe";
+  if (isExpired) urgencyLevel = "expired";
+  else if (daysRemaining <= 3) urgencyLevel = "critical";
+  else if (daysRemaining <= 10) urgencyLevel = "warning";
+
   return {
-    dueIso: due.toISOString(),
-    daysLeft,
-    overdue: daysLeft < 0,
-    label:
-      daysLeft < 0
-        ? `Overdue by ${Math.abs(daysLeft)} day(s)`
-        : daysLeft === 0
-          ? "Due today"
-          : `${daysLeft} day(s) left to file claim`,
+    deadlineDate: deadline.toISOString().split("T")[0],
+    daysRemaining: Math.max(0, daysRemaining),
+    hoursRemaining: Math.max(0, hoursRemaining),
+    isExpired,
+    urgencyLevel,
   };
 }
 
-export function claimCalendarLinks(opts: {
+/** Build a Google Calendar reminder URL for the claim deadline */
+export function claimDeadlineCalendarUrl(opts: {
+  patientName: string;
   dischargeDate: string;
   windowDays: number;
-  name?: string;
-}) {
-  const due = claimDueDate(opts.dischargeDate, opts.windowDays);
-  const start = new Date(due);
-  start.setHours(9, 0, 0, 0);
-  const end = new Date(start.getTime() + 60 * 60 * 1000);
-  const title = `File insurance claim — ${opts.name || "KavachSaathi"}`;
-  const details = `Claim window ends. Documents: ${CLAIM_REQUIRED_DOCS.join("; ")}`;
-  return {
-    googleCalendarUrl: googleCalendarReminderUrl({
-      title,
-      details,
-      startIso: start.toISOString(),
-      endIso: end.toISOString(),
-    }),
-    ics: buildIcs({
-      title,
-      description: details,
-      start,
-      end,
-      uid: `claim-${opts.dischargeDate}@kavachsaathi.in`,
-    }),
-  };
+}): string {
+  const discharge = new Date(opts.dischargeDate);
+  const deadline = new Date(discharge);
+  deadline.setDate(deadline.getDate() + opts.windowDays);
+  // Reminder one day before
+  const reminderDate = new Date(deadline);
+  reminderDate.setDate(reminderDate.getDate() - 1);
+  const endDate = new Date(reminderDate);
+  endDate.setHours(endDate.getHours() + 1);
+
+  return googleCalendarReminderUrl({
+    title: `Insurance Claim Deadline — ${opts.patientName}`,
+    details: `Submit your reimbursement claim by ${deadline.toDateString()}. Discharged: ${opts.dischargeDate}. Generated by KavachSaathi.`,
+    startIso: reminderDate.toISOString(),
+    endIso: endDate.toISOString(),
+  });
+}
+
+/** Build an ICS calendar file for claim deadline reminder */
+export function claimDeadlineIcs(opts: {
+  patientName: string;
+  dischargeDate: string;
+  windowDays: number;
+  healthId: string;
+}): string {
+  const discharge = new Date(opts.dischargeDate);
+  const deadline = new Date(discharge);
+  deadline.setDate(deadline.getDate() + opts.windowDays);
+  const reminderDate = new Date(deadline);
+  reminderDate.setDate(reminderDate.getDate() - 1);
+  const endDate = new Date(reminderDate);
+  endDate.setHours(endDate.getHours() + 1);
+
+  return buildIcs({
+    title: `Insurance Claim Deadline — ${opts.patientName}`,
+    description: `Submit your reimbursement claim by ${deadline.toDateString()}. Discharged: ${opts.dischargeDate}. KavachSaathi Health ID: ${opts.healthId}.`,
+    start: reminderDate,
+    end: endDate,
+    uid: `kavach-claim-${opts.healthId}-${opts.dischargeDate}@kavachsaathi.in`,
+  });
 }

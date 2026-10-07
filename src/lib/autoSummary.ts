@@ -39,13 +39,6 @@ function sexLabel(gender: string | null | undefined, hi: boolean): string | null
   return null;
 }
 
-function maskPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length < 6) return phone;
-  const last5 = digits.slice(-5);
-  return `+91 XXXXX${last5}`;
-}
-
 function joinList(items: string[], max = 4): string {
   const clean = items.map((s) => String(s).trim()).filter(Boolean);
   if (!clean.length) return "";
@@ -70,11 +63,12 @@ export function buildAutoSummaryEn(input: AutoSummaryInput): string {
     else if (sex) parts.push(sex);
   }
 
-  const bg = String(input.bloodGroup || "").trim();
-  if (bg && bg !== "—") parts.push(`Blood group ${bg}`);
-
+  // Critical flags + blood group first (doctor-critical)
   const flags = (input.criticalFlags || []).map((s) => s.trim()).filter(Boolean);
   if (flags.length) parts.push(flags.join("; "));
+
+  const bg = String(input.bloodGroup || "").trim();
+  if (bg && bg !== "—") parts.push(`Blood group ${bg}`);
 
   const conds = joinList(input.conditions || [], 3);
   if (conds) parts.push(conds);
@@ -85,11 +79,13 @@ export function buildAutoSummaryEn(input: AutoSummaryInput): string {
   const all = joinList(input.allergies || [], 3);
   if (all) parts.push(`Allergy: ${all}`);
 
-  const ec = input.emergencyContact;
-  if (ec?.phone || ec?.relation || ec?.name) {
-    const who = [ec.relation, ec.name].filter(Boolean).join(", ") || "contact";
-    const ph = ec.phone ? maskPhone(ec.phone) : "";
-    parts.push(ph ? `Emergency contact: ${who}, ${ph}` : `Emergency contact: ${who}`);
+  // Public emergency view omits contact (shown in contacts section). Non-public may include name/relation only — never phone.
+  if (!input.publicOnly) {
+    const ec = input.emergencyContact;
+    if (ec?.relation || ec?.name) {
+      const who = [ec.relation, ec.name].filter(Boolean).join(", ") || "contact";
+      parts.push(`Emergency contact: ${who}`);
+    }
   }
 
   if (!parts.length) return "";
@@ -114,11 +110,11 @@ export function buildAutoSummaryHi(input: AutoSummaryInput): string {
     else if (sex) parts.push(sex);
   }
 
-  const bg = String(input.bloodGroup || "").trim();
-  if (bg && bg !== "—") parts.push(`रक्त समूह ${bg}`);
-
   const flags = (input.criticalFlags || []).map((s) => s.trim()).filter(Boolean);
   if (flags.length) parts.push(flags.join("; "));
+
+  const bg = String(input.bloodGroup || "").trim();
+  if (bg && bg !== "—") parts.push(`रक्त समूह ${bg}`);
 
   const conds = joinList(input.conditions || [], 3);
   if (conds) parts.push(conds);
@@ -129,11 +125,12 @@ export function buildAutoSummaryHi(input: AutoSummaryInput): string {
   const all = joinList(input.allergies || [], 3);
   if (all) parts.push(`एलर्जी: ${all}`);
 
-  const ec = input.emergencyContact;
-  if (ec?.phone || ec?.relation || ec?.name) {
-    const who = [ec.relation, ec.name].filter(Boolean).join(", ") || "संपर्क";
-    const ph = ec.phone ? maskPhone(ec.phone) : "";
-    parts.push(ph ? `आपातकालीन संपर्क: ${who}, ${ph}` : `आपातकालीन संपर्क: ${who}`);
+  if (!input.publicOnly) {
+    const ec = input.emergencyContact;
+    if (ec?.relation || ec?.name) {
+      const who = [ec.relation, ec.name].filter(Boolean).join(", ") || "संपर्क";
+      parts.push(`आपातकालीन संपर्क: ${who}`);
+    }
   }
 
   if (!parts.length) return "";
@@ -166,6 +163,7 @@ export function summaryFromPublicProfile(p: {
   criticalAlertLabels?: string[];
   emergency_contacts?: { name?: string; phone?: string; relation?: string }[];
 }): AutoSummaryInput {
+  void p.emergency_contacts; // contacts live in their own section — never in public summary
   return {
     publicOnly: true,
     bloodGroup: p.blood_group,
@@ -175,6 +173,6 @@ export function summaryFromPublicProfile(p: {
     criticalFlags: p.criticalFlagLabels?.length
       ? p.criticalFlagLabels
       : p.criticalAlertLabels,
-    emergencyContact: p.emergency_contacts?.[0] || null,
+    emergencyContact: null,
   };
 }

@@ -127,24 +127,37 @@ export default async function CardPage({ params }: PageProps) {
       );
     }
     profile.health_id = healthId;
-    // Normal public scan view ALWAYS includes a short-lived photo URL when available
+    // Prefer cached ≤40KB WebP thumb (fixed 96×96); fall back to signed URL.
+    // Hard-cap photo work so Slow-4G TTFB stays under ~300ms when Storage is cold.
     try {
-      const { isStorageConfigured, getSignedGetUrl } = await import(
-        "@/lib/storage"
-      );
       const path = profile.photo_url;
-      if (
-        isStorageConfigured() &&
-        path &&
-        !path.startsWith("http") &&
-        path.includes("/")
-      ) {
-        profile.photoSignedUrl = await getSignedGetUrl({
-          path,
-          expiresMs: 5 * 60_000,
-        });
-      } else if (path?.startsWith("http")) {
-        profile.photoSignedUrl = path;
+      const thumbPromise = import("@/lib/emergencyPhoto").then((m) =>
+        m.emergencyPhotoDataUrl(path)
+      );
+      const timed = await Promise.race([
+        thumbPromise,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 250)),
+      ]);
+      if (timed) {
+        profile.photoThumbDataUrl = timed;
+      } else {
+        void thumbPromise.catch(() => null);
+        const { isStorageConfigured, getSignedGetUrl } = await import(
+          "@/lib/storage"
+        );
+        if (
+          isStorageConfigured() &&
+          path &&
+          !path.startsWith("http") &&
+          path.includes("/")
+        ) {
+          profile.photoSignedUrl = await getSignedGetUrl({
+            path,
+            expiresMs: 5 * 60_000,
+          });
+        } else if (path?.startsWith("http")) {
+          profile.photoSignedUrl = path;
+        }
       }
     } catch {
       /* photo optional if Storage briefly unavailable */

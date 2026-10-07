@@ -16,11 +16,18 @@ type Props = {
   enabled: boolean;
   /** Compact for activation wizard header */
   compact?: boolean;
+  /** Light surface (public emergency redesign) */
+  light?: boolean;
   onLangChange?: (lang: Lang) => void;
 };
 
 /** Language switcher — only when regionalLang flag is ON. Never translates user data. */
-export function LanguageSwitcher({ enabled, compact, onLangChange }: Props) {
+export function LanguageSwitcher({
+  enabled,
+  compact,
+  light,
+  onLangChange,
+}: Props) {
   const [lang, setLang] = useState<Lang>("en");
 
   useEffect(() => {
@@ -37,7 +44,17 @@ export function LanguageSwitcher({ enabled, compact, onLangChange }: Props) {
     setLang(l);
     saveLang(l);
     onLangChange?.(l);
+    try {
+      window.dispatchEvent(new CustomEvent("kavach-lang", { detail: l }));
+    } catch {
+      /* */
+    }
   };
+
+  const idleColor = light ? "#5C574E" : "#A8A59C";
+  const idleBorder = light
+    ? "1px solid rgba(11,8,18,0.15)"
+    : "1px solid rgba(212,175,55,0.25)";
 
   return (
     <div style={{ marginBottom: compact ? 8 : 12 }}>
@@ -45,7 +62,7 @@ export function LanguageSwitcher({ enabled, compact, onLangChange }: Props) {
         style={{
           display: "flex",
           flexWrap: "wrap",
-          justifyContent: compact ? "flex-start" : "flex-end",
+          justifyContent: compact ? "flex-start" : "center",
           gap: 6,
         }}
       >
@@ -54,16 +71,15 @@ export function LanguageSwitcher({ enabled, compact, onLangChange }: Props) {
             key={l.code}
             type="button"
             onClick={() => set(l.code)}
+            aria-label={`Language ${l.label}`}
             style={{
               fontSize: 11,
-              padding: "4px 8px",
-              borderRadius: 6,
-              border:
-                lang === l.code
-                  ? "1px solid #D4AF37"
-                  : "1px solid rgba(212,175,55,0.25)",
-              background: lang === l.code ? "#D4AF37" : "transparent",
-              color: lang === l.code ? "#080808" : "#A8A59C",
+              padding: "8px 10px",
+              minHeight: 40,
+              borderRadius: 8,
+              border: lang === l.code ? "1px solid #D4AF37" : idleBorder,
+              background: lang === l.code ? "#D4AF37" : light ? "#fff" : "transparent",
+              color: lang === l.code ? "#080808" : idleColor,
               fontWeight: 700,
               cursor: "pointer",
             }}

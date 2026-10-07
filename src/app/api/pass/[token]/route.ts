@@ -1,104 +1,198 @@
+/**
+ * F19 — Attendant Pass Verification Endpoint
+ * GET /pass/{rawToken} — verify token hash, check expiry/revoked, return scoped data.
+ * Returns 410 Gone if expired or revoked.
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
+import { requireFeature } from "@/lib/features/server";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { decrypt, hasEncKey } from "@/lib/crypto";
 import { noStoreHeaders } from "@/lib/forms/pdfCommon";
-import { requirePack2Feature } from "@/lib/patientEase/auth";
 import {
-  attendantWatermark,
-  hashAttendantToken,
-  isGuessableToken,
+  hashToken,
+  isPassValid,
+  PASS_SCOPE_LABELS,
+  type AttendantPassScope,
 } from "@/lib/patientEase/attendantPass";
-import { decrypt } from "@/lib/crypto";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-type Ctx = { params: { token: string } };
+const PASSES_COLLECTION = "attendant_passes";
 
-export async function GET(req: NextRequest, ctx: Ctx) {
-  const feat = await requirePack2Feature("attendantPass");
-  if (!feat.ok) return feat.res;
-  const token = String(ctx.params.token || "");
-  if (isGuessableToken(token)) {
+function safeDec(enc: unknown): string {
+  if (!enc || typeof enc !== "string" || !hasEncKey()) return "";
+  try {
+    return decrypt(enc);
+  } catch {
+    return "";
+  }
+}
+
+/** Build watermark string for attendant pass response */
+function passWatermark(passId: string, scope: string, expiresAt: string): string {
+  return `KavachSaathi Attendant Pass | ID: ${passId} | Scope: ${scope} | Expires: ${expiresAt} | Single use — do not share`;
+}
+
+/** Filter profile data by scope */
+function buildScopedData(
+  profile: Record<string, unknown>,
+  scope: AttendantPassScope,
+  healthId: string
+): Record<string, unknown> {
+  const name = String(profile.name || "");
+  const bloodGroup = String(profile.bloodGroup || profile.blood_group || "");
+  const allergies = Array.isArray(profile.allergies) ? profile.allergies : [];
+  const medications = Array.isArray(profile.medications) ? profile.medications : [];
+  const conditions = Array.isArray(profile.conditions) ? profile.conditions : [];
+  const emergencyContacts = Array.isArray(profile.emergencyContacts)
+    ? profile.emergencyContacts
+    : [];
+
+  if (scope === "emergency_only") {
+    return {
+      healthId,
+      name,
+      bloodGroup,
+      emergencyContacts,
+    };
+  }
+
+  if (scope === "medical_summary") {
+    return {
+      healthId,
+      name,
+      bloodGroup,
+      allergies,
+      medications,
+      conditions,
+    };
+  }
+
+  // full_details — NO id images
+  return {
+    healthId,
+    name,
+    bloodGroup,
+    allergies,
+    medications,
+    conditions,
+    emergencyContacts,
+    dob: profile.dob || "",
+    gender: profile.gender || "",
+    insurance: buildInsuranceSummary(profile.insurance),
+    donorDirective: profile.donorDirective || null,
+    coverageSnapshot: profile.coverageSnapshot || null,
+  };
+}
+
+function buildInsuranceSummary(ins: unknown): Record<string, unknown> | null {
+  if (!ins || typeof ins !== "object") return null;
+  const i = ins as Record<string, unknown>;
+  const priv = (i.private as Record<string, unknown>) || {};
+  const gov = (i.government as Record<string, unknown>) || {};
+  return {
+    coverageType: i.coverageType || "",
+    private: priv.insurerName
+      ? {
+          insurerName: priv.insurerName,
+          policyNumber: safeDec(priv.policyNumberEnc),
+          validTill: priv.validTill,
+          tpaName: priv.tpaName,
+        }
+      : null,
+    government: gov.schemeName
+      ? {
+          schemeName: gov.schemeName,
+          govtCardNumber: safeDec(gov.govtCardNumberEnc),
+        }
+      : null,
+  };
+}
+
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ token: string }> }
+): Promise<NextResponse> {
+  const flags = await requireFeature("attendantPass");
+  if (!flags) {
     return NextResponse.json(
-      { error: "Invalid token" },
-      { status: 400, headers: noStoreHeaders() }
+      { error: "Feature not available", code: "FEATURE_OFF" },
+      { status: 404 }
     );
   }
-  const tokenHash = hashAttendantToken(token);
+
+  const params = await context.params;
+  const rawToken = params.token;
+  if (!rawToken || rawToken.length < 60) {
+    return NextResponse.json({ error: "Invalid pass token" }, { status: 400 });
+  }
+
+  const tokenHash = hashToken(rawToken);
   const db = getAdminDb();
-  const snap = await db
-    .collection("attendant_passes")
+
+  const passQuery = await db
+    .collection(PASSES_COLLECTION)
     .where("tokenHash", "==", tokenHash)
     .limit(1)
     .get();
-  if (snap.empty) {
+
+  if (passQuery.empty) {
     return NextResponse.json(
-      { error: "Pass not found", code: "GONE" },
-      { status: 410, headers: noStoreHeaders() }
-    );
-  }
-  const doc = snap.docs[0];
-  const data = doc.data();
-  if (data.revoked) {
-    return NextResponse.json(
-      { error: "Pass revoked", code: "REVOKED" },
-      { status: 410, headers: noStoreHeaders() }
-    );
-  }
-  if (Date.parse(String(data.validTill)) < Date.now()) {
-    return NextResponse.json(
-      { error: "Pass expired", code: "EXPIRED" },
-      { status: 410, headers: noStoreHeaders() }
+      { error: "Pass not found", code: "NOT_FOUND" },
+      { status: 404 }
     );
   }
 
-  await db.collection("attendant_pass_logs").add({
-    passId: doc.id,
-    profileId: data.profileId,
-    at: new Date().toISOString(),
-    ua: req.headers.get("user-agent") || "",
-    created_at: FieldValue.serverTimestamp(),
-  });
+  const passDoc = passQuery.docs[0];
+  const passData = passDoc.data();
 
-  const profile = await db.collection("profiles").doc(String(data.profileId)).get();
-  if (!profile.exists) {
-    return NextResponse.json({ error: "Profile missing" }, { status: 404 });
-  }
-  const p = profile.data()!;
-  let docs: unknown = null;
-  if (data.includeIds && p.documents_enc) {
-    try {
-      docs = JSON.parse(decrypt(String(p.documents_enc)));
-    } catch {
-      docs = null;
-    }
+  if (!isPassValid({ expiresAt: passData.expiresAt, revokedAt: passData.revokedAt })) {
+    return NextResponse.json(
+      {
+        error: passData.revokedAt ? "Pass has been revoked" : "Pass has expired",
+        code: passData.revokedAt ? "REVOKED" : "EXPIRED",
+      },
+      { status: 410 }
+    );
   }
 
-  const watermark = attendantWatermark(
-    String(data.attendantName || "Attendant"),
-    String(data.validTill)
-  );
+  // Log the use
+  try {
+    await passDoc.ref.update({
+      usedAt: passData.usedAt || new Date().toISOString(),
+      lastUsedAt: new Date().toISOString(),
+      useCount: FieldValue.increment(1),
+      lastUsedIp: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "",
+    });
+  } catch {
+    // Non-fatal
+  }
+
+  // Load profile
+  const profileSnap = await db.collection("profiles").doc(passData.profileId).get();
+  if (!profileSnap.exists) {
+    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+  }
+
+  const pd = profileSnap.data()!;
+  const healthId = String(pd.health_id || pd.healthId || "");
+  const scope = passData.scope as AttendantPassScope;
+
+  const scopedData = buildScopedData(pd, scope, healthId);
+  const watermark = passWatermark(passDoc.id, scope, passData.expiresAt);
 
   return NextResponse.json(
     {
-      scope: "attendant",
+      passId: passDoc.id,
+      scope,
+      scopeLabel: PASS_SCOPE_LABELS[scope] ?? scope,
+      expiresAt: passData.expiresAt,
       watermark,
-      validTill: data.validTill,
-      attendantName: data.attendantName,
-      full_name: p.full_name,
-      blood_group: p.blood_group,
-      allergies: p.allergies || [],
-      chronic_conditions: p.chronic_conditions || [],
-      medications: p.medications || [],
-      emergency_contacts: p.emergency_contacts || [],
-      family_doctor: p.family_doctor || null,
-      // IDs only when owner opted in
-      idProofs: data.includeIds
-        ? (docs as { idProofs?: unknown })?.idProofs || null
-        : null,
-      includeIds: !!data.includeIds,
+      data: scopedData,
     },
-    { headers: noStoreHeaders() }
+    { status: 200, headers: noStoreHeaders() }
   );
 }

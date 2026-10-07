@@ -1,0 +1,358 @@
+{
+  "at": "2026-10-07T08:11:43.977Z",
+  "base": "http://localhost:3000",
+  "passed": 70,
+  "failed": 0,
+  "rows": [
+    {
+      "id": "flag pwaApp default OFF",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "flag autoSummary default OFF",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "flag fhirExport default OFF",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "flag scanRegister default OFF",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "inventory total 58",
+      "ok": true,
+      "detail": "58"
+    },
+    {
+      "id": "inventory covers all flags",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary empty empty",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary only allergies max",
+      "ok": true,
+      "detail": "len=20"
+    },
+    {
+      "id": "summary only allergies has Allergy",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary only allergies has penicillin",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary blood only max",
+      "ok": true,
+      "detail": "len=15"
+    },
+    {
+      "id": "summary blood only has B+",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary full clinical max",
+      "ok": true,
+      "detail": "len=139"
+    },
+    {
+      "id": "summary full clinical has year-old",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary full clinical has male",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary full clinical has B+",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary full clinical has Pacemaker",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary full clinical has warfarin",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary full clinical has penicillin",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary publicOnly skips age max",
+      "ok": true,
+      "detail": "len=15"
+    },
+    {
+      "id": "summary publicOnly skips age has O+",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary publicOnly skips age no year-old",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary publicOnly skips age no male",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary many meds truncated max",
+      "ok": true,
+      "detail": "len=25"
+    },
+    {
+      "id": "summary many meds truncated has Medicines",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary many meds truncated has +2",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary long names max",
+      "ok": true,
+      "detail": "len=55"
+    },
+    {
+      "id": "summary long names has Very long condition",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary hindi names data max",
+      "ok": true,
+      "detail": "len=27"
+    },
+    {
+      "id": "summary hindi names data has पेनिसिलिन",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary hindi names data has मधुमेह",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary female age max",
+      "ok": true,
+      "detail": "len=35"
+    },
+    {
+      "id": "summary female age has female",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary female age has A+",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary critical first-ish max",
+      "ok": true,
+      "detail": "len=34"
+    },
+    {
+      "id": "summary critical first-ish has blood thinner",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary critical first-ish has AB-",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary skip empty meds max",
+      "ok": true,
+      "detail": "len=15"
+    },
+    {
+      "id": "summary skip empty meds has O-",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary skip empty meds no Medicines",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary contact only public empty empty",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary contact only private no phone max",
+      "ok": true,
+      "detail": "len=33"
+    },
+    {
+      "id": "summary contact only private no phone has Emergency contact",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary contact only private no phone has brother",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary contact only private no phone has Ravi",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary contact only private no phone no XXXXX",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary contact only private no phone no 98765",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary dash blood skipped max",
+      "ok": true,
+      "detail": "len=14"
+    },
+    {
+      "id": "summary dash blood skipped has dust",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary dash blood skipped no Blood group —",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary hi locale labels max",
+      "ok": true,
+      "detail": "len=36"
+    },
+    {
+      "id": "summary hi blood label",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary max length max",
+      "ok": true,
+      "detail": "len=300"
+    },
+    {
+      "id": "summary from public profile max",
+      "ok": true,
+      "detail": "len=77"
+    },
+    {
+      "id": "summary from public profile has B+",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary from public profile has penicillin",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "summary from public profile no year-old",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "fhir bundle validates",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "id": "fhir no aadhaar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "fhir rejects aadhaar-like",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "features api",
+      "ok": true,
+      "detail": "{\"alertFamily\":true,\"criticalBadges\":true,\"quickCall\":true,\"cashlessTimer\":true,"
+    },
+    {
+      "id": "manifest valid",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "offline page",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "demo card 200",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "/api/profile/fhir-export auth/validation",
+      "ok": true,
+      "detail": "401"
+    },
+    {
+      "id": "/api/hospital/scan-register auth/validation",
+      "ok": true,
+      "detail": "401"
+    },
+    {
+      "id": "/api/profile/hospital-consent auth/validation",
+      "ok": true,
+      "detail": "401"
+    },
+    {
+      "id": "real card ACTIVATION_NOT_OPEN",
+      "ok": true,
+      "detail": "ACTIVATION_NOT_OPEN"
+    },
+    {
+      "id": "admin reachable",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "id": "offline card allowed fields",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

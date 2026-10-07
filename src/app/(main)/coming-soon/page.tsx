@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Shield } from "lucide-react";
-import { getTimeLeft, type TimeLeft } from "@/lib/launch";
+import { getSiteLaunchAtMs, getTimeLeft, type TimeLeft } from "@/lib/launch";
 import { BROTHERS, BROTHERS_DEDICATION_LINE } from "@/lib/brothers";
 
 const PARTICLES = [
@@ -103,6 +103,19 @@ function CountdownGrid({ t }: { t: TimeLeft }) {
   );
 }
 
+function launchLabel() {
+  const d = new Date(getSiteLaunchAtMs());
+  return d.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  });
+}
+
 function UnlockCeremony() {
   return (
     <div className="relative z-10 flex w-full max-w-xl flex-col items-center px-4 text-center">
@@ -136,11 +149,13 @@ function UnlockCeremony() {
 export default function ComingSoonPage() {
   const [t, setT] = useState<TimeLeft>(() => getTimeLeft());
   const [phase, setPhase] = useState<"countdown" | "unlock">("countdown");
+  const [label, setLabel] = useState(() => launchLabel());
 
   useEffect(() => {
     const tick = () => {
       const next = getTimeLeft();
       setT(next);
+      setLabel(launchLabel());
       if (next.done) setPhase("unlock");
     };
     tick();
@@ -218,7 +233,7 @@ export default function ComingSoonPage() {
             </p>
 
             <p className="cs-enter cs-enter-d3 mt-1 font-rajdhani text-[10px] font-semibold uppercase tracking-[0.28em] text-gold/50">
-              Launching 11 Oct 2026 · 12:00 PM IST
+              Launching {label} IST
             </p>
 
             <div className="cs-enter cs-enter-d4 w-full">
@@ -255,7 +270,7 @@ export default function ComingSoonPage() {
               </p>
 
               <p className="sr-only">
-                KavachSaathi launches 11 October 2026 at 12:00 PM IST. Born from
+                KavachSaathi launches {label} IST. Born from
                 Legacy, Built to Protect. Dedicated to The Bajaj Brothers of
                 Bhirdana, Fatehabad. {BROTHERS_DEDICATION_LINE}.
               </p>

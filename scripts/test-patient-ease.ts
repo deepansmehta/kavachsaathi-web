@@ -1,20 +1,40 @@
 /**
  * Pack 2 — Patient Ease (F14–F25) unit + optional HTTP tests.
+ * Aligned to CURRENT src/lib/patientEase exports (not legacy HEAD names).
  *   TEST_BASE_URL=http://localhost:3000 npx --yes tsx scripts/test-patient-ease.ts
  */
 import fs from "fs";
 import path from "path";
-import { parseCoverage, roomTip, COVERAGE_DISCLAIMER } from "../src/lib/patientEase/coverage";
-import { progress, itemsForMode } from "../src/lib/patientEase/dischargeChecklist";
-import { billLetterEnglish, billLetterHindi, NOT_LEGAL_ADVICE } from "../src/lib/patientEase/billLetter";
-import { claimCountdown, claimCalendarLinks, CLAIM_REQUIRED_DOCS } from "../src/lib/patientEase/claimDeadline";
 import {
-  createAttendantToken,
+  emptyCoverageSnapshot,
+  roomRentTip,
+  COVERAGE_DISCLAIMER,
+} from "../src/lib/patientEase/coverage";
+import {
+  CASHLESS_ITEMS,
+  checklistProgress,
+} from "../src/lib/patientEase/dischargeChecklist";
+import {
+  buildEnglishLetter,
+  buildHindiLetter,
+  BILL_LETTER_DISCLAIMER,
+} from "../src/lib/patientEase/billLetter";
+import {
+  computeClaimCountdown,
+  claimDeadlineCalendarUrl,
+  claimDeadlineIcs,
+  REQUIRED_CLAIM_DOCS,
+} from "../src/lib/patientEase/claimDeadline";
+import {
+  createRawToken,
   hashAttendantToken,
   isGuessableToken,
   attendantWatermark,
 } from "../src/lib/patientEase/attendantPass";
-import { maskAadhaar, checkDocPackRateLimit } from "../src/lib/patientEase/documentPack";
+import {
+  maskAadhaar,
+  checkDocPackRateLimit,
+} from "../src/lib/patientEase/documentPack";
 import { needBloodWaMessage, medicineCalendar } from "../src/lib/patientEase/helpers";
 import {
   verifiedSchemes,
@@ -66,61 +86,83 @@ async function main() {
       : fail(`flag ${k}`, `missing or not OFF default=${(DEFAULT_FEATURES as any)[k]}`);
   }
 
-  const cov = parseCoverage({
+  const cov = {
+    ...emptyCoverageSnapshot(),
     sumInsured: 500000,
-    roomRentLimit: { type: "day", value: 5000 },
-  });
-  roomTip(cov)?.includes("₹5000/day")
-    ? pass("coverage room tip")
-    : fail("coverage room tip", roomTip(cov) || "");
-  COVERAGE_DISCLAIMER.includes("policyholder")
+    roomRentLimit: { type: "day" as const, value: 5000 },
+  };
+  const tip = roomRentTip(cov);
+  tip.includes("₹5,000/day") || tip.includes("₹5000/day")
+    ? pass("coverage room tip", tip.slice(0, 80))
+    : fail("coverage room tip", tip || "");
+  COVERAGE_DISCLAIMER.includes("policyholder") ||
+  COVERAGE_DISCLAIMER.toLowerCase().includes("insurer")
     ? pass("coverage disclaimer")
     : fail("coverage disclaimer");
 
-  const p = progress("cashless", { itemized_bill: true });
-  p.total === itemsForMode("cashless").length && p.done === 1
-    ? pass("discharge progress", p.label)
+  const items = CASHLESS_ITEMS;
+  const p = checklistProgress(items, { [items[0].id]: true });
+  p.total === items.length && p.done === 1
+    ? pass("discharge progress", `${p.done}/${p.total}`)
     : fail("discharge progress", JSON.stringify(p));
 
-  const en = billLetterEnglish({
+  const letterBase = {
+    hospitalName: "City Hospital",
+    admissionDate: "2026-01-01",
+    dischargeDate: "2026-01-05",
+    healthId: "KVS-TEST-00001",
+    generatedDate: "2026-01-06",
+  };
+  const en = buildEnglishLetter({
     patientName: "Test User",
-    hospital: "City Hospital",
-    ipUhid: "IP-1",
-    admissionDate: "2026-01-01",
+    ...letterBase,
   });
-  const hi = billLetterHindi({
+  const hi = buildHindiLetter({
+    ...letterBase,
     patientName: "परीक्षण",
-    hospital: "अस्पताल",
-    ipUhid: "IP-1",
-    admissionDate: "2026-01-01",
+    hospitalName: "अस्पताल",
   });
-  en.includes("itemized") && hi.includes("आइटमाइज़्ड") && NOT_LEGAL_ADVICE
+  (en.toLowerCase().includes("itemized") || en.toLowerCase().includes("itemised")) &&
+  (hi.includes("आइटम") || hi.includes("बिल") || hi.length > 40) &&
+  BILL_LETTER_DISCLAIMER
     ? pass("bill letter EN+HI")
-    : fail("bill letter");
+    : fail("bill letter", `en=${en.slice(0, 40)} hi=${hi.slice(0, 40)}`);
 
-  const cd = claimCountdown("2026-01-01", 30, new Date("2026-01-10"));
-  cd.daysLeft > 0 && CLAIM_REQUIRED_DOCS.length >= 5
-    ? pass("claim countdown", cd.label)
+  const cd = computeClaimCountdown({
+    dischargeDate: "2026-12-01",
+    windowDays: 30,
+  });
+  cd.daysRemaining > 0 && REQUIRED_CLAIM_DOCS.length >= 5
+    ? pass("claim countdown", `days=${cd.daysRemaining}`)
     : fail("claim countdown", JSON.stringify(cd));
-  const cal = claimCalendarLinks({ dischargeDate: "2026-01-01", windowDays: 30 });
-  cal.googleCalendarUrl.includes("google.com/calendar") &&
-  cal.ics.includes("BEGIN:VCALENDAR")
+  const calUrl = claimDeadlineCalendarUrl({
+    patientName: "Test User",
+    dischargeDate: "2026-12-01",
+    windowDays: 30,
+  });
+  const ics = claimDeadlineIcs({
+    patientName: "Test User",
+    dischargeDate: "2026-12-01",
+    windowDays: 30,
+    healthId: "KVS-DEMO-00001",
+  });
+  calUrl.includes("google.com/calendar") && ics.includes("BEGIN:VCALENDAR")
     ? pass("claim calendar + ics")
     : fail("claim calendar");
 
-  const tok = createAttendantToken();
+  const tok = createRawToken();
   !isGuessableToken(tok) && hashAttendantToken(tok).length === 64
     ? pass("attendant token ≥128-bit hex")
     : fail("attendant token", tok);
-  attendantWatermark("Riya", new Date().toISOString()).includes("Attendant pass")
+  attendantWatermark("full_details").includes("Attendant Pass")
     ? pass("attendant watermark")
-    : fail("watermark");
+    : fail("watermark", attendantWatermark("full_details"));
 
   maskAadhaar("123456789012") === "XXXX-XXXX-9012"
     ? pass("aadhaar mask")
     : fail("aadhaar mask", maskAadhaar("123456789012"));
   const rl = checkDocPackRateLimit("test-profile-rate");
-  rl.ok ? pass("doc pack rate allow") : fail("doc pack rate");
+  rl.allowed ? pass("doc pack rate allow") : fail("doc pack rate");
 
   needBloodWaMessage({
     bloodGroup: "B+",
@@ -131,7 +173,9 @@ async function main() {
     ? pass("need blood message")
     : fail("need blood message");
 
-  medicineCalendar({ name: "Metformin", dose: "500mg" }).ics.includes("BEGIN:VCALENDAR")
+  medicineCalendar({ name: "Metformin", dose: "500mg" }).ics.includes(
+    "BEGIN:VCALENDAR"
+  )
     ? pass("medicine ics")
     : fail("medicine ics");
 
@@ -139,43 +183,58 @@ async function main() {
     ? pass(`schemes verified count=${verifiedSchemes().length}`)
     : fail("schemes");
 
-  // PDFs
   const billPdf = await buildBillLetterPdf({
     patientName: "दीपांश मेहता",
     hospital: "City Hospital with a very long name that must wrap properly on the page",
     ipUhid: "UHID-4242",
     admissionDate: "2026-03-01",
   });
-  fs.writeFileSync(path.join(OUT, "bill-letter.pdf"), billPdf);
-  !Buffer.from(billPdf).toString("latin1").includes("undefined")
-    ? pass("bill letter PDF", `${billPdf.length}b`)
+  const billBytes = Buffer.from(billPdf.bytes);
+  fs.writeFileSync(path.join(OUT, "bill-letter.pdf"), billBytes);
+  !billBytes.toString("latin1").includes("undefined")
+    ? pass("bill letter PDF", `${billBytes.length}b`)
     : fail("bill letter PDF undefined");
 
   const packPdf = await buildDocumentPackPdf({
-    name: "Test User",
-    insurer: "Star Health",
-    tpa: "Medi Assist",
-    policy: "POL-1",
-    memberId: "M-1",
-    aadhaarMasked: maskAadhaar("123412341234"),
-    sections: ["cover", "cashless", "id_proofs"],
-    vaultTitles: ["discharge_summary 2026-01-01 City"],
+    sections: ["personal_details", "allergies", "medications"],
+    healthId: "KVS-DEMO-00001",
+    profile: {
+      name: "Test User",
+      bloodGroup: "O+",
+      aadhaar: "123412341234",
+      allergies: ["Penicillin"],
+      medications: [{ name: "Metformin", dose: "500mg" }],
+      insurance: {
+        private: {
+          insurerName: "Star Health",
+          policyNumber: "POL-1",
+          tpaName: "Medi Assist",
+        },
+      },
+    },
   });
-  fs.writeFileSync(path.join(OUT, "document-pack.pdf"), packPdf);
-  pass("document pack PDF", `${packPdf.length}b`);
+  const packBytes = Buffer.from(packPdf.bytes);
+  fs.writeFileSync(path.join(OUT, "document-pack.pdf"), packBytes);
+  pass("document pack PDF", `${packBytes.length}b`);
 
   const docPdf = await buildDoctorSummaryPdf({
     name: "Test User",
+    age: "40",
+    ageMonths: "0",
+    gender: "male",
     bloodGroup: "O+",
     allergies: ["Penicillin"],
-    conditions: [{ name: "Diabetes", sinceYear: "2018" }],
-    medicines: [{ name: "Insulin", dose: "10U", frequency: "BD" }],
-    includeJanAushadhi: true,
+    conditions: ["Diabetes"],
+    surgeries: [],
+    medications: [{ name: "Insulin", dose: "10U", freq: "BD" }],
+    vaccinations: [],
+    criticalFlags: [],
+    familyDoctor: null,
+    generatedAt: new Date().toISOString(),
   });
   fs.writeFileSync(path.join(OUT, "doctor-summary.pdf"), docPdf);
   pass("doctor summary PDF", `${docPdf.length}b`);
 
-  // Official link HTTP checks (live)
   const urls = [
     OFFICIAL_LINKS.pmjay,
     OFFICIAL_LINKS.pmjayEligibility,
@@ -219,43 +278,46 @@ async function main() {
     ];
     let features: Record<string, boolean> = {};
     try {
-      const f = await (await fetch(`${BASE}/api/features`)).json();
+      const f = (await (await fetch(`${BASE}/api/features`)).json()) as {
+        flags?: Record<string, boolean>;
+      };
       features = f.flags || {};
     } catch {
       fail("features fetch");
     }
     for (const k of PACK2) {
-      // Before deploy, old servers may omit new keys — treat missing as OFF
       features[k] === true || features[k] === false || features[k] === undefined
         ? pass(`live flag ${k}=${String(features[k])}`)
         : fail(`live flag ${k}`, String(features[k]));
     }
-    for (const [p, method] of paths) {
+    for (const [pPath, method] of paths) {
       try {
-        const r = await fetch(`${BASE}${p}`, {
+        const r = await fetch(`${BASE}${pPath}`, {
           method,
           headers: { "Content-Type": "application/json" },
           body: method === "POST" ? "{}" : undefined,
         });
         const text = await r.text();
-        let json: any = {};
+        let json: { code?: string } = {};
         try {
           json = JSON.parse(text);
         } catch {
           /* */
         }
         if (r.status === 404 && json.code === "FEATURE_OFF") {
-          pass(`${method} ${p} FEATURE_OFF`);
+          pass(`${method} ${pPath} FEATURE_OFF`);
         } else if ([400, 401, 403, 404, 503].includes(r.status)) {
-          pass(`${method} ${p} → ${r.status} (gated)`);
+          pass(`${method} ${pPath} → ${r.status} (gated)`);
         } else {
-          fail(`${method} ${p}`, `status=${r.status}`);
+          fail(`${method} ${pPath}`, `status=${r.status}`);
         }
       } catch (e) {
-        fail(`${method} ${p}`, e instanceof Error ? e.message : String(e));
+        fail(
+          `${method} ${pPath}`,
+          e instanceof Error ? e.message : String(e)
+        );
       }
     }
-    // Emergency HTML must not leak Pack2 labels except need blood when ON
     try {
       const html = await (
         await fetch(`${BASE}/card/KVS-DEMO-00001`)

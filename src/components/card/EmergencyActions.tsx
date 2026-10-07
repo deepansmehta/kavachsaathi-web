@@ -45,34 +45,15 @@ export function EmergencyActions({
   }, [scanToken, sectionsRendered]);
 
   return (
-    <div style={{ marginTop: 16 }}>
+    <div className="ks-full-details">
       <button
         type="button"
+        className="ks-full-btn"
         onClick={() => setOpen(true)}
-        style={{
-          width: "100%",
-          padding: "14px 16px",
-          borderRadius: 12,
-          border: "1px solid rgba(212,175,55,0.45)",
-          background: "#141410",
-          color: "#FCE49A",
-          fontWeight: 700,
-          fontSize: 15,
-          cursor: "pointer",
-        }}
+        aria-label="Open full details for hospital admission"
       >
-        Open Full Details
+        Open Full Details — Hospital Admission
       </button>
-      <p
-        style={{
-          marginTop: 10,
-          fontSize: 12,
-          color: "#A8A59C",
-          textAlign: "center",
-        }}
-      >
-        Hospital admission · PIN or logged emergency access
-      </p>
       {open && healthId ? (
         <FullDetailsModal
           healthId={healthId}

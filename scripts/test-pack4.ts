@@ -138,7 +138,31 @@ async function main() {
       { id: "female age", input: { dateOfBirth: "1990-06-01", gender: "female", bloodGroup: "A+" }, expectIncludes: ["female", "A+"] },
       { id: "critical first-ish", input: { criticalFlags: ["On blood thinner"], bloodGroup: "AB-" }, expectIncludes: ["blood thinner", "AB-"] },
       { id: "skip empty meds", input: { medications: ["", "  "], bloodGroup: "O-" }, expectIncludes: ["O-"], expectNot: ["Medicines"] },
-      { id: "contact only", input: { emergencyContact: { name: "Ravi", relation: "brother", phone: "9876543210" }, publicOnly: true }, expectIncludes: ["Emergency contact", "XXXXX"] },
+      // Public summary omits contacts (shown in contacts section); non-public includes name/relation only — never phone
+      {
+        id: "contact only public empty",
+        input: {
+          emergencyContact: {
+            name: "Ravi",
+            relation: "brother",
+            phone: "9876543210",
+          },
+          publicOnly: true,
+        },
+        expectEmpty: true,
+      },
+      {
+        id: "contact only private no phone",
+        input: {
+          emergencyContact: {
+            name: "Ravi",
+            relation: "brother",
+            phone: "9876543210",
+          },
+        },
+        expectIncludes: ["Emergency contact", "brother", "Ravi"],
+        expectNot: ["XXXXX", "98765"],
+      },
       { id: "dash blood skipped", input: { bloodGroup: "—", allergies: ["dust"] }, expectIncludes: ["dust"], expectNot: ["Blood group —"] },
       { id: "hi locale labels", input: { bloodGroup: "B+", allergies: ["penicillin"] }, expectIncludes: [] },
       { id: "max length", input: { conditions: [ "x".repeat(400) ], publicOnly: true } },

@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { headers } from "next/headers";
 import { Rajdhani, DM_Sans, Space_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { Navbar } from "@/components/layout/Navbar";
@@ -31,7 +30,8 @@ const spaceMono = Space_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "KavachSaathi — India Ka Pehla Smart Health Card | Bajaj Brothers Legacy",
+    default:
+      "KavachSaathi — India Ka Pehla Smart Health Card | Bajaj Brothers Legacy",
     template: "%s | KavachSaathi",
   },
   description:
@@ -56,34 +56,9 @@ export const viewport: Viewport = {
   colorScheme: "dark",
 };
 
-export default function RootLayout({
+export default function MainLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const lite = headers().get("x-kavach-lite") === "1";
-
-  // Emergency / card scan path: no Nav, Footer, Auth, Google fonts, or Toaster
-  if (lite) {
-    return (
-      <html lang="en">
-        <head>
-          <meta name="robots" content="noindex,nofollow" />
-        </head>
-        <body
-          style={{
-            margin: 0,
-            minHeight: "100vh",
-            background: "#080808",
-            color: "#F0EEE8",
-            fontFamily:
-              "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
-          }}
-        >
-          {children}
-        </body>
-      </html>
-    );
-  }
-
   return (
     <html
       lang="en"

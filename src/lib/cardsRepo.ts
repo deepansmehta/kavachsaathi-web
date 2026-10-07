@@ -94,7 +94,7 @@ export function cardIsBlocked(card: CardRecord): boolean {
   return isCardBlockedStatus(card.status);
 }
 
-/** Public emergency view — NEVER include health_id, activation_code, fullAddress, abhaId */
+/** Public emergency view — NEVER include activation_code, fullAddress, abhaId, ID images, policy numbers, vault */
 export type PublicEmergencyProfile = {
   name: string;
   blood_group: string;
@@ -106,6 +106,12 @@ export type PublicEmergencyProfile = {
   photo_url?: string | null;
   /** Short-lived signed URL filled by the card page when Storage is ready */
   photoSignedUrl?: string | null;
+  /** Inline WebP/AVIF/JPEG data URL (≤40KB, 96×96) for LCP — preferred over signed URL */
+  photoThumbDataUrl?: string | null;
+  /** Display age in years (from DOB); never expose raw DOB on this page */
+  age?: number | null;
+  /** Display gender label only */
+  gender?: string | null;
   city?: string | null;
   preferredHospital?: string | null;
   organDonor?: OrganDonorValue;
@@ -221,6 +227,10 @@ function mapPublicProfile(
       }
     | undefined;
 
+  const dobRaw = String(data.dateOfBirth || data.dob || "").trim();
+  const age = ageYearsFromDob(dobRaw);
+  const gender = genderDisplay(String(data.gender || "").trim());
+
   const base = {
     name: String(data.full_name || data.name || "").trim() || "Not provided",
     blood_group: String(data.blood_group || data.bloodGroup || "").trim() || "—",
@@ -235,6 +245,8 @@ function mapPublicProfile(
     photo_url: (data.photo_url || data.profile_photo || photoObj?.path || null) as
       | string
       | null,
+    age,
+    gender,
     city,
     preferredHospital,
     organDonor,
@@ -258,4 +270,25 @@ function mapPublicProfile(
 function asArr(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   return v.map((x) => String(x).trim()).filter(Boolean);
+}
+
+function ageYearsFromDob(dob: string): number | null {
+  if (!dob) return null;
+  const d = new Date(dob);
+  if (Number.isNaN(d.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age -= 1;
+  if (age < 0 || age > 130) return null;
+  return age;
+}
+
+function genderDisplay(g: string): string | null {
+  const v = g.toLowerCase();
+  if (!v) return null;
+  if (v === "m" || v === "male" || v === "पुरुष") return "Male";
+  if (v === "f" || v === "female" || v === "महिला") return "Female";
+  if (v === "other" || v === "o") return "Other";
+  return g.length <= 24 ? g : null;
 }

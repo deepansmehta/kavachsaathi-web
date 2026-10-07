@@ -1,0 +1,71 @@
+=== Pack 4 tests @ https://kavachsaathi.in ===
+
+PASS flag pwaApp default OFF 
+PASS flag autoSummary default OFF 
+PASS flag fhirExport default OFF 
+PASS flag scanRegister default OFF 
+PASS inventory total 58 58
+PASS inventory covers all flags 
+PASS summary empty empty 
+PASS summary only allergies max len=20
+PASS summary only allergies has Allergy 
+PASS summary only allergies has penicillin 
+PASS summary blood only max len=15
+PASS summary blood only has B+ 
+PASS summary full clinical max len=155
+PASS summary full clinical has year-old 
+PASS summary full clinical has male 
+PASS summary full clinical has B+ 
+PASS summary full clinical has Pacemaker 
+PASS summary full clinical has warfarin 
+PASS summary full clinical has penicillin 
+PASS summary publicOnly skips age max len=15
+PASS summary publicOnly skips age has O+ 
+PASS summary publicOnly skips age no year-old 
+PASS summary publicOnly skips age no male 
+PASS summary many meds truncated max len=25
+PASS summary many meds truncated has Medicines 
+PASS summary many meds truncated has +2 
+PASS summary long names max len=55
+PASS summary long names has Very long condition 
+PASS summary hindi names data max len=27
+PASS summary hindi names data has पेनिसिलिन 
+PASS summary hindi names data has मधुमेह 
+PASS summary female age max len=35
+PASS summary female age has female 
+PASS summary female age has A+ 
+PASS summary critical first-ish max len=34
+PASS summary critical first-ish has blood thinner 
+PASS summary critical first-ish has AB- 
+PASS summary skip empty meds max len=15
+PASS summary skip empty meds has O- 
+PASS summary skip empty meds no Medicines 
+PASS summary contact only max len=49
+PASS summary contact only has Emergency contact 
+PASS summary contact only has XXXXX 
+PASS summary dash blood skipped max len=14
+PASS summary dash blood skipped has dust 
+PASS summary dash blood skipped no Blood group — 
+PASS summary hi locale labels max len=36
+PASS summary hi blood label 
+PASS summary max length max len=300
+PASS summary from public profile max len=117
+PASS summary from public profile has B+ 
+PASS summary from public profile has penicillin 
+PASS summary from public profile no year-old 
+PASS fhir bundle validates []
+PASS fhir no aadhaar 
+PASS fhir rejects aadhaar-like 
+PASS features api {"alertFamily":true,"criticalBadges":true,"quickCall":true,"cashlessTimer":true,
+PASS manifest valid 
+PASS offline page 
+PASS demo card 200 
+PASS /api/profile/fhir-export auth/validation 401
+PASS /api/hospital/scan-register auth/validation 401
+PASS /api/profile/hospital-consent auth/validation 401
+PASS real card ACTIVATION_NOT_OPEN ACTIVATION_NOT_OPEN
+PASS admin reachable 200
+PASS offline card allowed fields 
+
+=== SUMMARY ===
+PASS 66  FAIL 0

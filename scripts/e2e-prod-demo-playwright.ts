@@ -20,7 +20,10 @@ const BASE = "https://kavachsaathi.in";
 const PIN = "482913";
 const PHONE = "9999900001";
 const DATE = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-const OUT = path.join(process.cwd(), `exports/e2e-prod-${DATE}`);
+const OUT = path.join(
+  process.cwd(),
+  process.env.E2E_OUT_DIR || `exports/e2e-prod-${DATE}`
+);
 const INSURER_TARGET = "Test Insurance Co";
 
 function loadEnv() {

@@ -1,111 +1,173 @@
+/**
+ * F16 — Document Pack PDF API
+ * POST — generate and return multi-section PDF (no storage, rate-limited 10/hr)
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
+import { requireFeature } from "@/lib/features/server";
+import {
+  PROFILE_SESSION_COOKIE,
+  verifyProfileSessionToken,
+} from "@/lib/profileSession";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { decrypt, hasEncKey } from "@/lib/crypto";
 import { noStoreHeaders } from "@/lib/forms/pdfCommon";
 import {
-  requireOwnerSession,
-  requirePack2Feature,
-} from "@/lib/patientEase/auth";
-import {
-  DOC_PACK_SECTIONS,
+  validateSections,
   checkDocPackRateLimit,
-  maskAadhaar,
+  type DocumentPackSection,
 } from "@/lib/patientEase/documentPack";
 import { buildDocumentPackPdf } from "@/lib/patientEase/pdfs/documentPackPdf";
-import { loadFeatureFlags } from "@/lib/features/server";
-import { isFeatureOn } from "@/lib/features/flags";
-import { buildAutoSummaryPair } from "@/lib/autoSummary";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function POST(req: NextRequest) {
-  const feat = await requirePack2Feature("documentPack");
-  if (!feat.ok) return feat.res;
-  const sess = await requireOwnerSession(req);
-  if (!sess.ok) return sess.res;
+function safeDec(enc: unknown): string {
+  if (!enc || typeof enc !== "string" || !hasEncKey()) return "";
+  try {
+    return decrypt(enc);
+  } catch {
+    return "";
+  }
+}
 
-  const rate = checkDocPackRateLimit(sess.profileId);
-  if (!rate.ok) {
+async function getProfileId(req: NextRequest): Promise<string | null> {
+  const tok = req.cookies.get(PROFILE_SESSION_COOKIE)?.value;
+  const sess = verifyProfileSessionToken(tok);
+  if (!sess) return null;
+  const db = getAdminDb();
+  const snap = await db.collection("profiles").doc(sess.profileId).get();
+  if (!snap.exists) return null;
+  return sess.profileId;
+}
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  const flags = await requireFeature("documentPack");
+  if (!flags) {
     return NextResponse.json(
-      { error: "Rate limit: max 10 document packs per hour", code: "RATE_LIMIT" },
-      { status: 429, headers: noStoreHeaders() }
+      { error: "Feature not available", code: "FEATURE_OFF" },
+      { status: 404 }
     );
   }
 
-  const body = await req.json().catch(() => ({}));
-  const wanted = Array.isArray(body.sections)
-    ? body.sections.map(String)
-    : DOC_PACK_SECTIONS.filter((s) => s.defaultOn).map((s) => s.id);
+  const profileId = await getProfileId(req);
+  if (!profileId) {
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401, headers: noStoreHeaders() });
+  }
 
+  // Rate limit: 10 per hour per profileId
+  const rateCheck = checkDocPackRateLimit(profileId);
+  if (!rateCheck.allowed) {
+    return NextResponse.json(
+      {
+        error: "Too many requests",
+        code: "RATE_LIMIT",
+        retryAfterMs: rateCheck.retryAfterMs,
+      },
+      {
+        status: 429,
+        headers: {
+          ...noStoreHeaders(),
+          "Retry-After": String(Math.ceil(rateCheck.retryAfterMs / 1000)),
+        },
+      }
+    );
+  }
+
+  let body: { sections?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const sections = validateSections(body.sections);
+  if (!sections) {
+    return NextResponse.json(
+      { error: "sections must be a non-empty array of valid section keys" },
+      { status: 400 }
+    );
+  }
+
+  // Load profile data
   const db = getAdminDb();
-  const profile = await db.collection("profiles").doc(sess.profileId).get();
-  const p = profile.data() || {};
-  const insurance = (p.insurance || {}) as Record<string, unknown>;
-  const priv = (insurance.private || {}) as Record<string, unknown>;
-  const ids = Array.isArray(p.idProofs) ? p.idProofs : [];
-  const aadhaar = ids.find(
-    (x: { type?: string }) => String(x?.type || "").toLowerCase() === "aadhaar"
-  ) as { number?: string } | undefined;
+  const profileSnap = await db.collection("profiles").doc(profileId).get();
+  if (!profileSnap.exists) {
+    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+  }
+  const pd = profileSnap.data()!;
 
-  const vaultSnap = await db
-    .collection("vault")
-    .where("profileId", "==", sess.profileId)
-    .limit(10)
-    .get()
-    .catch(() => null);
-  const vaultTitles =
-    vaultSnap?.docs
-      .map((d) => {
-        const v = d.data();
-        return `${v.type || "record"} ${v.date || ""} ${v.hospital || ""}`.trim();
-      })
-      .slice(0, 3) || [];
+  // Build insurance with decrypted policy numbers (for display only)
+  const ins = pd.insurance;
+  let insuranceData: Record<string, unknown> | undefined;
+  if (ins) {
+    insuranceData = {
+      coverageType: ins.coverageType || "",
+      private: ins.private
+        ? {
+            insurerName: ins.private.insurerName || "",
+            policyNumber: safeDec(ins.private.policyNumberEnc),
+            validTill: ins.private.validTill || "",
+            tpaName: ins.private.tpaName || "",
+          }
+        : undefined,
+      government: ins.government
+        ? {
+            schemeName: ins.government.schemeName || "",
+            govtCardNumber: safeDec(ins.government.govtCardNumberEnc),
+          }
+        : undefined,
+    };
+  }
 
-  const flags = await loadFeatureFlags();
-  const contacts = Array.isArray(p.emergency_contacts) ? p.emergency_contacts : [];
-  const summaryPair = isFeatureOn(flags, "autoSummary")
-    ? buildAutoSummaryPair({
-        dateOfBirth: p.dateOfBirth as string,
-        gender: p.gender as string,
-        bloodGroup: String(p.blood_group || ""),
-        criticalFlags: (p.criticalAlerts?.tags ||
-          p.criticalFlags?.tags ||
-          []) as string[],
-        conditions: (p.chronic_conditions || []) as string[],
-        medications: (p.medications || []) as string[],
-        allergies: (p.allergies || []) as string[],
-        emergencyContact: contacts[0] || null,
-      })
-    : { en: "", hi: "" };
+  const profile = {
+    name: pd.name || "",
+    dob: pd.dob || "",
+    gender: pd.gender || "",
+    bloodGroup: pd.bloodGroup || pd.blood_group || "",
+    phone: pd.phone || "",
+    address: pd.address || "",
+    aadhaar: "", // We only mask — never show raw Aadhaar in pack
+    emergencyContacts: Array.isArray(pd.emergencyContacts) ? pd.emergencyContacts : [],
+    conditions: Array.isArray(pd.conditions) ? pd.conditions : [],
+    allergies: Array.isArray(pd.allergies) ? pd.allergies : [],
+    medications: Array.isArray(pd.medications) ? pd.medications : [],
+    insurance: insuranceData,
+    donorDirective: pd.donorDirective || undefined,
+    coverageSnapshot: pd.coverageSnapshot || undefined,
+    healthId: pd.health_id || pd.healthId || "",
+  };
 
-  const bytes = await buildDocumentPackPdf({
-    name: String(p.full_name || ""),
-    insurer: String(priv.insurerName || ""),
-    tpa: String(priv.tpaName || ""),
-    policy: String(priv.policyNumber || ""),
-    memberId: String(priv.memberId || ""),
-    aadhaarMasked: maskAadhaar(aadhaar?.number),
-    sections: wanted,
-    vaultTitles: wanted.includes("vault") ? vaultTitles : [],
-    autoSummaryEn: summaryPair.en || undefined,
-    autoSummaryHi: summaryPair.hi || undefined,
-  });
+  const healthId = String(pd.health_id || pd.healthId || "");
 
-  await db.collection("document_pack_logs").add({
-    profileId: sess.profileId,
-    health_id: sess.healthId,
-    sections: wanted,
-    at: new Date().toISOString(),
-    created_at: FieldValue.serverTimestamp(),
-  });
+  // Log pack generation (no PDF stored)
+  try {
+    await db.collection("document_pack_logs").add({
+      profileId,
+      healthId,
+      sections,
+      generatedAt: FieldValue.serverTimestamp(),
+      ua: req.headers.get("user-agent") || "",
+    });
+  } catch {
+    // Non-fatal — log failure should not block PDF delivery
+  }
 
-  return new NextResponse(Buffer.from(bytes), {
+  let pdfResult: { bytes: Uint8Array; headers: Record<string, string> };
+  try {
+    pdfResult = await buildDocumentPackPdf({
+      sections: sections as DocumentPackSection[],
+      profile,
+      healthId,
+    });
+  } catch (err) {
+    console.error("[document-pack] PDF generation error:", err);
+    return NextResponse.json({ error: "PDF generation failed" }, { status: 500 });
+  }
+
+  return new NextResponse(Buffer.from(pdfResult.bytes), {
     status: 200,
-    headers: {
-      ...noStoreHeaders(),
-      "Content-Type": "application/pdf",
-      "Content-Disposition": 'attachment; filename="kavach-document-pack.pdf"',
-    },
+    headers: pdfResult.headers,
   });
 }
