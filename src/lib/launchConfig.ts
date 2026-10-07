@@ -15,16 +15,25 @@
  *
  * Mock clock ACTIVATION_TEST_NOW: site pre-launch middleware only (non-prod).
  * It NEVER opens real-card activation — see activationGate.getActivationNow().
- * Preview unlock: ?preview=<LAUNCH_PREVIEW_SECRET> (QA only)
+ *
+ * Preview unlock (pre-launch QA only):
+ *   ?preview=<PRELAUNCH_PREVIEW_SECRET> + httpOnly cookie (2h).
+ *   Secret from env only — no hardcoded fallback. Unset → no bypass.
+ *   After site launch instant → preview has no effect (cookie cleared).
  */
+
+import { timingSafeEqual } from "crypto";
 
 export const DEFAULT_SITE_LAUNCH_AT = "2026-10-11T12:00:00+05:30";
 
-/** ?preview=<secret> unlocks the full site before launch (for internal QA) */
-export const LAUNCH_PREVIEW_SECRET = "kavach2026secret";
+/** httpOnly cookie set after a valid ?preview= secret (2 hours). */
+export const LAUNCH_PREVIEW_COOKIE = "kavach_preview_v3";
 
-/** Bump name when re-locking so stale QA cookies cannot keep the site open */
-export const LAUNCH_PREVIEW_COOKIE = "kavach_preview_v2";
+/** Cookie lifetime — 2 hours. */
+export const PRELAUNCH_PREVIEW_COOKIE_MAX_AGE_SEC = 60 * 60 * 2;
+
+/** @deprecated removed hardcoded secret — use getPrelaunchPreviewSecret() */
+export const LAUNCH_PREVIEW_SECRET = "";
 
 function isProductionRuntime(): boolean {
   if (process.env.NODE_ENV === "production") return true;
@@ -32,6 +41,60 @@ function isProductionRuntime(): boolean {
     .trim()
     .toLowerCase();
   return ctx === "production";
+}
+
+/**
+ * Production-only preview secret from env.
+ * Empty / unset / non-production → null (no bypass possible).
+ */
+export function getPrelaunchPreviewSecret(): string | null {
+  if (!isProductionRuntime()) return null;
+  const s = String(process.env.PRELAUNCH_PREVIEW_SECRET || "").trim();
+  if (s.length < 16) return null;
+  return s;
+}
+
+function safeEqualString(a: string, b: string): boolean {
+  try {
+    const ba = Buffer.from(a);
+    const bb = Buffer.from(b);
+    if (ba.length !== bb.length) return false;
+    return timingSafeEqual(ba, bb);
+  } catch {
+    return false;
+  }
+}
+
+/** True when ?preview= matches PRELAUNCH_PREVIEW_SECRET (production + env set). */
+export function previewParamMatchesSecret(
+  previewRaw: string | null | undefined
+): boolean {
+  const secret = getPrelaunchPreviewSecret();
+  if (!secret || previewRaw == null || previewRaw === "") return false;
+  if (
+    previewRaw === "off" ||
+    previewRaw === "clear" ||
+    previewRaw === "0"
+  ) {
+    return false;
+  }
+  return safeEqualString(previewRaw, secret);
+}
+
+/**
+ * Whether the pre-launch gate may be bypassed for this request.
+ * After launch instant → always false (preview has no effect).
+ */
+export function isPrelaunchPreviewActive(opts: {
+  previewParam?: string | null;
+  cookieValue?: string | null;
+  now?: Date;
+}): boolean {
+  if (isSiteLaunched(opts.now)) return false;
+  if (!getPrelaunchPreviewSecret()) return false;
+  if (previewParamMatchesSecret(opts.previewParam ?? null)) return true;
+  if (opts.cookieValue === "1") return true;
+  return false;
 }
 
 /** Resolved launch / activation-open instant (ms since epoch). */

@@ -16,7 +16,7 @@ import { resetDemoCard } from "./reset-demo-card";
 import { hashPin } from "../src/lib/pin";
 
 const BASE = "https://kavachsaathi.in";
-const PREVIEW = "kavach2026secret";
+const PREVIEW = String(process.env.PRELAUNCH_PREVIEW_SECRET || "").trim();
 const OUT = path.join(
   process.cwd(),
   process.env.E2E_OUT_DIR || "exports/e2e-2026-10-08"
@@ -217,33 +217,36 @@ async function main() {
     );
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`${BASE}/my-profile?preview=${PREVIEW}`, {
-      waitUntil: "networkidle",
-    });
-    await page.waitForTimeout(1500);
-    // wrong PIN lockout attempt
-    const loginInput = page
-      .getByLabel(/Health ID|phone|Phone|Login/i)
-      .or(page.locator('input[type="text"], input[inputmode="tel"]').first());
-    await loginInput.first().fill(E2E2099);
-    const pinInput = page.locator('input[type="password"]').first();
-    await pinInput.fill("111111");
-    await page.getByRole("button", { name: /^Log in$/i }).click();
-    await page.waitForTimeout(1000);
-    await shot(page, "11-wrong-pin");
-    const wrongHtml = await page.content();
-    /incorrect|invalid|wrong|attempts|lock/i.test(wrongHtml)
-      ? pass("11 wrong PIN feedback")
-      : fail("11 wrong PIN");
+    if (!PREVIEW || PREVIEW.length < 16) {
+      pass("11 my-profile preview skipped (no PRELAUNCH_PREVIEW_SECRET)");
+    } else {
+      await page.goto(`${BASE}/my-profile?preview=${PREVIEW}`, {
+        waitUntil: "networkidle",
+      });
+      await page.waitForTimeout(1500);
+      const loginInput = page
+        .getByLabel(/Health ID|phone|Phone|Login/i)
+        .or(page.locator('input[type="text"], input[inputmode="tel"]').first());
+      await loginInput.first().fill(E2E2099);
+      const pinInput = page.locator('input[type="password"]').first();
+      await pinInput.fill("111111");
+      await page.getByRole("button", { name: /^Log in$/i }).click();
+      await page.waitForTimeout(1000);
+      await shot(page, "11-wrong-pin");
+      const wrongHtml = await page.content();
+      /incorrect|invalid|wrong|attempts|lock/i.test(wrongHtml)
+        ? pass("11 wrong PIN feedback")
+        : fail("11 wrong PIN");
 
-    await pinInput.fill(PIN);
-    await page.getByRole("button", { name: /^Log in$/i }).click();
-    await page.waitForTimeout(2500);
-    await shot(page, "11-profile");
-    const prof = await page.content();
-    /E2E Disposable|Validity|Access|Referral|Lost|Sticker|validity/i.test(prof)
-      ? pass("11 profile loaded")
-      : fail("11 profile load");
+      await pinInput.fill(PIN);
+      await page.getByRole("button", { name: /^Log in$/i }).click();
+      await page.waitForTimeout(2500);
+      await shot(page, "11-profile");
+      const prof = await page.content();
+      /E2E Disposable|Validity|Access|Referral|Lost|Sticker|validity/i.test(prof)
+        ? pass("11 profile loaded")
+        : fail("11 profile load");
+    }
 
     // Pre-launch: real card still blocked for activation
     const gate = await page.request.post(`${BASE}/api/card/activate`, {
@@ -258,6 +261,7 @@ async function main() {
       ? pass("14 real still gated")
       : fail("14 gate", JSON.stringify(gj).slice(0, 80));
 
+    await context.clearCookies();
     await page.goto(`${BASE}/my-profile`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(800);
     const blocked = page.url().includes("coming-soon");

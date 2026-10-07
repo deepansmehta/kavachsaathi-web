@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import {
   LAUNCH_PREVIEW_COOKIE,
-  LAUNCH_PREVIEW_SECRET,
+  PRELAUNCH_PREVIEW_COOKIE_MAX_AGE_SEC,
+  isPrelaunchPreviewActive,
   isSiteLaunched,
+  previewParamMatchesSecret,
 } from "@/lib/launchConfig";
 
 /**
@@ -52,7 +54,11 @@ const PROTECTED_PREFIXES = [
 ];
 
 function clearPreview(res: NextResponse) {
-  for (const name of [LAUNCH_PREVIEW_COOKIE, "kavach_preview"]) {
+  for (const name of [
+    LAUNCH_PREVIEW_COOKIE,
+    "kavach_preview_v2",
+    "kavach_preview",
+  ]) {
     res.cookies.set(name, "", {
       path: "/",
       httpOnly: true,
@@ -68,7 +74,8 @@ function withPreviewCookie(res: NextResponse) {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
-    maxAge: 60 * 60 * 2,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: PRELAUNCH_PREVIEW_COOKIE_MAX_AGE_SEC,
   });
   return res;
 }
@@ -143,17 +150,22 @@ export function middleware(request: NextRequest) {
   const previewRaw = request.nextUrl.searchParams.get("preview");
   const turnOffPreview =
     previewRaw === "off" || previewRaw === "clear" || previewRaw === "0";
-  const previewParam = previewRaw === LAUNCH_PREVIEW_SECRET;
-  const previewCookie =
-    request.cookies.get(LAUNCH_PREVIEW_COOKIE)?.value === "1";
+  const launched = isSiteLaunched();
 
   if (turnOffPreview) {
     const soon = new URL("/coming-soon", request.url);
     return clearPreview(NextResponse.redirect(soon));
   }
 
-  const preview = previewParam || previewCookie;
-  const launched = isSiteLaunched();
+  const previewParam = previewParamMatchesSecret(previewRaw);
+  const previewCookie =
+    request.cookies.get(LAUNCH_PREVIEW_COOKIE)?.value === "1";
+  const preview =
+    !launched &&
+    isPrelaunchPreviewActive({
+      previewParam: previewRaw,
+      cookieValue: previewCookie ? "1" : null,
+    });
 
   // ── Pre-launch (before ACTIVATION_OPENS_AT / SITE_PRELAUNCH_FORCE) ─────
   if (!launched && !preview) {
@@ -205,18 +217,24 @@ export function middleware(request: NextRequest) {
     );
   }
 
-  const attachPreview = previewParam;
+  // Only set cookie when secret matched on this request AND still pre-launch
+  const attachPreview = !launched && previewParam;
 
-  // ── Post-launch (or preview) auth routing ──────────────────────────────
+  // ── Post-launch (or pre-launch preview) auth routing ───────────────────
   const session = request.cookies.get("kavach_session")?.value === "1";
   const requestHeaders = new Headers(request.headers);
+
+  const finish = (res: NextResponse) => {
+    if (launched) return clearPreview(res);
+    return attachPreview ? withPreviewCookie(res) : res;
+  };
 
   if (CARD_PATTERN.test(pathname) || EMERGENCY_PATTERN.test(pathname)) {
     requestHeaders.set("x-kavach-lite", "1");
     const res = NextResponse.next({
       request: { headers: requestHeaders },
     });
-    return attachPreview ? withPreviewCookie(res) : res;
+    return finish(res);
   }
 
   if (
@@ -226,8 +244,7 @@ export function middleware(request: NextRequest) {
     pathname === "/org" ||
     ADMIN_PATTERN.test(pathname)
   ) {
-    const res = NextResponse.next();
-    return attachPreview ? withPreviewCookie(res) : res;
+    return finish(NextResponse.next());
   }
 
   const isPublic =
@@ -235,24 +252,20 @@ export function middleware(request: NextRequest) {
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
 
   if (session && (pathname === "/login" || pathname === "/forgot-pin")) {
-    const res = NextResponse.redirect(new URL("/dashboard", request.url));
-    return attachPreview ? withPreviewCookie(res) : res;
+    return finish(NextResponse.redirect(new URL("/dashboard", request.url)));
   }
   if (session && pathname === "/") {
-    const res = NextResponse.redirect(new URL("/dashboard", request.url));
-    return attachPreview ? withPreviewCookie(res) : res;
+    return finish(NextResponse.redirect(new URL("/dashboard", request.url)));
   }
 
   if (!session && isProtected) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
-    const res = NextResponse.redirect(loginUrl);
-    return attachPreview ? withPreviewCookie(res) : res;
+    return finish(NextResponse.redirect(loginUrl));
   }
 
   void isPublic;
-  const res = NextResponse.next();
-  return attachPreview ? withPreviewCookie(res) : res;
+  return finish(NextResponse.next());
 }
 
 export const config = {
