@@ -257,9 +257,15 @@ export async function mintAdminIdToken(): Promise<{
   const customToken = await auth.createCustomToken(user.uid, {
     role: "admin_test",
   });
-  const apiKey = String(
-    process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY || ""
-  ).trim();
+  // Prefer a normal Firebase Web API key (~39 chars). Some Netlify vars are wrong length.
+  const candidates = [
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    process.env.FIREBASE_API_KEY,
+    process.env.FIREBASE_WEB_API_KEY,
+  ]
+    .map((s) => String(s || "").trim())
+    .filter((s) => s.length >= 20 && s.length <= 50);
+  const apiKey = candidates[0] || "";
   if (!apiKey) throw new Error("FIREBASE_API_KEY missing for admin token exchange");
   const r = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`,
@@ -269,8 +275,15 @@ export async function mintAdminIdToken(): Promise<{
       body: JSON.stringify({ token: customToken, returnSecureToken: true }),
     }
   );
-  const j = (await r.json()) as { idToken?: string; error?: unknown };
-  if (!j.idToken) throw new Error("custom token exchange failed");
+  const j = (await r.json()) as {
+    idToken?: string;
+    error?: { message?: string };
+  };
+  if (!j.idToken) {
+    throw new Error(
+      `custom token exchange failed:${String(j.error?.message || r.status)}`
+    );
+  }
   return { idToken: j.idToken, uid: user.uid, email };
 }
 

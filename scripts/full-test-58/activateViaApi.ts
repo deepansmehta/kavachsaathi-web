@@ -77,8 +77,8 @@ export async function activateViaApi(opts: ActivateOpts) {
       "image/jpeg"
     );
     insurance.government = {
-      schemeName: "Ayushman Bharat",
-      govtCardNumber: "ABHA-TEST-0001",
+      schemeName: "Ayushman Bharat PM-JAY",
+      govtCardNumber: "GOVTTEST000001",
       govtCardPath: gc,
     };
   }
@@ -111,7 +111,7 @@ export async function activateViaApi(opts: ActivateOpts) {
       { type: "driving_licence", number: "HR9920260000001", frontPath: id2 },
     ],
     address: {
-      line1: "12 Sample Street",
+      line: "12 Sample Street",
       city: "Fatehabad",
       district: "Fatehabad",
       state: "Haryana",
@@ -120,10 +120,9 @@ export async function activateViaApi(opts: ActivateOpts) {
     addressProof: { sameAsIdIndex: 1, type: "driving_licence", path: addr },
     insurance,
     consents: {
-      photoConsent: true,
-      docsConsent: true,
+      photoPublic: true,
+      docsForAdmission: true,
       dpdpConsent: true,
-      legalConsent: true,
     },
     requireFullDocs: true,
     criticalAlerts: opts.criticalInsulin
