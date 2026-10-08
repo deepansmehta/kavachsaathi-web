@@ -1,6 +1,6 @@
 /**
- * Launch-day cinematic reveal gate (11 Oct 2026, 12:00–23:59 IST).
- * Once per browser via localStorage. Owner may force with ?replayLaunch=1.
+ * Launch-day cinematic reveal (11 Oct 2026, 12:00–23:59:59 IST).
+ * Server time is authoritative — clients must call /api/time or /api/launch-reveal/status.
  */
 
 export const LAUNCH_REVEAL_STORAGE_KEY = "kavach_launch_reveal_seen_v1";
@@ -12,42 +12,27 @@ export const LAUNCH_REVEAL_DAY_START_MS = Date.parse(
 export const LAUNCH_REVEAL_DAY_END_MS = Date.parse(
   "2026-10-11T23:59:59.999+05:30"
 );
+/** From this instant the reveal bundle must never load. */
+export const LAUNCH_REVEAL_NEVER_AFTER_MS = Date.parse(
+  "2026-10-12T00:00:00+05:30"
+);
 
-/** Routes where the reveal must never appear. */
-const BLOCKED_PREFIXES = [
-  "/card",
-  "/e/",
-  "/emergency",
-  "/admin",
-  "/hospital",
-  "/org",
-  "/my-profile",
-  "/login",
-  "/activate",
-  "/forgot-pin",
-  "/reset-pin",
-  "/dashboard",
-  "/profile",
-  "/my-card",
-  "/scan-history",
-  "/offline",
-  "/pass",
-  "/api",
-  "/coming-soon",
-  "/doctor",
-];
-
-export function isLaunchRevealPathBlocked(pathname: string): boolean {
+/** Paths that may mount the reveal. Everything else is blocked. */
+export function isLaunchRevealPathAllowed(pathname: string): boolean {
   const p = String(pathname || "/").split("?")[0] || "/";
-  if (p === "/card" || p.startsWith("/card/")) return true;
-  return BLOCKED_PREFIXES.some(
-    (b) => p === b || p.startsWith(b.endsWith("/") ? b : `${b}/`)
-  );
+  return p === "/" || p === "" || p === "/coming-soon";
 }
 
-export function isLaunchRevealDay(now = new Date()): boolean {
-  const t = now.getTime();
-  return t >= LAUNCH_REVEAL_DAY_START_MS && t <= LAUNCH_REVEAL_DAY_END_MS;
+export function isLaunchRevealDay(nowMs: number): boolean {
+  return nowMs >= LAUNCH_REVEAL_DAY_START_MS && nowMs <= LAUNCH_REVEAL_DAY_END_MS;
+}
+
+export function isAfterRevealEra(nowMs: number): boolean {
+  return nowMs >= LAUNCH_REVEAL_NEVER_AFTER_MS;
+}
+
+export function isBeforeLaunchInstant(nowMs: number): boolean {
+  return nowMs < LAUNCH_REVEAL_DAY_START_MS;
 }
 
 export function hasSeenLaunchReveal(): boolean {
@@ -77,50 +62,38 @@ export function clearLaunchRevealSeen(): void {
   }
 }
 
-/**
- * Whether the full-screen reveal should mount.
- * - Launch day + not yet seen + allowed path
- * - OR ?replayLaunch=1 (owner preview; clears seen)
- */
-export function shouldShowLaunchReveal(opts: {
-  pathname: string;
-  searchParams: URLSearchParams | { get(name: string): string | null };
-  now?: Date;
-}): boolean {
-  if (isLaunchRevealPathBlocked(opts.pathname)) return false;
-  // Only on home (and bare marketing root)
-  const p = (opts.pathname || "/").split("?")[0] || "/";
-  if (p !== "/" && p !== "") return false;
-  const replay =
-    String(opts.searchParams.get("replayLaunch") || "") === "1";
-  if (replay) return true;
-  if (!isLaunchRevealDay(opts.now)) return false;
-  if (hasSeenLaunchReveal()) return false;
-  return true;
-}
-
 export type LaunchPack = {
   id: string;
   label: string;
   cards: string;
+  cardCount: number;
   price: number;
   save: number;
   best?: boolean;
 };
 
 export const LAUNCH_PACKS: LaunchPack[] = [
-  { id: "Single", label: "Single", cards: "1 card", price: 499, save: 0 },
+  {
+    id: "Single",
+    label: "Single",
+    cards: "1 card",
+    cardCount: 1,
+    price: 499,
+    save: 0,
+  },
   {
     id: "Couple / Jodi",
     label: "Couple / Jodi",
     cards: "2 cards",
+    cardCount: 2,
     price: 899,
     save: 99,
   },
   {
     id: "Parents Suraksha",
     label: "Parents Suraksha",
-    cards: "2 cards + help",
+    cards: "2 cards + activation help",
+    cardCount: 2,
     price: 949,
     save: 49,
   },
@@ -128,6 +101,7 @@ export const LAUNCH_PACKS: LaunchPack[] = [
     id: "Family Pack",
     label: "Family Pack",
     cards: "4 cards",
+    cardCount: 4,
     price: 1599,
     save: 397,
     best: true,
@@ -136,7 +110,25 @@ export const LAUNCH_PACKS: LaunchPack[] = [
     id: "Joint Family",
     label: "Joint Family",
     cards: "6 cards",
+    cardCount: 6,
     price: 2199,
     save: 795,
   },
 ];
+
+export const ORDER_STATUSES = [
+  "requested",
+  "confirmed",
+  "paid",
+  "dispatched",
+  "delivered",
+  "cancelled",
+] as const;
+
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+/** Scene durations (ms). Rehearsal prepends a 30s countdown. */
+export const LAUNCH_REVEAL_SCENE_DUR: (number | null)[] = [
+  6500, 10000, 7500, 11500, null,
+];
+export const LAUNCH_REVEAL_REHEARSAL_COUNTDOWN_MS = 30000;

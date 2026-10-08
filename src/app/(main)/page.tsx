@@ -321,7 +321,7 @@ export default function HomePage() {
               transition={{ duration: 0.5, delay: 0.35 }}
             >
               <Link href="/order">
-                <GoldButton size="lg">Order Card</GoldButton>
+                <GoldButton size="lg">Order now</GoldButton>
               </Link>
               <Link href="/my-profile">
                 <OutlineButton size="lg">My Profile</OutlineButton>
@@ -497,7 +497,7 @@ export default function HomePage() {
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link href="/order">
-              <GoldButton size="lg">Order on WhatsApp</GoldButton>
+              <GoldButton size="lg">Order now</GoldButton>
             </Link>
             <Link href="/login">
               <OutlineButton size="lg">Already have a card?</OutlineButton>

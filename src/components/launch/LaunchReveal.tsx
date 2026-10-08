@@ -2,38 +2,36 @@
 
 /**
  * Full-screen launch reveal — visual + timings from exports/launch-reveal/reference.html.
- * Automatic playback (no Skip/Next/Replay). Order saves via POST /api/orders.
+ * Automatic playback (no Skip/Next/Replay/dots). Order via OrderForm → POST /api/orders.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  LAUNCH_PACKS,
+  LAUNCH_REVEAL_REHEARSAL_COUNTDOWN_MS,
+  LAUNCH_REVEAL_SCENE_DUR,
   markLaunchRevealSeen,
 } from "@/lib/launchReveal";
+import { OrderForm } from "./OrderForm";
 import "./launch-reveal.css";
 
-const DUR: (number | null)[] = [30000, 6500, 10000, 7500, 16500, null];
 const SYM = ["", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const CYC = 10;
-/** Slower, readable reel spins (reject prices). */
-const SPIN_BASE_MS = 1700;
-const SPIN_STAGGER_MS = 380;
-const SPIN_LOOPS = 2;
-/** Final ₹499 — longer settle so digits read clearly. */
-const FINAL_SPIN_BASE_MS = 2600;
-const FINAL_SPIN_STAGGER_MS = 420;
-const FINAL_SPIN_LOOPS = 4;
-const REJECT_GAP_MS = 3000;
+/** Reference slot timings (~11.5 s scene). No CSS blur on digits. */
+const SPIN_BASE_MS = 1100;
+const SPIN_STAGGER_MS = 260;
+const SPIN_LOOPS = 3;
+const REJECT_GAP_MS = 2300;
 
-function fmt(n: number) {
-  return "₹" + n.toLocaleString("en-IN");
-}
+type Props = {
+  onDone: () => void;
+  /** Owner rehearsal: 30s countdown + demo orders (not saved). */
+  rehearsal?: boolean;
+};
 
-type Props = { onDone: () => void };
-
-export function LaunchReveal({ onDone }: Props) {
+export function LaunchReveal({ onDone, rehearsal = false }: Props) {
   const router = useRouter();
   const reduceRef = useRef(false);
+  /** scene 0 = countdown only when rehearsal; else scene 0 = reveal */
   const [scene, setScene] = useState(0);
   const [countText, setCountText] = useState("00:30");
   const [countClass, setCountClass] = useState("");
@@ -47,14 +45,6 @@ export function LaunchReveal({ onDone }: Props) {
   const [reel0Gone, setReel0Gone] = useState(false);
   const [leverPull, setLeverPull] = useState(false);
   const [sweepGo, setSweepGo] = useState(false);
-  const [sel, setSel] = useState<{ p: string; v: number }>({
-    p: LAUNCH_PACKS[0].id,
-    v: LAUNCH_PACKS[0].price,
-  });
-  const [qty, setQty] = useState(1);
-  const [err, setErr] = useState("");
-  const [ok, setOk] = useState("");
-  const [busy, setBusy] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const partsRef = useRef<
     {
@@ -74,6 +64,14 @@ export function LaunchReveal({ onDone }: Props) {
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const sceneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cdTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const durs: (number | null)[] = rehearsal
+    ? [LAUNCH_REVEAL_REHEARSAL_COUNTDOWN_MS, ...LAUNCH_REVEAL_SCENE_DUR]
+    : LAUNCH_REVEAL_SCENE_DUR;
+
+  /** Content index 0=reveal … 4=order (ignores rehearsal countdown). */
+  const content =
+    rehearsal && scene === 0 ? -1 : rehearsal ? scene - 1 : scene;
 
   const clearSlotTimers = () => {
     timers.current.forEach(clearTimeout);
@@ -165,7 +163,6 @@ export function LaunchReveal({ onDone }: Props) {
     };
   }, [sizeCanvas]);
 
-  // Build reel strips once
   useEffect(() => {
     stripRefs.current.forEach((st) => {
       if (!st || st.childElementCount) return;
@@ -184,7 +181,6 @@ export function LaunchReveal({ onDone }: Props) {
     if (!st || !reel) return;
     const H = reel.getBoundingClientRect().height || 80;
     const idx = Math.max(0, SYM.indexOf(sym));
-    // Snap to a clean cycle start so digits stay sharp (no blue compositor smear)
     const base = reelPos.current[ri] % SYM.length;
     st.style.transition = "none";
     st.style.filter = "none";
@@ -192,23 +188,14 @@ export function LaunchReveal({ onDone }: Props) {
     void st.offsetHeight;
     const target = spins * SYM.length + idx;
     reelPos.current[ri] = target;
-    // Fast start → soft settle (readable stop, no overshoot blur)
     st.style.transition = `transform ${ms}ms cubic-bezier(0.12, 0.75, 0.18, 1)`;
     st.style.transform = `translate3d(0, ${-target * H}px, 0)`;
   };
 
-  const spinTo = (
-    val: string,
-    at: number,
-    opts?: { final?: boolean }
-  ) => {
+  const spinTo = (val: string, at: number) => {
     const reduce = reduceRef.current;
-    const final = !!opts?.final;
-    const baseMs = final ? FINAL_SPIN_BASE_MS : SPIN_BASE_MS;
-    const stag = final ? FINAL_SPIN_STAGGER_MS : SPIN_STAGGER_MS;
-    const loops = final ? FINAL_SPIN_LOOPS : SPIN_LOOPS;
     const d = val.padStart(4, " ").split("").map((c) => (c === " " ? "" : c));
-    const longest = reduce ? 40 : baseMs + 3 * stag;
+    const longest = reduce ? 40 : SPIN_BASE_MS + 3 * SPIN_STAGGER_MS;
     timers.current.push(
       setTimeout(() => {
         setSlotSpinning(true);
@@ -219,22 +206,18 @@ export function LaunchReveal({ onDone }: Props) {
           setReel(
             k,
             sym,
-            reduce ? 40 : baseMs + k * stag,
-            reduce ? 0 : loops + k
+            reduce ? 40 : SPIN_BASE_MS + k * SPIN_STAGGER_MS,
+            reduce ? 0 : SPIN_LOOPS + k
           )
         );
-        // Collapse thousands reel after first reel has mostly settled
         timers.current.push(
           setTimeout(() => {
             setReel0Gone(d[0] === "");
             setCommaHide(d[0] === "");
-          }, reduce ? 40 : Math.round(baseMs * 0.72))
+          }, reduce ? 40 : 1100)
         );
         timers.current.push(
-          setTimeout(() => {
-            setSlotSpinning(false);
-            if (final) setSlotLand(true);
-          }, longest)
+          setTimeout(() => setSlotSpinning(false), longest)
         );
       }, at)
     );
@@ -257,27 +240,28 @@ export function LaunchReveal({ onDone }: Props) {
       ["999", "Not ₹999…"],
     ];
     const gap = REJECT_GAP_MS;
-    const rejectSpinMs = SPIN_BASE_MS + 3 * SPIN_STAGGER_MS;
+    const spinMs = SPIN_BASE_MS + 3 * SPIN_STAGGER_MS;
     steps.forEach(([v, cap], k) => {
-      spinTo(v, 400 + k * gap);
+      spinTo(v, 300 + k * gap);
       timers.current.push(
         setTimeout(() => {
           setPnote(cap);
           setXShow(false);
           requestAnimationFrame(() => setXShow(true));
-        }, 400 + k * gap + rejectSpinMs + 80)
+        }, 300 + k * gap + 1950)
       );
     });
-    const finalAt = 400 + 3 * gap;
-    const finalMs = spinTo("499", finalAt, { final: true });
+    const finalAt = 300 + 3 * gap;
+    spinTo("499", finalAt);
     timers.current.push(
       setTimeout(() => {
+        setSlotLand(true);
         setPnote("Launch price: just ₹499 per card · सिर्फ़ ₹499");
         setSlotWin(true);
         setLockShow(true);
         burst();
         burst();
-      }, finalAt + finalMs + 220)
+      }, finalAt + spinMs + 50)
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [burst]);
@@ -288,111 +272,81 @@ export function LaunchReveal({ onDone }: Props) {
     router.replace("/");
   }, [onDone, router]);
 
-  // Scene machine
   useEffect(() => {
     clearTimers();
     setSweepGo(false);
     requestAnimationFrame(() => {
       if (scene > 0 && !reduceRef.current) setSweepGo(true);
     });
-    if (scene === 0) {
-      const end = Date.now() + (DUR[0] || 30000);
+    if (rehearsal && scene === 0) {
+      const end = Date.now() + (durs[0] || 30000);
       const tick = () => {
         const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
-        const t = "00:" + String(left).padStart(2, "0");
-        setCountText(t);
+        setCountText("00:" + String(left).padStart(2, "0"));
         setCountClass(left <= 10 ? "final10" : "tick");
         if (left <= 0 && cdTimer.current) clearInterval(cdTimer.current);
       };
       tick();
       cdTimer.current = setInterval(tick, 200);
     }
-    if (scene === 1) burst();
-    if (scene === 4) runSlot();
-    const ms = DUR[scene];
+    if (content === 0) burst();
+    if (content === 3) runSlot();
+    const ms = durs[scene];
     if (ms) {
       sceneTimer.current = setTimeout(() => setScene((s) => s + 1), ms);
     }
     return () => clearTimers();
-  }, [scene, burst, runSlot]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene, burst, runSlot, rehearsal]);
 
-  const submitOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErr("");
-    setOk("");
-    const form = e.target as HTMLFormElement;
-    const name = (form.querySelector("#o-name") as HTMLInputElement).value.trim();
-    const phone = (form.querySelector("#o-phone") as HTMLInputElement).value.trim();
-    const address = (
-      form.querySelector("#o-addr") as HTMLTextAreaElement
-    ).value.trim();
-    const miss: string[] = [];
-    if (!name) miss.push("name");
-    if (!/^[6-9]\d{9}$/.test(phone.replace(/\D/g, "").slice(-10)))
-      miss.push("a valid 10-digit mobile");
-    if (address.length < 10) miss.push("full address");
-    if (miss.length) {
-      setErr("Please add " + miss.join(", ") + ".");
-      return;
-    }
-    setBusy(true);
-    try {
-      const r = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          phone,
-          address,
-          pack: sel.p,
-          quantity: qty,
-        }),
-      });
-      const j = (await r.json().catch(() => ({}))) as {
-        ok?: boolean;
-        error?: string;
-        order_id?: string;
-      };
-      if (!r.ok || !j.ok) {
-        setErr(j.error || "Could not place order. Please try again.");
-        return;
-      }
-      setOk(
-        `Order received (${j.order_id}). Our team will call ${phone} to confirm payment and delivery.`
-      );
-    } catch {
-      setErr("Network error. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
+  const broPhoto = (slug: string) => `/launch/brothers/${slug}.jpg`;
+  const leadPhoto = (slug: string) => `/launch/leaders/${slug}.jpg`;
 
   return (
-    <div className="ks-launch-root" role="dialog" aria-modal="true" aria-label="KavachSaathi launch reveal">
+    <div
+      className="ks-launch-root"
+      role="dialog"
+      aria-modal="true"
+      aria-label="KavachSaathi launch reveal"
+    >
       <div id="stage" aria-live="polite">
         <canvas id="fx" ref={canvasRef} aria-hidden="true" />
         <div className={`sweep${sweepGo ? " go" : ""}`} aria-hidden="true" />
 
-        {/* 0 COUNTDOWN */}
-        <section className={`scene center${scene === 0 ? " on" : ""}`} id="s0">
-          <div className="wrap">
-            <div className="kicker">Launching in</div>
-            <div className={`count ${countClass}`}>{countText}</div>
-            <div className="cd-sub">
-              KavachSaathi · Smart Health Card
-              <span className="hi">लॉन्च होने में बस कुछ पल</span>
+        {/* REHEARSAL COUNTDOWN ONLY */}
+        {rehearsal ? (
+          <section
+            className={`scene center${scene === 0 ? " on" : ""}`}
+            id="s0"
+          >
+            <div className="wrap">
+              <div className="kicker">Owner rehearsal</div>
+              <div className={`count ${countClass}`}>{countText}</div>
+              <div className="cd-sub">
+                KavachSaathi · Smart Health Card
+                <span className="hi">लॉन्च होने में बस कुछ पल</span>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        ) : null}
 
         {/* 1 REVEAL */}
-        <section className={`scene center${scene === 1 ? " on" : ""}`} id="s1">
+        <section
+          className={`scene center${content === 0 ? " on" : ""}`}
+          id="s1"
+        >
           <div className="wrap">
             <div className="shield-wrap">
               <div className="rings" aria-hidden="true">
-                <i /><i /><i />
+                <i />
+                <i />
+                <i />
               </div>
-              <svg className="shield" viewBox="0 0 200 230" aria-label="KavachSaathi shield">
+              <svg
+                className="shield"
+                viewBox="0 0 200 230"
+                aria-label="KavachSaathi shield"
+              >
                 <defs>
                   <linearGradient id="ksg" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0" stopColor="#F9E39A" />
@@ -400,9 +354,19 @@ export function LaunchReveal({ onDone }: Props) {
                     <stop offset="1" stopColor="#B8860B" />
                   </linearGradient>
                 </defs>
-                <path className="fill" fill="url(#ksg)" d="M100 8 L186 44 V112 C186 165 148 201 100 222 C52 201 14 165 14 112 V44 Z" />
-                <path className="s" d="M100 8 L186 44 V112 C186 165 148 201 100 222 C52 201 14 165 14 112 V44 Z" />
-                <path className="ekg" d="M34 118 H70 L82 84 L98 150 L112 96 L122 132 L130 118 H166" />
+                <path
+                  className="fill"
+                  fill="url(#ksg)"
+                  d="M100 8 L186 44 V112 C186 165 148 201 100 222 C52 201 14 165 14 112 V44 Z"
+                />
+                <path
+                  className="s"
+                  d="M100 8 L186 44 V112 C186 165 148 201 100 222 C52 201 14 165 14 112 V44 Z"
+                />
+                <path
+                  className="ekg"
+                  d="M34 118 H70 L82 84 L98 150 L112 96 L122 132 L130 118 H166"
+                />
               </svg>
             </div>
             <div className="word">
@@ -418,7 +382,7 @@ export function LaunchReveal({ onDone }: Props) {
         </section>
 
         {/* 2 LEGACY */}
-        <section className={`scene${scene === 2 ? " on" : ""}`} id="s2">
+        <section className={`scene${content === 1 ? " on" : ""}`} id="s2">
           <div className="wrap">
             <div className="kicker">Our roots</div>
             <h2>
@@ -430,15 +394,38 @@ export function LaunchReveal({ onDone }: Props) {
               <span className="hi">भिरडाना · फतेहाबाद</span>
             </div>
             <div className="bros">
-              {[
-                ["G", "Shri Gangadhar", "श्री गंगाधर बजाज", true],
-                ["B", "Shri Bansi Dhar", "श्री बंसी धर बजाज", false],
-                ["S", "Shri Surender", "श्री सुरेंदर बजाज", false],
-                ["N", "Shri Narender", "श्री नरेंदर बजाज", false],
-                ["P", "Shri Pawan", "श्री पवन बजाज", false],
-              ].map(([m, n, nh, first]) => (
-                <div key={String(n)} className={`bro${first ? " first" : ""}`}>
-                  <div className="m">{m}</div>
+              {(
+                [
+                  ["G", "Shri Gangadhar", "श्री गंगाधर बजाज", "gangadhar", true],
+                  ["B", "Shri Bansi Dhar", "श्री बंसी धर बजाज", "bansidhar", false],
+                  ["S", "Shri Surender", "श्री सुरेंदर बजाज", "surender", false],
+                  ["N", "Shri Narender", "श्री नरेंदर बजाज", "narender", false],
+                  ["P", "Shri Pawan", "श्री पवन बजाज", "pawan", false],
+                ] as const
+              ).map(([m, n, nh, slug, first]) => (
+                <div key={n} className={`bro${first ? " first" : ""}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <div className="m">
+                    <img
+                      src={broPhoto(slug)}
+                      alt=""
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                        (
+                          e.target as HTMLImageElement
+                        ).parentElement!.dataset.letter = m;
+                      }}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        borderRadius: "50%",
+                      }}
+                    />
+                    <span className="m-fallback" aria-hidden>
+                      {m}
+                    </span>
+                  </div>
                   <div className="n">{n}</div>
                   <div className="s">BAJAJ</div>
                   <div className="nh">{nh}</div>
@@ -446,9 +433,9 @@ export function LaunchReveal({ onDone }: Props) {
               ))}
             </div>
             <p className="story">
-              Our story begins in Bhirdana, a village in Fatehabad, Haryana. Five
-              brothers whose lives were built on hard work, honesty and standing
-              by one another.
+              Our story begins in Bhirdana, a village in Fatehabad, Haryana.
+              Five brothers whose lives were built on hard work, honesty and
+              standing by one another.
               <span className="hi">
                 हमारी कहानी फतेहाबाद के गाँव भिरडाना से शुरू होती है — पाँच भाई,
                 जिनकी ज़िंदगी मेहनत, ईमानदारी और एक-दूसरे के साथ पर बनी।
@@ -462,7 +449,7 @@ export function LaunchReveal({ onDone }: Props) {
         </section>
 
         {/* 3 LEADERSHIP */}
-        <section className={`scene${scene === 3 ? " on" : ""}`} id="s3">
+        <section className={`scene${content === 2 ? " on" : ""}`} id="s3">
           <div className="wrap">
             <div className="kicker">Leadership</div>
             <h2>
@@ -471,19 +458,51 @@ export function LaunchReveal({ onDone }: Props) {
             <div className="h2hi hi">हमारा नेतृत्व</div>
             <div className="leaders">
               <div className="ld">
-                <div className="av">SM</div>
+                <div className="av">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={leadPhoto("saurabh")}
+                    alt=""
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      borderRadius: "50%",
+                    }}
+                  />
+                  <span>SM</span>
+                </div>
                 <div>
                   <div className="nm">Saurabh Mehta</div>
                   <div className="rl">Co-Founder, CEO &amp; Director</div>
                   <p>
                     Leads the company&apos;s vision and operations, with a
-                    commitment to making emergency health information simple and
-                    accessible for every family.
+                    commitment to making emergency health information simple
+                    and accessible for every family.
                   </p>
                 </div>
               </div>
               <div className="ld">
-                <div className="av">JM</div>
+                <div className="av">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={leadPhoto("jyoti")}
+                    alt=""
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      borderRadius: "50%",
+                    }}
+                  />
+                  <span>JM</span>
+                </div>
                 <div>
                   <div className="nm">Jyoti Mehta</div>
                   <div className="rl">Co-Founder &amp; Director</div>
@@ -501,8 +520,11 @@ export function LaunchReveal({ onDone }: Props) {
           </div>
         </section>
 
-        {/* 4 PRICE — SLOT MACHINE */}
-        <section className={`scene center${scene === 4 ? " on" : ""}`} id="s4">
+        {/* 4 SLOT */}
+        <section
+          className={`scene center${content === 3 ? " on" : ""}`}
+          id="s4"
+        >
           <div className="wrap">
             <div className="kicker">Launch price reveal</div>
             <h2>
@@ -512,6 +534,7 @@ export function LaunchReveal({ onDone }: Props) {
             <div
               className={`slot${slotWin ? " win" : ""}${slotSpinning ? " spinning" : ""}${slotLand ? " land" : ""}`}
               id="slot"
+              data-testid="slot"
             >
               <div className="bulbs" aria-hidden="true" />
               <div className="slot-top">KAVACH · JACKPOT</div>
@@ -519,6 +542,7 @@ export function LaunchReveal({ onDone }: Props) {
                 <span className="cur">₹</span>
                 <div
                   className={`reel${reel0Gone ? " gone" : ""}`}
+                  data-reel="0"
                   ref={(el) => {
                     reelRefs.current[0] = el;
                   }}
@@ -541,6 +565,7 @@ export function LaunchReveal({ onDone }: Props) {
                   <div
                     key={i}
                     className="reel"
+                    data-reel={i}
                     ref={(el) => {
                       reelRefs.current[i] = el;
                     }}
@@ -582,104 +607,29 @@ export function LaunchReveal({ onDone }: Props) {
         </section>
 
         {/* 5 ORDER */}
-        <section className={`scene${scene === 5 ? " on" : ""}`} id="s5">
+        <section className={`scene${content === 4 ? " on" : ""}`} id="s5">
           <div className="wrap">
             <div className="kicker">Now open</div>
             <h2>
               KavachSaathi is <span className="g">now live</span>
             </h2>
-            <div className="h2hi hi">कवचसाथी अब लाइव है — अपना पैक चुनें</div>
-            <div className="packs" id="packs">
-              {LAUNCH_PACKS.map((p) => (
-                <button
-                  key={p.id}
-                  className={`pack${p.best ? " best" : ""}`}
-                  type="button"
-                  aria-pressed={sel.p === p.id}
-                  onClick={() => setSel({ p: p.id, v: p.price })}
-                >
-                  <span className="pn">{p.label}</span>
-                  <span className="pc">{p.cards}</span>
-                  <span className="pr">{fmt(p.price)}</span>
-                  <span className="pp">
-                    {p.save > 0 ? `Save ₹${p.save}` : "\u00a0"}
-                  </span>
-                </button>
-              ))}
+            <div className="h2hi hi">
+              कवचसाथी अब लाइव है — अपना पैक चुनें
             </div>
-            <form id="order" onSubmit={submitOrder} noValidate>
-              <label>
-                Name
-                <input id="o-name" autoComplete="name" placeholder="Your full name" />
-              </label>
-              <label>
-                Mobile
-                <input
-                  id="o-phone"
-                  inputMode="numeric"
-                  maxLength={10}
-                  placeholder="10-digit mobile"
-                />
-              </label>
-              <label className="full">
-                Delivery address
-                <textarea
-                  id="o-addr"
-                  placeholder="House, street, city, PIN code"
-                />
-              </label>
-              <label>
-                Selected pack
-                <input
-                  id="o-pack"
-                  readOnly
-                  value={`${sel.p} · ${fmt(sel.v)}`}
-                />
-              </label>
-              <label>
-                Quantity
-                <select
-                  id="o-qty"
-                  value={qty}
-                  onChange={(e) => setQty(Number(e.target.value))}
-                >
-                  <option value={1}>1</option>
-                  <option value={2}>2</option>
-                  <option value={3}>3</option>
-                </select>
-              </label>
-              {err ? <div className="err">{err}</div> : null}
-              <button className="cta" type="submit" id="o-btn" disabled={busy}>
-                {busy ? "Sending…" : `Order now · ${fmt(sel.v * qty)}`}
-              </button>
-              {ok ? <div className="ok">{ok}</div> : null}
-            </form>
+            <OrderForm
+              rehearsal={rehearsal}
+              source={rehearsal ? "launch_reveal_rehearsal" : "launch_reveal"}
+            />
             <button type="button" className="home" onClick={goHome}>
               Go to Home Page <span aria-hidden="true">→</span>
               <span className="hi">होम पेज पर जाएँ</span>
             </button>
             <div className="help">
-              Already have a card? Scan the QR on its back to activate. · Helpline{" "}
-              <b>+91 72730 00075</b> · <b>+91 73001 00102</b>
+              Already have a card? Scan the QR on its back to activate. ·
+              Helpline <b>+91 72730 00075</b> · <b>+91 73001 00102</b>
             </div>
           </div>
         </section>
-
-        <div className="dots" id="dots" hidden={scene === 5} aria-hidden="true">
-          {DUR.map((_, i) => (
-            <i key={i}>
-              <b
-                style={{
-                  transform: i < scene ? "scaleX(1)" : i === scene ? "scaleX(1)" : "scaleX(0)",
-                  transition:
-                    i === scene && DUR[i]
-                      ? `transform ${DUR[i]}ms linear`
-                      : "none",
-                }}
-              />
-            </i>
-          ))}
-        </div>
       </div>
     </div>
   );

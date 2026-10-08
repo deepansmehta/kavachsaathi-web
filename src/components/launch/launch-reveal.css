@@ -308,6 +308,21 @@
   background: linear-gradient(160deg, var(--gold-l), var(--gold-d));
   color: var(--ink);
   font: 800 20px var(--f-disp);
+  position: relative;
+  overflow: hidden;
+}
+.ks-launch-root .bro .m img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.ks-launch-root .bro .m .m-fallback {
+  position: relative;
+  z-index: 0;
+}
+.ks-launch-root .bro .m:has(img[style*="display: none"]) .m-fallback,
+.ks-launch-root .bro .m img[style*="display: none"] + .m-fallback {
+  z-index: 2;
 }
 .ks-launch-root .bro .n {
   font: 600 13px / 1.25 var(--f-disp);
@@ -413,6 +428,17 @@
   color: var(--gold);
   font: 800 18px var(--f-disp);
   background: var(--ink);
+  position: relative;
+  overflow: hidden;
+}
+.ks-launch-root .ld .av img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.ks-launch-root .ld .av span {
+  position: relative;
+  z-index: 0;
 }
 .ks-launch-root .ld .nm {
   font: 700 19px var(--f-disp);

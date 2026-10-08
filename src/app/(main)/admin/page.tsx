@@ -497,6 +497,9 @@ export default function AdminPage() {
           <Link href="/admin/pack3" className="text-[var(--gold)] underline">
             Pack 3 tools
           </Link>
+          <Link href="/admin/orders" className="text-[var(--gold)] underline">
+            Pack orders
+          </Link>
           <Link
             href="/admin/sticker-orders"
             className="text-[var(--gold)] underline"

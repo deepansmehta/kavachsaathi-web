@@ -49,10 +49,9 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Order form writes — create only; no client reads of others' orders
+    // Marketing / launch pack orders — Admin SDK only (deny-all for clients)
     match /orders/{orderId} {
-      allow create: if true;
-      allow read, update, delete: if false;
+      allow read, write: if false;
     }
 
     // Deny anything else by default

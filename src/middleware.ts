@@ -142,8 +142,10 @@ function isPreLaunchApiAllowed(pathname: string): boolean {
     pathname.startsWith("/api/need-blood/") ||
     pathname === "/api/disclosure-vault" ||
     pathname.startsWith("/api/disclosure-vault/") ||
-    // Launch-reveal / marketing pack orders
-    pathname === "/api/orders"
+    // Launch-reveal / marketing pack orders + server clock
+    pathname === "/api/orders" ||
+    pathname === "/api/time" ||
+    pathname.startsWith("/api/launch-reveal/")
   );
 }
 
@@ -180,10 +182,12 @@ export function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // Owner launch-reveal rehearsal: /?replayLaunch=1 before launch day
+    // Owner launch-reveal rehearsal: /?replayLaunch=1 requires preview cookie
+    // (set via ?preview=<PRELAUNCH_PREVIEW_SECRET>). Status API enforces cookie.
     if (
       (pathname === "/" || pathname === "") &&
-      request.nextUrl.searchParams.get("replayLaunch") === "1"
+      request.nextUrl.searchParams.get("replayLaunch") === "1" &&
+      request.cookies.get(LAUNCH_PREVIEW_COOKIE)?.value === "1"
     ) {
       return NextResponse.next();
     }
