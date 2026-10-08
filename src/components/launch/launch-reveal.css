@@ -656,11 +656,16 @@
   box-shadow: inset 0 6px 14px rgba(0, 0, 0, 0.45),
     inset 0 -6px 14px rgba(0, 0, 0, 0.25);
   overflow: hidden;
+  isolation: isolate;
+  transform: translateZ(0);
 }
 .ks-launch-root .cur,
 .ks-launch-root .comma {
   font: 800 clamp(40px, 11vw, 68px) / 1 var(--f-disp);
   color: #1e1b16;
+  -webkit-text-fill-color: #1e1b16;
+  text-shadow: none;
+  filter: none;
 }
 .ks-launch-root .comma {
   width: 0.3em;
@@ -672,9 +677,12 @@
   width: calc(var(--h) * 0.62);
   overflow: hidden;
   border-radius: 8px;
-  background: linear-gradient(180deg, #fff, #f3e7c2);
+  background: linear-gradient(180deg, #fffef8, #f3e7c2);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
   transition: width 0.35s ease, opacity 0.35s;
+  isolation: isolate;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 .ks-launch-root .reel.gone {
   width: 0;
@@ -684,6 +692,10 @@
   display: flex;
   flex-direction: column;
   will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  /* Kill blue/purple compositor fringing on fast scroll */
+  -webkit-font-smoothing: antialiased;
 }
 .ks-launch-root .strip span {
   height: var(--h);
@@ -691,17 +703,69 @@
   place-items: center;
   font: 800 calc(var(--h) * 0.78) / 1 var(--f-disp);
   color: #1e1b16;
+  -webkit-text-fill-color: #1e1b16;
   font-variant-numeric: tabular-nums;
+  backface-visibility: hidden;
+}
+/* Mild gold motion smear while spinning — no blue blur */
+.ks-launch-root .slot.spinning .strip {
+  filter: blur(0.55px) sepia(0.22) saturate(1.15) brightness(1.02);
+}
+.ks-launch-root .slot.spinning .window {
+  box-shadow: inset 0 6px 14px rgba(0, 0, 0, 0.45),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.25), 0 0 18px rgba(232, 191, 62, 0.25);
+}
+/* ₹499 lands — digits pop gold, then settle */
+.ks-launch-root .slot.land .window {
+  animation: ks-lr-land-window 0.85s cubic-bezier(0.22, 1.35, 0.36, 1) both;
+}
+.ks-launch-root .slot.land .strip span {
+  animation: ks-lr-land-digit 0.7s cubic-bezier(0.22, 1.4, 0.36, 1) both;
+}
+@keyframes ks-lr-land-window {
+  0% {
+    transform: scale(0.96);
+    box-shadow: inset 0 6px 14px rgba(0, 0, 0, 0.45),
+      0 0 0 rgba(232, 191, 62, 0);
+  }
+  45% {
+    transform: scale(1.04);
+    box-shadow: inset 0 0 0 3px var(--gold), 0 0 36px rgba(232, 191, 62, 0.75);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: inset 0 6px 14px rgba(0, 0, 0, 0.45),
+      inset 0 -6px 14px rgba(0, 0, 0, 0.25), 0 0 22px rgba(232, 191, 62, 0.35);
+  }
+}
+@keyframes ks-lr-land-digit {
+  0% {
+    color: #1e1b16;
+    -webkit-text-fill-color: #1e1b16;
+    transform: scale(1);
+  }
+  40% {
+    color: #b8860b;
+    -webkit-text-fill-color: #b8860b;
+    transform: scale(1.12);
+    text-shadow: 0 0 12px rgba(232, 191, 62, 0.55);
+  }
+  100% {
+    color: #1e1b16;
+    -webkit-text-fill-color: #1e1b16;
+    transform: scale(1);
+    text-shadow: none;
+  }
 }
 .ks-launch-root .glass {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(0, 0, 0, 0.35),
-    transparent 30%,
-    transparent 70%,
-    rgba(0, 0, 0, 0.35)
+    rgba(40, 28, 8, 0.28),
+    transparent 28%,
+    transparent 72%,
+    rgba(40, 28, 8, 0.28)
   );
   pointer-events: none;
 }

@@ -12,9 +12,18 @@ import {
 } from "@/lib/launchReveal";
 import "./launch-reveal.css";
 
-const DUR: (number | null)[] = [30000, 6500, 10000, 7500, 11500, null];
+const DUR: (number | null)[] = [30000, 6500, 10000, 7500, 16500, null];
 const SYM = ["", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const CYC = 10;
+/** Slower, readable reel spins (reject prices). */
+const SPIN_BASE_MS = 1700;
+const SPIN_STAGGER_MS = 380;
+const SPIN_LOOPS = 2;
+/** Final ₹499 — longer settle so digits read clearly. */
+const FINAL_SPIN_BASE_MS = 2600;
+const FINAL_SPIN_STAGGER_MS = 420;
+const FINAL_SPIN_LOOPS = 4;
+const REJECT_GAP_MS = 3000;
 
 function fmt(n: number) {
   return "₹" + n.toLocaleString("en-IN");
@@ -30,6 +39,8 @@ export function LaunchReveal({ onDone }: Props) {
   const [countClass, setCountClass] = useState("");
   const [pnote, setPnote] = useState("सुरक्षा की कीमत क्या हो?");
   const [slotWin, setSlotWin] = useState(false);
+  const [slotSpinning, setSlotSpinning] = useState(false);
+  const [slotLand, setSlotLand] = useState(false);
   const [xShow, setXShow] = useState(false);
   const [lockShow, setLockShow] = useState(false);
   const [commaHide, setCommaHide] = useState(false);
@@ -172,40 +183,69 @@ export function LaunchReveal({ onDone }: Props) {
     const reel = reelRefs.current[ri];
     if (!st || !reel) return;
     const H = reel.getBoundingClientRect().height || 80;
-    const idx = SYM.indexOf(sym);
+    const idx = Math.max(0, SYM.indexOf(sym));
+    // Snap to a clean cycle start so digits stay sharp (no blue compositor smear)
     const base = reelPos.current[ri] % SYM.length;
     st.style.transition = "none";
-    st.style.transform = `translateY(${-base * H}px)`;
+    st.style.filter = "none";
+    st.style.transform = `translate3d(0, ${-base * H}px, 0)`;
     void st.offsetHeight;
     const target = spins * SYM.length + idx;
     reelPos.current[ri] = target;
-    st.style.transition = `transform ${ms}ms cubic-bezier(.15,.7,.2,1.04)`;
-    st.style.transform = `translateY(${-target * H}px)`;
+    // Fast start → soft settle (readable stop, no overshoot blur)
+    st.style.transition = `transform ${ms}ms cubic-bezier(0.12, 0.75, 0.18, 1)`;
+    st.style.transform = `translate3d(0, ${-target * H}px, 0)`;
   };
 
-  const spinTo = (val: string, at: number) => {
+  const spinTo = (
+    val: string,
+    at: number,
+    opts?: { final?: boolean }
+  ) => {
     const reduce = reduceRef.current;
+    const final = !!opts?.final;
+    const baseMs = final ? FINAL_SPIN_BASE_MS : SPIN_BASE_MS;
+    const stag = final ? FINAL_SPIN_STAGGER_MS : SPIN_STAGGER_MS;
+    const loops = final ? FINAL_SPIN_LOOPS : SPIN_LOOPS;
     const d = val.padStart(4, " ").split("").map((c) => (c === " " ? "" : c));
+    const longest = reduce ? 40 : baseMs + 3 * stag;
     timers.current.push(
       setTimeout(() => {
+        setSlotSpinning(true);
+        setSlotLand(false);
         setLeverPull(false);
         requestAnimationFrame(() => setLeverPull(true));
         d.forEach((sym, k) =>
-          setReel(k, sym, reduce ? 10 : 1100 + k * 260, reduce ? 0 : 3 + k)
+          setReel(
+            k,
+            sym,
+            reduce ? 40 : baseMs + k * stag,
+            reduce ? 0 : loops + k
+          )
         );
+        // Collapse thousands reel after first reel has mostly settled
         timers.current.push(
           setTimeout(() => {
             setReel0Gone(d[0] === "");
             setCommaHide(d[0] === "");
-          }, reduce ? 10 : 1100)
+          }, reduce ? 40 : Math.round(baseMs * 0.72))
+        );
+        timers.current.push(
+          setTimeout(() => {
+            setSlotSpinning(false);
+            if (final) setSlotLand(true);
+          }, longest)
         );
       }, at)
     );
+    return longest;
   };
 
   const runSlot = useCallback(() => {
     clearSlotTimers();
     setSlotWin(false);
+    setSlotSpinning(false);
+    setSlotLand(false);
     setLockShow(false);
     setXShow(false);
     setReel0Gone(false);
@@ -216,18 +256,20 @@ export function LaunchReveal({ onDone }: Props) {
       ["1999", "Not even ₹1,999…"],
       ["999", "Not ₹999…"],
     ];
-    const gap = 2300;
+    const gap = REJECT_GAP_MS;
+    const rejectSpinMs = SPIN_BASE_MS + 3 * SPIN_STAGGER_MS;
     steps.forEach(([v, cap], k) => {
-      spinTo(v, 300 + k * gap);
+      spinTo(v, 400 + k * gap);
       timers.current.push(
         setTimeout(() => {
           setPnote(cap);
           setXShow(false);
           requestAnimationFrame(() => setXShow(true));
-        }, 300 + k * gap + 1950)
+        }, 400 + k * gap + rejectSpinMs + 80)
       );
     });
-    spinTo("499", 300 + 3 * gap);
+    const finalAt = 400 + 3 * gap;
+    const finalMs = spinTo("499", finalAt, { final: true });
     timers.current.push(
       setTimeout(() => {
         setPnote("Launch price: just ₹499 per card · सिर्फ़ ₹499");
@@ -235,7 +277,7 @@ export function LaunchReveal({ onDone }: Props) {
         setLockShow(true);
         burst();
         burst();
-      }, 300 + 3 * gap + 2000)
+      }, finalAt + finalMs + 220)
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [burst]);
@@ -467,7 +509,10 @@ export function LaunchReveal({ onDone }: Props) {
               What should <span className="g">safety</span> cost?
             </h2>
             <div className="pnote">{pnote}</div>
-            <div className={`slot${slotWin ? " win" : ""}`} id="slot">
+            <div
+              className={`slot${slotWin ? " win" : ""}${slotSpinning ? " spinning" : ""}${slotLand ? " land" : ""}`}
+              id="slot"
+            >
               <div className="bulbs" aria-hidden="true" />
               <div className="slot-top">KAVACH · JACKPOT</div>
               <div className="window">
