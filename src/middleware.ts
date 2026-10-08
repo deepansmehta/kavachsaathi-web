@@ -141,7 +141,9 @@ function isPreLaunchApiAllowed(pathname: string): boolean {
     pathname === "/api/need-blood" ||
     pathname.startsWith("/api/need-blood/") ||
     pathname === "/api/disclosure-vault" ||
-    pathname.startsWith("/api/disclosure-vault/")
+    pathname.startsWith("/api/disclosure-vault/") ||
+    // Launch-reveal / marketing pack orders
+    pathname === "/api/orders"
   );
 }
 
@@ -175,6 +177,14 @@ export function middleware(request: NextRequest) {
 
     // Admin UI + API always reachable; Google allowlist enforced in handlers
     if (ADMIN_PATTERN.test(pathname) || pathname.startsWith("/api/admin")) {
+      return NextResponse.next();
+    }
+
+    // Owner launch-reveal rehearsal: /?replayLaunch=1 before launch day
+    if (
+      (pathname === "/" || pathname === "") &&
+      request.nextUrl.searchParams.get("replayLaunch") === "1"
+    ) {
       return NextResponse.next();
     }
 

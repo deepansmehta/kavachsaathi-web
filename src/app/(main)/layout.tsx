@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Rajdhani, DM_Sans, Space_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Providers } from "@/components/Providers";
+import { LaunchRevealGate } from "@/components/launch/LaunchRevealGate";
 import "@/styles/globals.css";
 
 const rajdhani = Rajdhani({
@@ -72,6 +74,9 @@ export default function MainLayout({
               <main className="flex-1">{children}</main>
               <Footer />
             </div>
+            <Suspense fallback={null}>
+              <LaunchRevealGate />
+            </Suspense>
             <Toaster
               position="top-center"
               toastOptions={{

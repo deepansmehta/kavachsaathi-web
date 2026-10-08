@@ -1,0 +1,1003 @@
+/* From exports/launch-reveal/reference.html — scoped to .ks-launch-root */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Lora:ital,wght@1,500&family=Noto+Sans+Devanagari:wght@500;700&display=swap");
+
+.ks-launch-root {
+  --ink: #0b0812;
+  --ink2: #1b1522;
+  --gold: #e8bf3e;
+  --gold-d: #b8860b;
+  --gold-l: #f7da7a;
+  --text: #f3ebd8;
+  --muted: #b9ae97;
+  --line: rgba(232, 191, 62, 0.28);
+  --ok: #3bb273;
+  --red: #d64545;
+  --f-disp: "Poppins", system-ui, sans-serif;
+  --f-serif: "Lora", Georgia, serif;
+  --f-hi: "Noto Sans Devanagari", "Poppins", sans-serif;
+  color-scheme: dark;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--f-disp);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.ks-launch-root *,
+.ks-launch-root *::before,
+.ks-launch-root *::after {
+  box-sizing: border-box;
+}
+.ks-launch-root .hi {
+  font-family: var(--f-hi);
+}
+.ks-launch-root #stage {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: radial-gradient(70% 55% at 50% 40%, #231a2c 0%, var(--ink) 70%);
+}
+.ks-launch-root canvas#fx {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.ks-launch-root .scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 16px 88px;
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.9s ease, visibility 0s linear 0.9s;
+  overflow-y: auto;
+}
+.ks-launch-root .scene.on {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.9s ease;
+}
+.ks-launch-root .wrap {
+  width: 100%;
+  max-width: 880px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.ks-launch-root .cta:focus-visible,
+.ks-launch-root .pack:focus-visible,
+.ks-launch-root input:focus-visible,
+.ks-launch-root select:focus-visible,
+.ks-launch-root .home:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.ks-launch-root .dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  z-index: 5;
+  pointer-events: none;
+}
+.ks-launch-root .dots i {
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+  position: relative;
+}
+.ks-launch-root .dots i b {
+  position: absolute;
+  inset: 0;
+  background: var(--gold);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+.ks-launch-root .kicker {
+  font: 600 12px var(--f-disp);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.ks-launch-root .count {
+  font: 800 clamp(72px, 22vw, 168px) / 1 var(--f-disp);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -2px;
+  background: linear-gradient(180deg, var(--gold-l), var(--gold-d));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ks-launch-root .cd-sub {
+  font: 500 15px var(--f-disp);
+  color: var(--muted);
+}
+.ks-launch-root .cd-sub .hi {
+  display: block;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.ks-launch-root .shield {
+  width: min(46vw, 190px);
+  height: auto;
+  overflow: visible;
+}
+.ks-launch-root .shield .s {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 5;
+  stroke-linejoin: round;
+  stroke-dasharray: 640;
+  stroke-dashoffset: 640;
+}
+.ks-launch-root .shield .fill {
+  fill: url(#ksg);
+  opacity: 0;
+}
+.ks-launch-root .shield .ekg {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
+}
+.ks-launch-root .on .shield .s {
+  animation: ks-lr-draw 1.6s ease forwards;
+}
+.ks-launch-root .on .shield .fill {
+  animation: ks-lr-fadein 0.8s ease 1.3s forwards;
+}
+.ks-launch-root .on .shield .ekg {
+  animation: ks-lr-draw 1s ease 1.9s forwards;
+}
+@keyframes ks-lr-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes ks-lr-fadein {
+  to {
+    opacity: 1;
+  }
+}
+.ks-launch-root .word {
+  font: 800 clamp(40px, 10vw, 84px) / 1 var(--f-disp);
+  letter-spacing: -1px;
+  opacity: 0;
+  transform: translateY(14px);
+}
+.ks-launch-root .word span {
+  background: linear-gradient(180deg, var(--gold-l), var(--gold-d));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ks-launch-root .sub {
+  font: 600 13px var(--f-disp);
+  letter-spacing: 6px;
+  color: var(--gold);
+  opacity: 0;
+}
+.ks-launch-root .tag {
+  font: italic 500 clamp(17px, 3.4vw, 24px) / 1.35 var(--f-serif);
+  color: var(--text);
+  opacity: 0;
+  max-width: 30ch;
+  text-wrap: balance;
+}
+.ks-launch-root .tag .hi {
+  display: block;
+  font: 500 15px var(--f-hi);
+  color: var(--muted);
+  margin-top: 6px;
+  font-style: normal;
+}
+.ks-launch-root .live {
+  font: 700 12px var(--f-disp);
+  letter-spacing: 3px;
+  color: var(--ink);
+  background: linear-gradient(90deg, var(--gold-d), var(--gold-l), var(--gold-d));
+  padding: 9px 16px;
+  border-radius: 999px;
+  opacity: 0;
+  transform: scale(0.8);
+}
+.ks-launch-root .on .word {
+  animation: ks-lr-up 0.8s ease 2.6s forwards;
+}
+.ks-launch-root .on .sub {
+  animation: ks-lr-fadein 0.8s ease 3.1s forwards;
+}
+.ks-launch-root .on .tag {
+  animation: ks-lr-fadein 0.9s ease 3.6s forwards;
+}
+.ks-launch-root .on .live {
+  animation: ks-lr-pop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) 4.3s forwards;
+}
+@keyframes ks-lr-up {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ks-lr-pop {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.ks-launch-root h2 {
+  font: 800 clamp(28px, 6vw, 48px) / 1.1 var(--f-disp);
+  margin: 0;
+  text-wrap: balance;
+}
+.ks-launch-root h2 .g {
+  color: var(--gold);
+}
+.ks-launch-root .h2hi {
+  font: 500 17px var(--f-hi);
+  color: var(--muted);
+  margin-top: -4px;
+}
+.ks-launch-root .pin {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  align-items: center;
+  font: 600 13px var(--f-disp);
+  border: 1px solid var(--line);
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(232, 191, 62, 0.07);
+}
+.ks-launch-root .pin .hi {
+  color: var(--muted);
+  font-weight: 500;
+}
+.ks-launch-root .bros {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  width: 100%;
+  margin-top: 6px;
+}
+.ks-launch-root .bro {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 6px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  opacity: 0;
+  transform: translateY(16px);
+}
+.ks-launch-root .bro.first {
+  border-color: var(--gold);
+  background: rgba(232, 191, 62, 0.09);
+  animation-name: ks-lr-flip !important;
+  box-shadow: 0 0 0 0 rgba(232, 191, 62, 0.5);
+}
+.ks-launch-root .bro .m {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 8px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, var(--gold-l), var(--gold-d));
+  color: var(--ink);
+  font: 800 20px var(--f-disp);
+}
+.ks-launch-root .bro .n {
+  font: 600 13px / 1.25 var(--f-disp);
+}
+.ks-launch-root .bro .s {
+  font: 600 10px var(--f-disp);
+  letter-spacing: 2px;
+  color: var(--gold);
+  margin-top: 3px;
+}
+.ks-launch-root .bro .nh {
+  font: 500 12px var(--f-hi);
+  color: var(--muted);
+  margin-top: 3px;
+}
+.ks-launch-root .on .bro {
+  animation: ks-lr-flip 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.2) forwards;
+}
+.ks-launch-root .on .bro:nth-child(1) {
+  animation-delay: 0.6s;
+}
+.ks-launch-root .on .bro:nth-child(2) {
+  animation-delay: 1.2s;
+}
+.ks-launch-root .on .bro:nth-child(3) {
+  animation-delay: 1.8s;
+}
+.ks-launch-root .on .bro:nth-child(4) {
+  animation-delay: 2.4s;
+}
+.ks-launch-root .on .bro:nth-child(5) {
+  animation-delay: 3s;
+}
+.ks-launch-root .story {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+  max-width: 62ch;
+  opacity: 0;
+}
+.ks-launch-root .story .hi {
+  display: block;
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 6px;
+}
+.ks-launch-root .dedi {
+  font: italic 500 16px / 1.5 var(--f-serif);
+  color: var(--gold);
+  opacity: 0;
+}
+.ks-launch-root .dedi .hi {
+  display: block;
+  font: 500 14px var(--f-hi);
+  font-style: normal;
+  color: var(--gold-l);
+  opacity: 0.8;
+}
+.ks-launch-root .on .story {
+  animation: ks-lr-fadein 0.9s ease 3.6s forwards;
+}
+.ks-launch-root .on .dedi {
+  animation: ks-lr-fadein 0.9s ease 4.6s forwards;
+}
+
+.ks-launch-root .leaders {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  width: 100%;
+  margin-top: 4px;
+}
+.ks-launch-root .ld {
+  text-align: left;
+  display: flex;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  background: linear-gradient(
+    160deg,
+    rgba(232, 191, 62, 0.08),
+    rgba(255, 255, 255, 0.02)
+  );
+  opacity: 0;
+  transform: translateY(16px);
+  overflow: hidden;
+  position: relative;
+}
+.ks-launch-root .on .ld {
+  animation: ks-lr-up 0.7s ease forwards;
+}
+.ks-launch-root .on .ld:nth-child(2) {
+  animation-delay: 0.5s;
+}
+.ks-launch-root .ld .av {
+  flex: 0 0 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--gold);
+  color: var(--gold);
+  font: 800 18px var(--f-disp);
+  background: var(--ink);
+}
+.ks-launch-root .ld .nm {
+  font: 700 19px var(--f-disp);
+}
+.ks-launch-root .ld .rl {
+  font: 600 11px var(--f-disp);
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 3px 0 8px;
+}
+.ks-launch-root .ld p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.ks-launch-root .by {
+  font: 500 13px var(--f-disp);
+  color: var(--muted);
+  opacity: 0;
+}
+.ks-launch-root .by b {
+  color: var(--gold);
+  font-weight: 600;
+}
+.ks-launch-root .on .by {
+  animation: ks-lr-fadein 0.8s ease 1.4s forwards;
+}
+
+.ks-launch-root .lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 700 13px var(--f-disp);
+  letter-spacing: 2.4px;
+  color: var(--ink);
+  background: var(--gold);
+  padding: 8px 14px;
+  border-radius: 8px;
+  opacity: 0;
+  transform: rotate(-3deg) scale(1.4);
+}
+.ks-launch-root .lock svg {
+  width: 14px;
+  height: 14px;
+}
+.ks-launch-root .lock.show {
+  animation: ks-lr-stamp 0.45s ease forwards;
+}
+@keyframes ks-lr-stamp {
+  to {
+    opacity: 1;
+    transform: rotate(-3deg) scale(1);
+  }
+}
+.ks-launch-root .pnote {
+  font: 500 14px var(--f-disp);
+  color: var(--muted);
+  min-height: 1.5em;
+}
+
+.ks-launch-root .packs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+.ks-launch-root .pack {
+  cursor: pointer;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-family: var(--f-disp);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  opacity: 0;
+  transform: translateY(14px);
+}
+.ks-launch-root .pack.best {
+  border-color: var(--gold);
+  background: rgba(232, 191, 62, 0.1);
+  position: relative;
+}
+.ks-launch-root .pack.best::before {
+  content: "BEST VALUE";
+  position: absolute;
+  top: -9px;
+  left: 12px;
+  font: 700 9px var(--f-disp);
+  letter-spacing: 1.4px;
+  background: var(--gold);
+  color: var(--ink);
+  padding: 3px 7px;
+  border-radius: 4px;
+}
+.ks-launch-root .pack[aria-pressed="true"] {
+  outline: 2px solid var(--gold);
+}
+.ks-launch-root .pack .pn {
+  font: 600 13px var(--f-disp);
+}
+.ks-launch-root .pack .pc {
+  font: 500 11px var(--f-disp);
+  color: var(--muted);
+}
+.ks-launch-root .pack .pr {
+  font: 800 22px var(--f-disp);
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  margin-top: 4px;
+}
+.ks-launch-root .pack .pp {
+  font: 500 11px var(--f-disp);
+  color: var(--ok);
+}
+.ks-launch-root form#order {
+  width: 100%;
+  max-width: 560px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  text-align: left;
+}
+.ks-launch-root form#order label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font: 600 11px var(--f-disp);
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.ks-launch-root form#order .full {
+  grid-column: 1 / -1;
+}
+.ks-launch-root form#order input,
+.ks-launch-root form#order select,
+.ks-launch-root form#order textarea {
+  font: 500 15px var(--f-disp);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 11px 12px;
+  width: 100%;
+}
+.ks-launch-root form#order textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+.ks-launch-root .cta {
+  grid-column: 1 / -1;
+  font: 700 16px var(--f-disp);
+  color: var(--ink);
+  background: linear-gradient(90deg, var(--gold-d), var(--gold-l));
+  border: 0;
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+}
+.ks-launch-root .cta:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+.ks-launch-root .ok {
+  grid-column: 1 / -1;
+  background: rgba(59, 178, 115, 0.12);
+  border: 1px solid var(--ok);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.ks-launch-root .err {
+  color: #ff8a8a;
+  font-size: 13px;
+  grid-column: 1 / -1;
+}
+.ks-launch-root .help {
+  font: 500 13px var(--f-disp);
+  color: var(--muted);
+}
+.ks-launch-root .help b {
+  color: var(--gold);
+  font-weight: 600;
+  user-select: all;
+}
+
+.ks-launch-root .slot {
+  position: relative;
+  width: min(100%, 460px);
+  padding: 34px 22px 26px;
+  border-radius: 26px;
+  background: linear-gradient(180deg, #2a1f12, #120d16 60%);
+  border: 2px solid var(--gold-d);
+  box-shadow: 0 0 0 6px rgba(232, 191, 62, 0.08), 0 20px 60px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.ks-launch-root .slot-top {
+  position: absolute;
+  top: 9px;
+  left: 0;
+  right: 0;
+  font: 800 11px var(--f-disp);
+  letter-spacing: 4px;
+  color: var(--gold);
+}
+.ks-launch-root .bulbs {
+  position: absolute;
+  inset: 6px;
+  border-radius: 20px;
+  pointer-events: none;
+  background: radial-gradient(circle, var(--gold-l) 2.2px, transparent 3px) 0 0 /
+    18px 18px;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 5px;
+  animation: ks-lr-bulb 0.5s steps(2) infinite;
+}
+@keyframes ks-lr-bulb {
+  50% {
+    opacity: 0.25;
+  }
+}
+.ks-launch-root .window {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 10px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fdf6df, #efe0b0);
+  box-shadow: inset 0 6px 14px rgba(0, 0, 0, 0.45),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+.ks-launch-root .cur,
+.ks-launch-root .comma {
+  font: 800 clamp(40px, 11vw, 68px) / 1 var(--f-disp);
+  color: #1e1b16;
+}
+.ks-launch-root .comma {
+  width: 0.3em;
+  transition: opacity 0.3s;
+}
+.ks-launch-root .reel {
+  --h: clamp(56px, 15vw, 92px);
+  height: var(--h);
+  width: calc(var(--h) * 0.62);
+  overflow: hidden;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff, #f3e7c2);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  transition: width 0.35s ease, opacity 0.35s;
+}
+.ks-launch-root .reel.gone {
+  width: 0;
+  opacity: 0;
+}
+.ks-launch-root .strip {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+.ks-launch-root .strip span {
+  height: var(--h);
+  display: grid;
+  place-items: center;
+  font: 800 calc(var(--h) * 0.78) / 1 var(--f-disp);
+  color: #1e1b16;
+  font-variant-numeric: tabular-nums;
+}
+.ks-launch-root .glass {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.35),
+    transparent 30%,
+    transparent 70%,
+    rgba(0, 0, 0, 0.35)
+  );
+  pointer-events: none;
+}
+.ks-launch-root .x {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 800 clamp(80px, 20vw, 130px) / 1 var(--f-disp);
+  color: var(--red);
+  opacity: 0;
+  transform: scale(1.6);
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+.ks-launch-root .x.show {
+  animation: ks-lr-xflash 0.9s ease forwards;
+}
+@keyframes ks-lr-xflash {
+  0% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+  25% {
+    opacity: 0.95;
+    transform: scale(1);
+  }
+  75% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+.ks-launch-root .slot.win .window {
+  animation: ks-lr-winflash 0.25s steps(2) 6;
+}
+@keyframes ks-lr-winflash {
+  50% {
+    box-shadow: inset 0 0 0 4px var(--gold), 0 0 40px rgba(232, 191, 62, 0.9);
+  }
+}
+.ks-launch-root .slot.win .bulbs {
+  animation-duration: 0.18s;
+}
+.ks-launch-root .lever {
+  position: absolute;
+  right: -26px;
+  top: 38px;
+  width: 14px;
+  height: 90px;
+}
+.ks-launch-root .lever::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 12px;
+  width: 5px;
+  height: 78px;
+  background: linear-gradient(90deg, #999, #eee, #999);
+  border-radius: 3px;
+  transform-origin: bottom;
+}
+.ks-launch-root .lever i {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff8a8a, #b42318);
+}
+.ks-launch-root .lever.pull {
+  animation: ks-lr-pull 0.6s ease;
+}
+@keyframes ks-lr-pull {
+  40% {
+    transform: translateY(34px) scaleY(0.6);
+  }
+  100% {
+    transform: none;
+  }
+}
+.ks-launch-root #s4 .lock {
+  margin-top: 6px;
+}
+.ks-launch-root .home {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-decoration: none;
+  font: 700 16px var(--f-disp);
+  color: var(--gold);
+  border: 1.5px solid var(--gold);
+  border-radius: 14px;
+  padding: 12px 26px;
+  background: rgba(232, 191, 62, 0.06);
+  transition: background 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+.ks-launch-root .home:hover {
+  background: rgba(232, 191, 62, 0.16);
+  transform: translateY(-2px);
+}
+.ks-launch-root .home .hi {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.ks-launch-root .sweep {
+  position: absolute;
+  inset: -20%;
+  z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(247, 218, 122, 0.22) 50%,
+    transparent 60%
+  );
+  transform: translateX(-120%);
+}
+.ks-launch-root .sweep.go {
+  animation: ks-lr-sweep 1.1s ease forwards;
+}
+@keyframes ks-lr-sweep {
+  to {
+    transform: translateX(120%);
+  }
+}
+.ks-launch-root .rings {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+}
+.ks-launch-root .rings i {
+  position: absolute;
+  left: -60px;
+  top: -60px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  opacity: 0;
+}
+.ks-launch-root .on .rings i {
+  animation: ks-lr-ring 2.4s ease-out 2.2s infinite;
+}
+.ks-launch-root .on .rings i:nth-child(2) {
+  animation-delay: 3s;
+}
+.ks-launch-root .on .rings i:nth-child(3) {
+  animation-delay: 3.8s;
+}
+@keyframes ks-lr-ring {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+.ks-launch-root .shield-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+@keyframes ks-lr-flip {
+  0% {
+    opacity: 0;
+    transform: perspective(600px) rotateY(90deg) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ks-launch-root .on .bro.first .m {
+  animation: ks-lr-glow 2s ease-in-out 1.4s infinite;
+}
+@keyframes ks-lr-glow {
+  50% {
+    box-shadow: 0 0 22px 6px rgba(232, 191, 62, 0.55);
+  }
+}
+.ks-launch-root .ld::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  left: -60%;
+  background: linear-gradient(
+    105deg,
+    transparent,
+    rgba(255, 255, 255, 0.12),
+    transparent
+  );
+}
+.ks-launch-root .on .ld::after {
+  animation: ks-lr-shine 1.4s ease 1.2s forwards;
+}
+@keyframes ks-lr-shine {
+  to {
+    left: 130%;
+  }
+}
+.ks-launch-root .on h2 {
+  animation: ks-lr-up 0.7s ease both;
+}
+.ks-launch-root .on .pack {
+  animation: ks-lr-up 0.5s ease forwards;
+}
+.ks-launch-root .on .pack:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.ks-launch-root .on .pack:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.ks-launch-root .on .pack:nth-child(4) {
+  animation-delay: 0.3s;
+}
+.ks-launch-root .on .pack:nth-child(5) {
+  animation-delay: 0.4s;
+}
+.ks-launch-root .on .pack.best {
+  animation: ks-lr-up 0.5s ease 0.3s forwards,
+    ks-lr-bestglow 2.2s ease-in-out 1s infinite;
+}
+@keyframes ks-lr-bestglow {
+  50% {
+    box-shadow: 0 0 26px rgba(232, 191, 62, 0.45);
+  }
+}
+.ks-launch-root .count.tick {
+  animation: ks-lr-tick 0.35s ease;
+}
+@keyframes ks-lr-tick {
+  0% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: none;
+  }
+}
+.ks-launch-root .count.final10 {
+  animation: ks-lr-tick 0.35s ease;
+  color: transparent;
+  filter: drop-shadow(0 0 18px rgba(232, 191, 62, 0.6));
+}
+
+@media (max-width: 640px) {
+  .ks-launch-root .lever {
+    display: none;
+  }
+  .ks-launch-root .slot {
+    padding: 30px 12px 20px;
+  }
+  .ks-launch-root .bros {
+    justify-items: stretch;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .ks-launch-root .leaders {
+    grid-template-columns: 1fr;
+  }
+  .ks-launch-root .packs {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ks-launch-root .packs .pack.best {
+    grid-column: 1 / -1;
+  }
+  .ks-launch-root form#order {
+    grid-template-columns: 1fr;
+  }
+  .ks-launch-root .scene {
+    justify-content: flex-start;
+    padding-top: 80px;
+  }
+  .ks-launch-root .scene.center {
+    justify-content: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ks-launch-root *,
+  .ks-launch-root *::before,
+  .ks-launch-root *::after {
+    animation-duration: 0.01s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.2s !important;
+  }
+}

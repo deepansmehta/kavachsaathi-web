@@ -35,6 +35,8 @@ service-account.json
 # pre-print exports (may contain activation codes)
 /exports/
 exports/
+!exports/launch-reveal/
+!exports/launch-reveal/**
 qr-urls-100.csv
 
 # vercel / netlify
