@@ -284,6 +284,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|images|icons|manifest.json|sw.js|workbox-.+).*)",
+    // Exclude static public assets (incl. launch birthday / brother photos)
+    "/((?!_next/static|_next/image|favicon.ico|images|icons|launch|manifest.json|sw.js|workbox-.+).*)",
   ],
 };
