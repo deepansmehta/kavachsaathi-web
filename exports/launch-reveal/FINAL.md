@@ -24,5 +24,12 @@
 
 Works **only before 11 Oct 12:00 IST** and **only with** the preview cookie.
 
-## Rollback
-Previous stable prod before this release — record at deploy time in the report.
+## Deploy
+| | |
+|---|---|
+| Commit | `ecafd85` |
+| Deploy | `6ac79680c47af87a7723dfce` |
+| Rollback | `6ac790d66d383f8762c77840` |
+| Tag | `launch-reveal-final` |
+
+Firestore `orders` = deny-all (Admin SDK only). Flags snapshotted unchanged.

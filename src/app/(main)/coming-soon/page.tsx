@@ -1,20 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { Shield } from "lucide-react";
 import { BROTHERS, BROTHERS_DEDICATION_LINE } from "@/lib/brothers";
 import { LAUNCH_REVEAL_DAY_START_MS } from "@/lib/launchReveal";
 
 const PARTICLES = [
-  { x: "8%", y: "18%", d: 0, s: 2 },
-  { x: "88%", y: "22%", d: 0.4, s: 3 },
-  { x: "18%", y: "72%", d: 0.8, s: 2 },
-  { x: "78%", y: "68%", d: 0.2, s: 2.5 },
-  { x: "50%", y: "10%", d: 0.6, s: 2 },
-  { x: "42%", y: "88%", d: 1.1, s: 2 },
-  { x: "92%", y: "48%", d: 0.3, s: 2.5 },
-  { x: "6%", y: "48%", d: 0.9, s: 3 },
+  { x: "8%", y: "18%", s: 2 },
+  { x: "88%", y: "22%", s: 3 },
+  { x: "18%", y: "72%", s: 2 },
+  { x: "78%", y: "68%", s: 2.5 },
+  { x: "50%", y: "10%", s: 2 },
+  { x: "42%", y: "88%", s: 2 },
 ];
 
 function pad(n: number) {
@@ -52,7 +49,14 @@ function LogoMark() {
   );
 }
 
+function totalSeconds(t: Left) {
+  return t.days * 86400 + t.hours * 3600 + t.minutes * 60 + t.seconds;
+}
+
 function CountdownGrid({ t }: { t: Left }) {
+  const left = totalSeconds(t);
+  const heartbeat = left <= 5 && left > 0;
+  const hideTimer = left <= 3 && left > 0;
   const units = [
     { label: "Days", value: t.days },
     { label: "Hours", value: t.hours },
@@ -60,7 +64,10 @@ function CountdownGrid({ t }: { t: Left }) {
     { label: "Seconds", value: t.seconds },
   ];
   return (
-    <div className="mt-12 flex items-center justify-center gap-2 sm:gap-3" aria-live="polite">
+    <div
+      className={`mt-12 flex items-center justify-center gap-2 sm:gap-3${heartbeat ? " cs-heartbeat" : ""}${hideTimer ? " cs-timer-hide" : ""}`}
+      aria-live="polite"
+    >
       {units.map((u, i) => (
         <div key={u.label} className="flex items-center gap-2 sm:gap-3">
           <div className="cs-timer-cell relative min-w-[4.5rem] overflow-hidden rounded-2xl px-2 py-3 text-center sm:min-w-[5.75rem] sm:px-3 sm:py-4">
@@ -116,10 +123,18 @@ export default function ComingSoonPage() {
     };
   }, [skew]);
 
+  const leftSec = totalSeconds(t);
+  const showBig = !t.done && leftSec <= 3 && leftSec > 0;
+
   return (
     <div className="cs-stage relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-12">
       <div className="pointer-events-none absolute inset-0 cs-atmosphere" aria-hidden />
       <div className="pointer-events-none absolute inset-0 cs-vignette" aria-hidden />
+      {showBig ? (
+        <div className="cs-bignum" key={leftSec} aria-hidden>
+          {leftSec}
+        </div>
+      ) : null}
 
       {t.done ? (
         <div className="relative z-10 text-center">
@@ -137,22 +152,15 @@ export default function ComingSoonPage() {
         <>
           <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
             {PARTICLES.map((p, i) => (
-              <motion.span
+              <span
                 key={i}
-                className="absolute rounded-full bg-gold"
+                className="cs-particle absolute rounded-full bg-gold"
                 style={{
                   left: p.x,
                   top: p.y,
                   width: p.s,
                   height: p.s,
-                  boxShadow: "0 0 10px rgba(212,175,55,0.65)",
-                }}
-                animate={{ y: [0, -22, 0], opacity: [0.12, 0.75, 0.12] }}
-                transition={{
-                  duration: 4.2 + i * 0.35,
-                  delay: p.d,
-                  repeat: Infinity,
-                  ease: "easeInOut",
+                  animationDelay: `${i * 0.45}s`,
                 }}
               />
             ))}

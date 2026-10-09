@@ -8,10 +8,11 @@ import {
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
+  weight: ["500"],
+  style: ["italic"],
   variable: "--font-cormorant",
-  display: "swap",
+  display: "optional",
+  preload: false,
 });
 
 const SITE =

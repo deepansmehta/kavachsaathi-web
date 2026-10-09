@@ -586,6 +586,93 @@ h6 {
     filter: drop-shadow(0 0 28px rgba(212, 175, 55, 0.25));
   }
 
+  .cs-particle {
+    opacity: 0.35;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.55);
+    animation: cs-float 4.5s ease-in-out infinite;
+  }
+  @keyframes cs-float {
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.15;
+    }
+    50% {
+      transform: translateY(-18px);
+      opacity: 0.7;
+    }
+  }
+  .cs-heartbeat {
+    animation: cs-beat 0.5s ease infinite;
+  }
+  @keyframes cs-beat {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    15% {
+      transform: scale(1.035);
+    }
+    30% {
+      transform: scale(0.99);
+    }
+    45% {
+      transform: scale(1.02);
+    }
+  }
+  .cs-timer-hide {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+  }
+  .cs-bignum {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    font-family: var(--font-rajdhani), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 800;
+    font-size: clamp(140px, 42vw, 320px);
+    line-height: 1;
+    background: linear-gradient(180deg, #f9e39a, #b8860b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: cs-bign 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+  @keyframes cs-bign {
+    0% {
+      opacity: 0;
+      transform: scale(2.4);
+      filter: blur(8px);
+    }
+    25% {
+      opacity: 1;
+      transform: scale(1);
+      filter: none;
+    }
+    80% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.7);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cs-heartbeat,
+    .cs-bignum {
+      animation: none !important;
+    }
+    .cs-bignum {
+      opacity: 0.85;
+      transform: none;
+      filter: none;
+    }
+  }
+
   .cs-timer-cell {
     border: 1px solid rgba(212, 175, 55, 0.22);
     background: linear-gradient(

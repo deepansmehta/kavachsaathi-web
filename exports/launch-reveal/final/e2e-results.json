@@ -1,0 +1,71 @@
+{
+  "MODE": "local",
+  "BASE": "http://127.0.0.1:3011",
+  "rows": [
+    {
+      "id": "E2E-autoplay",
+      "ok": true,
+      "detail": "reveal mounted after noon"
+    },
+    {
+      "id": "E2E-birthday-photos",
+      "ok": true,
+      "detail": "webp paths present"
+    },
+    {
+      "id": "E2E-home",
+      "ok": true,
+      "detail": "after reveal → http://127.0.0.1:3011/"
+    },
+    {
+      "id": "E2E-second-visit",
+      "ok": true,
+      "detail": "no reveal"
+    },
+    {
+      "id": "E2E-oct12-no-js",
+      "ok": true,
+      "detail": "no reveal mount/request"
+    },
+    {
+      "id": "E2E-no-errors",
+      "ok": true,
+      "detail": "19 console notes filtered"
+    },
+    {
+      "id": "E2E-hi-shots",
+      "ok": true,
+      "detail": "captured"
+    },
+    {
+      "id": "E2E-vp-360",
+      "ok": true,
+      "detail": "all scenes"
+    },
+    {
+      "id": "E2E-vp-1280",
+      "ok": true,
+      "detail": "all scenes"
+    },
+    {
+      "id": "E2E-reduced-motion",
+      "ok": true,
+      "detail": "flash/heavy FX suppressed"
+    },
+    {
+      "id": "E2E-oct10-no-js",
+      "ok": true,
+      "detail": "no reveal"
+    },
+    {
+      "id": "E2E-card-no-js",
+      "ok": true,
+      "detail": "/card/DEMO clean"
+    },
+    {
+      "id": "E2E-cpu4x",
+      "ok": true,
+      "detail": "longFrames>100ms = 0"
+    }
+  ]
+}

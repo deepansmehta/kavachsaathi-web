@@ -167,9 +167,11 @@ async function main() {
       ? pass("2a after → isSiteLaunched=true")
       : fail("2a after launch", "expected true");
 
+    // ACTIVATION_TEST_AS_REAL forces non-exempt; wall clock still applies —
+    // ACTIVATION_TEST_NOW must never open forced-real / KVS-2026-* kits.
     const g = gate.evaluateActivationGate(REAL, false);
-    g.ok
-      ? pass("2b after → real activation open")
+    g.ok === false && g.code === "ACTIVATION_NOT_OPEN"
+      ? pass("2b after → forced-real still NOT_OPEN (TEST_NOW ignored)")
       : fail("2b after activation", JSON.stringify(g));
 
     simulatePreLaunchAccess("/my-profile", launch.isSiteLaunched()) === "allow"

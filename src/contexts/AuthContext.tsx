@@ -35,6 +35,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 function isDeferredAuthPath(pathname: string) {
   return (
     pathname === "/" ||
+    pathname === "/coming-soon" ||
+    pathname.startsWith("/coming-soon/") ||
     pathname === "/order" ||
     pathname === "/privacy" ||
     pathname === "/terms" ||

@@ -127,8 +127,11 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
-/** Scene durations (ms). Rehearsal prepends a 30s countdown. */
+/**
+ * Scene durations (ms) — match reference.html DUR (without rehearsal countdown):
+ * reveal · brothers · leadership · birthday · slot · order(stays).
+ */
 export const LAUNCH_REVEAL_SCENE_DUR: (number | null)[] = [
-  6500, 10000, 7500, 11500, null,
+  6500, 10000, 7500, 9000, 11500, null,
 ];
 export const LAUNCH_REVEAL_REHEARSAL_COUNTDOWN_MS = 30000;

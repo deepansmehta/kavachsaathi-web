@@ -22,11 +22,43 @@ const SPIN_STAGGER_MS = 260;
 const SPIN_LOOPS = 3;
 const REJECT_GAP_MS = 2300;
 
+type Part = {
+  t: "a" | "b" | "c" | "o" | "f";
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  r: number;
+  c?: string;
+  w?: number;
+  h?: number;
+  rot?: number;
+  vr?: number;
+  sp?: number;
+  vs?: number;
+};
+
 type Props = {
   onDone: () => void;
   /** Owner rehearsal: 30s countdown + demo orders (not saved). */
   rehearsal?: boolean;
 };
+
+const WORD = [
+  ["K", false],
+  ["a", false],
+  ["v", false],
+  ["a", false],
+  ["c", false],
+  ["h", false],
+  ["S", true],
+  ["a", true],
+  ["a", true],
+  ["t", true],
+  ["h", true],
+  ["i", true],
+] as const;
 
 export function LaunchReveal({ onDone, rehearsal = false }: Props) {
   const router = useRouter();
@@ -35,6 +67,12 @@ export function LaunchReveal({ onDone, rehearsal = false }: Props) {
   const [scene, setScene] = useState(0);
   const [countText, setCountText] = useState("00:30");
   const [countClass, setCountClass] = useState("");
+  const [cdEnd, setCdEnd] = useState(false);
+  const [cdThree, setCdThree] = useState(false);
+  const [bigNum, setBigNum] = useState("");
+  const [bigGo, setBigGo] = useState(false);
+  const [flashGo, setFlashGo] = useState(false);
+  const [ekgGo, setEkgGo] = useState(false);
   const [pnote, setPnote] = useState("सुरक्षा की कीमत क्या हो?");
   const [slotWin, setSlotWin] = useState(false);
   const [slotSpinning, setSlotSpinning] = useState(false);
@@ -46,17 +84,7 @@ export function LaunchReveal({ onDone, rehearsal = false }: Props) {
   const [leverPull, setLeverPull] = useState(false);
   const [sweepGo, setSweepGo] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const partsRef = useRef<
-    {
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      life: number;
-      r: number;
-      amb?: number;
-    }[]
-  >([]);
+  const partsRef = useRef<Part[]>([]);
   const rafRef = useRef<number | null>(null);
   const reelPos = useRef([0, 0, 0, 0]);
   const stripRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -69,7 +97,7 @@ export function LaunchReveal({ onDone, rehearsal = false }: Props) {
     ? [LAUNCH_REVEAL_REHEARSAL_COUNTDOWN_MS, ...LAUNCH_REVEAL_SCENE_DUR]
     : LAUNCH_REVEAL_SCENE_DUR;
 
-  /** Content index 0=reveal … 4=order (ignores rehearsal countdown). */
+  /** Content: 0=reveal 1=legacy 2=leadership 3=birthday 4=slot 5=order */
   const content =
     rehearsal && scene === 0 ? -1 : rehearsal ? scene - 1 : scene;
 
@@ -103,6 +131,7 @@ export function LaunchReveal({ onDone, rehearsal = false }: Props) {
       const a = Math.random() * Math.PI * 2;
       const v = (1 + Math.random() * 5) * dpr;
       partsRef.current.push({
+        t: "b",
         x: W / 2,
         y: H * 0.42,
         vx: Math.cos(a) * v,
@@ -112,6 +141,100 @@ export function LaunchReveal({ onDone, rehearsal = false }: Props) {
       });
     }
   }, []);
+
+  const firework = useCallback((nx: number, ny: number, c: string) => {
+    if (reduceRef.current) return;
+    const cv = canvasRef.current;
+    if (!cv) return;
+    const dpr = window.devicePixelRatio || 1;
+    const cx0 = nx * cv.width;
+    const cy0 = ny * cv.height;
+    for (let k = 0; k < 48; k++) {
+      const a = (Math.PI * 2 * k) / 48 + Math.random() * 0.2;
+      const v = (1.2 + Math.random() * 3.2) * dpr;
+      partsRef.current.push({
+        t: "f",
+        x: cx0,
+        y: cy0,
+        vx: Math.cos(a) * v,
+        vy: Math.sin(a) * v,
+        life: 1,
+        r: (1 + Math.random() * 1.8) * dpr,
+        c,
+      });
+    }
+  }, []);
+
+  const confetti = useCallback((n: number) => {
+    if (reduceRef.current) return;
+    const cv = canvasRef.current;
+    if (!cv) return;
+    const dpr = window.devicePixelRatio || 1;
+    const cols = ["#F2D060", "#E8BF3E", "#B8860B", "#FFF4CC", "#ffffff"];
+    for (let k = 0; k < n; k++) {
+      partsRef.current.push({
+        t: "c",
+        x: Math.random() * cv.width,
+        y: -20 - Math.random() * cv.height * 0.5,
+        vx: (Math.random() - 0.5) * 1.2 * dpr,
+        vy: (1.4 + Math.random() * 2.2) * dpr,
+        w: (5 + Math.random() * 6) * dpr,
+        h: (8 + Math.random() * 8) * dpr,
+        rot: Math.random() * 6,
+        vr: (Math.random() - 0.5) * 0.25,
+        life: 1,
+        r: 1,
+        c: cols[k % cols.length],
+      });
+    }
+  }, []);
+
+  const coins = useCallback((n: number) => {
+    if (reduceRef.current) return;
+    const cv = canvasRef.current;
+    if (!cv) return;
+    const dpr = window.devicePixelRatio || 1;
+    for (let k = 0; k < n; k++) {
+      partsRef.current.push({
+        t: "o",
+        x: Math.random() * cv.width,
+        y: -30 - Math.random() * cv.height * 0.6,
+        vx: (Math.random() - 0.5) * 0.6 * dpr,
+        vy: (4 + Math.random() * 3.5) * dpr,
+        r: (7 + Math.random() * 6) * dpr,
+        sp: Math.random() * 6,
+        vs: 0.12 + Math.random() * 0.12,
+        life: 1,
+      });
+    }
+  }, []);
+
+  const clearCoins = useCallback(() => {
+    partsRef.current = partsRef.current.filter((p) => p.t !== "o" && p.t !== "c");
+  }, []);
+
+  const revealFx = useCallback(() => {
+    if (reduceRef.current) {
+      burst();
+      return;
+    }
+    setFlashGo(false);
+    setEkgGo(false);
+    requestAnimationFrame(() => {
+      setFlashGo(true);
+      setEkgGo(true);
+    });
+    burst();
+    timers.current.push(
+      setTimeout(() => firework(0.22, 0.28, "#F2D060"), 4300)
+    );
+    timers.current.push(
+      setTimeout(() => firework(0.78, 0.24, "#FFF4CC"), 4700)
+    );
+    timers.current.push(
+      setTimeout(() => firework(0.5, 0.16, "#E8BF3E"), 5100)
+    );
+  }, [burst, firework]);
 
   useEffect(() => {
     reduceRef.current = window.matchMedia(
@@ -128,31 +251,70 @@ export function LaunchReveal({ onDone, rehearsal = false }: Props) {
       cx.clearRect(0, 0, cv.width, cv.height);
       if (!reduceRef.current && Math.random() < 0.25) {
         partsRef.current.push({
+          t: "a",
           x: Math.random() * cv.width,
           y: cv.height + 5,
           vx: 0,
           vy: -(0.3 + Math.random() * 0.8) * dpr(),
           life: 1,
           r: (0.6 + Math.random() * 1.4) * dpr(),
-          amb: 1,
         });
       }
       const parts = partsRef.current;
       for (const p of parts) {
+        if (p.t === "c") {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.rot = (p.rot || 0) + (p.vr || 0);
+          p.life -= 0.004;
+          cx.save();
+          cx.globalAlpha = Math.max(0, p.life);
+          cx.translate(p.x, p.y);
+          cx.rotate(p.rot || 0);
+          cx.fillStyle = p.c || "#E8BF3E";
+          cx.fillRect(-(p.w || 4) / 2, -(p.h || 6) / 2, p.w || 4, p.h || 6);
+          cx.restore();
+          continue;
+        }
+        if (p.t === "o") {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.sp = (p.sp || 0) + (p.vs || 0.1);
+          p.life -= 0.0025;
+          cx.save();
+          cx.globalAlpha = Math.max(0, Math.min(1, p.life));
+          cx.translate(p.x, p.y);
+          cx.rotate(p.sp || 0);
+          cx.fillStyle = "#E8BF3E";
+          cx.beginPath();
+          cx.ellipse(0, 0, p.r, p.r * 0.72, 0, 0, 7);
+          cx.fill();
+          cx.fillStyle = "#7A5A08";
+          cx.font = `bold ${Math.max(8, p.r * 0.95)}px sans-serif`;
+          cx.textAlign = "center";
+          cx.textBaseline = "middle";
+          cx.fillText("₹", 0, 1);
+          cx.restore();
+          continue;
+        }
         p.x += p.vx;
         p.y += p.vy;
-        if (!p.amb) {
+        if (p.t === "a") {
+          p.life -= 0.004;
+        } else {
           p.vy += 0.06 * dpr();
           p.vx *= 0.985;
-          p.life -= 0.012;
-        } else p.life -= 0.004;
+          p.life -= p.t === "f" ? 0.014 : 0.012;
+        }
         cx.globalAlpha = Math.max(0, p.life);
-        cx.fillStyle = p.amb ? "#B8860B" : "#F2D060";
+        cx.fillStyle = p.c || (p.t === "a" ? "#B8860B" : "#F2D060");
         cx.beginPath();
         cx.arc(p.x, p.y, p.r, 0, 7);
         cx.fill();
       }
-      partsRef.current = parts.filter((p) => p.life > 0 && p.y < cv.height + 20);
+      partsRef.current = parts.filter(
+        (p) => p.life > 0 && p.y < cv.height + 40
+      );
       rafRef.current = requestAnimationFrame(loop);
     };
     if (!reduceRef.current) rafRef.current = requestAnimationFrame(loop);
@@ -261,10 +423,11 @@ export function LaunchReveal({ onDone, rehearsal = false }: Props) {
         setLockShow(true);
         burst();
         burst();
+        coins(42);
       }, finalAt + spinMs + 50)
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [burst]);
+  }, [burst, coins]);
 
   const goHome = useCallback(() => {
     markLaunchRevealSeen();
@@ -279,25 +442,43 @@ export function LaunchReveal({ onDone, rehearsal = false }: Props) {
       if (scene > 0 && !reduceRef.current) setSweepGo(true);
     });
     if (rehearsal && scene === 0) {
+      setCdEnd(false);
+      setCdThree(false);
+      setBigGo(false);
       const end = Date.now() + (durs[0] || 30000);
       const tick = () => {
         const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
         setCountText("00:" + String(left).padStart(2, "0"));
         setCountClass(left <= 10 ? "final10" : "tick");
+        if (left <= 5) setCdEnd(true);
+        if (left <= 3 && left > 0 && !reduceRef.current) {
+          setCdThree(true);
+          setBigNum(String(left));
+          setBigGo(false);
+          requestAnimationFrame(() => setBigGo(true));
+        }
         if (left <= 0 && cdTimer.current) clearInterval(cdTimer.current);
       };
       tick();
       cdTimer.current = setInterval(tick, 200);
     }
-    if (content === 0) burst();
-    if (content === 3) runSlot();
+    if (content === 0) revealFx();
+    if (content === 3) confetti(170);
+    if (content === 4) runSlot();
+    if (content === 5) {
+      clearCoins();
+      confetti(36);
+    }
+    if (content !== 4 && content !== 3) {
+      /* keep ambient; coins cleared when entering order */
+    }
     const ms = durs[scene];
     if (ms) {
       sceneTimer.current = setTimeout(() => setScene((s) => s + 1), ms);
     }
     return () => clearTimers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene, burst, runSlot, rehearsal]);
+  }, [scene, burst, runSlot, rehearsal, revealFx, confetti, clearCoins]);
 
   const broPhoto = (slug: string) => `/launch/brothers/${slug}.jpg`;
   const leadPhoto = (slug: string) => `/launch/leaders/${slug}.jpg`;
@@ -312,11 +493,26 @@ export function LaunchReveal({ onDone, rehearsal = false }: Props) {
       <div id="stage" aria-live="polite">
         <canvas id="fx" ref={canvasRef} aria-hidden="true" />
         <div className={`sweep${sweepGo ? " go" : ""}`} aria-hidden="true" />
+        <div
+          className={`bignum${bigGo ? " go" : ""}`}
+          aria-hidden="true"
+        >
+          {bigNum}
+        </div>
+        <div className={`flash${flashGo ? " go" : ""}`} aria-hidden="true" />
+        <svg
+          className={`ekgline${ekgGo ? " go" : ""}`}
+          viewBox="0 0 1000 200"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path d="M0 100 H330 L360 100 L380 40 L405 170 L430 20 L455 150 L470 100 H1000" />
+        </svg>
 
         {/* REHEARSAL COUNTDOWN ONLY */}
         {rehearsal ? (
           <section
-            className={`scene center${scene === 0 ? " on" : ""}`}
+            className={`scene center${scene === 0 ? " on" : ""}${cdEnd ? " end" : ""}${cdThree ? " three" : ""}`}
             id="s0"
           >
             <div className="wrap">
@@ -337,6 +533,7 @@ export function LaunchReveal({ onDone, rehearsal = false }: Props) {
         >
           <div className="wrap">
             <div className="shield-wrap">
+              <div className="rays" aria-hidden="true" />
               <div className="rings" aria-hidden="true">
                 <i />
                 <i />
@@ -369,8 +566,16 @@ export function LaunchReveal({ onDone, rehearsal = false }: Props) {
                 />
               </svg>
             </div>
-            <div className="word">
-              Kavach<span>Saathi</span>
+            <div className="word" aria-label="KavachSaathi">
+              {WORD.map(([ch, gold], i) => (
+                <span
+                  key={`${ch}-${i}`}
+                  className={`l${gold ? " g" : ""}`}
+                  style={{ ["--i" as string]: i }}
+                >
+                  {ch}
+                </span>
+              ))}
             </div>
             <div className="sub">SMART HEALTH CARD</div>
             <div className="tag">
@@ -520,9 +725,76 @@ export function LaunchReveal({ onDone, rehearsal = false }: Props) {
           </div>
         </section>
 
+        {/* 3b BIRTHDAY */}
+        <section className={`scene${content === 3 ? " on" : ""}`} id="s3b">
+          <div className="wrap">
+            <div className="kicker">A day of double celebration</div>
+            <div className="hb">Happy Birthday</div>
+            <div className="bday">
+              <figure className="ph">
+                <div className="ring">
+                  <div
+                    className="av2 photo"
+                    role="img"
+                    aria-label="Shri Saurabh Mehta"
+                    style={{
+                      backgroundImage:
+                        "url(/launch/birthday/saurabh.webp), url(/launch/birthday/saurabh.jpg)",
+                    }}
+                  />
+                </div>
+                <figcaption>
+                  <b>Shri Saurabh Mehta</b>
+                  <span>Co-Founder, CEO &amp; Director</span>
+                  <small>GDM Technoworld · Care Home Paints · Wall Grip</small>
+                  <em>The vision behind GDM Group</em>
+                </figcaption>
+              </figure>
+              <figure className="ph">
+                <div className="ring">
+                  <div
+                    className="av2 photo"
+                    role="img"
+                    aria-label="Vedansh Mehta"
+                    style={{
+                      backgroundImage:
+                        "url(/launch/birthday/vedansh.webp), url(/launch/birthday/vedansh.jpg)",
+                    }}
+                  />
+                </div>
+                <figcaption>
+                  <b>Vedansh Mehta</b>
+                  <span>Chandigarh University</span>
+                  <small>&nbsp;</small>
+                  <em>The next generation of GDM</em>
+                </figcaption>
+              </figure>
+            </div>
+            <p className="wish">
+              As KavachSaathi goes live, the GDM Group family wishes a very
+              happy birthday to Shri Saurabh Mehta, whose vision and leadership
+              built our foundation, and to Vedansh Mehta, who carries that
+              legacy forward. Wishing you both good health, happiness and
+              continued success.
+              <span className="hi">
+                कवचसाथी के लॉन्च के दिन, जीडीएम ग्रुप परिवार की ओर से श्री सौरभ
+                मेहता जी और वेदांश मेहता को जन्मदिन की हार्दिक शुभकामनाएँ। आप
+                दोनों को उत्तम स्वास्थ्य, ख़ुशियाँ और निरंतर सफलता मिले।
+              </span>
+            </p>
+            <div className="bday-rule" aria-hidden="true" />
+            <div className="sign">
+              With warm regards and best wishes — <b>The GDM Group Family</b>
+              <span className="hi">
+                हार्दिक शुभकामनाओं सहित — जीडीएम ग्रुप परिवार
+              </span>
+            </div>
+          </div>
+        </section>
+
         {/* 4 SLOT */}
         <section
-          className={`scene center${content === 3 ? " on" : ""}`}
+          className={`scene center${content === 4 ? " on" : ""}`}
           id="s4"
         >
           <div className="wrap">
@@ -607,7 +879,7 @@ export function LaunchReveal({ onDone, rehearsal = false }: Props) {
         </section>
 
         {/* 5 ORDER */}
-        <section className={`scene${content === 4 ? " on" : ""}`} id="s5">
+        <section className={`scene${content === 5 ? " on" : ""}`} id="s5">
           <div className="wrap">
             <div className="kicker">Now open</div>
             <h2>
