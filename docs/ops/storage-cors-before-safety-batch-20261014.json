@@ -1,0 +1,18 @@
+[
+  {
+    "origin": [
+      "https://kavachsaathi.in",
+      "https://www.kavachsaathi.in",
+      "http://localhost:3000",
+      "http://localhost:3012",
+      "http://127.0.0.1:3000",
+      "http://127.0.0.1:3012",
+      "https://launch-test--kavachsaathi.netlify.app",
+      "https://6acb5f8cd33e64c083d6843c--kavachsaathi.netlify.app",
+      "https://6acb602d0f93df862cc69814--kavachsaathi.netlify.app"
+    ],
+    "method": ["PUT", "GET", "HEAD", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Content-Length", "x-goog-resumable"],
+    "maxAgeSeconds": 3600
+  }
+]
