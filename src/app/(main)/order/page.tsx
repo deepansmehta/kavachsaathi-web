@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Shield } from "lucide-react";
 import { ECGBackground, LoadingSpinner } from "@/components/ui";
 import { PackOrderForm } from "@/components/order/PackOrderForm";
+import { CARD_PRICE, formatInr } from "@/lib/pricing";
 
 function OrderContent() {
   return (
@@ -21,8 +22,8 @@ function OrderContent() {
           Order KavachSaathi
         </h1>
         <p className="mt-3 font-body text-sm text-cream-soft sm:text-base">
-          Choose a pack · launch price from ₹499 · we call to confirm payment
-          and delivery. / पैक चुनें — हम कॉल करके कन्फर्म करेंगे।
+          Choose a pack · from {formatInr(CARD_PRICE)} · we call to confirm
+          payment and delivery. / पैक चुनें — हम कॉल करके कन्फर्म करेंगे।
         </p>
       </div>
       <div className="rounded-card border border-gold/30 bg-kavach-s1/95 p-5 shadow-gold-sm sm:p-8">

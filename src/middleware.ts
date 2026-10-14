@@ -30,14 +30,17 @@ const PUBLIC_ROUTES = [
   "/login",
   "/activate",
   "/order",
+  "/pricing",
   "/forgot-pin",
   "/reset-pin",
   "/offline",
   "/doctor",
-  "/coming-soon",
   "/my-profile",
   "/privacy",
   "/terms",
+  "/refund-policy",
+  "/shipping-policy",
+  "/contact",
   "/schemes", // F22 scheme guide — always open (public health info)
 ];
 
@@ -157,8 +160,12 @@ export function middleware(request: NextRequest) {
   const launched = isSiteLaunched();
 
   if (turnOffPreview) {
-    const soon = new URL("/coming-soon", request.url);
-    return clearPreview(NextResponse.redirect(soon));
+    return clearPreview(NextResponse.redirect(new URL("/", request.url)));
+  }
+
+  // Legacy marketing URL — permanent redirect to homepage
+  if (pathname === "/coming-soon" || pathname.startsWith("/coming-soon/")) {
+    return NextResponse.redirect(new URL("/", request.url), 301);
   }
 
   const previewParam = previewParamMatchesSecret(previewRaw);
@@ -173,10 +180,6 @@ export function middleware(request: NextRequest) {
 
   // ── Pre-launch (before ACTIVATION_OPENS_AT / SITE_PRELAUNCH_FORCE) ─────
   if (!launched && !preview) {
-    if (pathname === "/coming-soon" || pathname.startsWith("/coming-soon/")) {
-      return clearPreview(NextResponse.next());
-    }
-
     // Admin UI + API always reachable; Google allowlist enforced in handlers
     if (ADMIN_PATTERN.test(pathname) || pathname.startsWith("/api/admin")) {
       return NextResponse.next();
@@ -226,9 +229,16 @@ export function middleware(request: NextRequest) {
       );
     }
 
-    return clearPreview(
-      NextResponse.redirect(new URL("/coming-soon", request.url))
-    );
+    // Homepage + Razorpay content pages stay reachable; coming-soon 301s to /
+    if (
+      pathname === "/" ||
+      pathname === "" ||
+      PUBLIC_ROUTES.includes(pathname)
+    ) {
+      return clearPreview(NextResponse.next());
+    }
+
+    return clearPreview(NextResponse.redirect(new URL("/", request.url)));
   }
 
   // Only set cookie when secret matched on this request AND still pre-launch

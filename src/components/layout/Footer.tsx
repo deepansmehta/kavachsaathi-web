@@ -4,10 +4,31 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Shield, Mail, Phone, MapPin } from "lucide-react";
 import { GoldDivider } from "@/components/ui/GoldDivider";
+import { COMPANY } from "@/lib/pricing";
+
+const POLICY_LINKS: [string, string][] = [
+  ["/terms", "Terms of Use"],
+  ["/privacy", "Privacy Policy"],
+  ["/refund-policy", "Refund Policy"],
+  ["/shipping-policy", "Shipping Policy"],
+  ["/contact", "Contact"],
+];
+
+const QUICK_LINKS: [string, string][] = [
+  ["/activate", "Activate Card"],
+  ["/order", "Order Card"],
+  ["/pricing", "Pricing"],
+  ["/doctor", "Doctor Portal"],
+  ["/login", "Login"],
+];
 
 export function Footer() {
   const pathname = usePathname();
-  if (pathname?.startsWith("/e/") || pathname?.startsWith("/coming-soon")) {
+  if (
+    pathname?.startsWith("/e/") ||
+    pathname?.startsWith("/emergency/") ||
+    pathname?.startsWith("/card/")
+  ) {
     return null;
   }
 
@@ -30,7 +51,14 @@ export function Footer() {
               scan.
             </p>
             <p className="mt-4 font-rajdhani text-sm font-semibold text-cream">
-              A product of GDM Technoworld Pvt. Ltd.
+              <a
+                href={COMPANY.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-gold"
+              >
+                {COMPANY.productLine}
+              </a>
             </p>
             <p className="mt-2 font-body text-xs text-cream-soft">
               Directors: Saurabh Mehta · Jyoti Mehta
@@ -42,14 +70,19 @@ export function Footer() {
               Quick Links
             </h4>
             <ul className="space-y-2 font-body text-sm text-cream-soft">
-              {[
-                ["/activate", "Activate Card"],
-                ["/order", "Order Card"],
-                ["/doctor", "Doctor Portal"],
-                ["/login", "Login"],
-                ["/privacy", "Privacy Policy"],
-                ["/terms", "Terms of Use"],
-              ].map(([href, label]) => (
+              {QUICK_LINKS.map(([href, label]) => (
+                <li key={href}>
+                  <Link href={href} className="hover:text-gold">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <h4 className="mb-3 mt-6 font-rajdhani text-sm font-bold uppercase tracking-widest text-gold">
+              Policies
+            </h4>
+            <ul className="space-y-2 font-body text-sm text-cream-soft">
+              {POLICY_LINKS.map(([href, label]) => (
                 <li key={href}>
                   <Link href={href} className="hover:text-gold">
                     {label}
@@ -67,27 +100,27 @@ export function Footer() {
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-gold" />
                 <a
-                  href="mailto:gdmtechnoworld@gmail.com"
+                  href={`mailto:${COMPANY.email}`}
                   className="hover:text-gold"
                 >
-                  gdmtechnoworld@gmail.com
+                  {COMPANY.email}
                 </a>
               </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-gold" />
-                <a href="tel:+917273000075" className="hover:text-gold">
-                  +91 72730 00075
-                </a>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-gold" />
-                <a href="tel:+917300100102" className="hover:text-gold">
-                  +91 73001 00102
-                </a>
-              </li>
+              {COMPANY.phones.map((p) => (
+                <li key={p.tel} className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-gold" />
+                  <a href={`tel:${p.tel}`} className="hover:text-gold">
+                    {p.display}
+                  </a>
+                </li>
+              ))}
               <li className="flex items-start gap-2">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-                <span>India</span>
+                <span>
+                  {COMPANY.addressLine}
+                  <br />
+                  {COMPANY.country}
+                </span>
               </li>
             </ul>
           </div>
@@ -97,15 +130,16 @@ export function Footer() {
 
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="font-body text-xs text-cream-soft">
-            © {new Date().getFullYear()} GDM Technoworld Pvt. Ltd. All rights
+            © {new Date().getFullYear()} {COMPANY.legalName}. All rights
             reserved.{" "}
-            <Link href="/privacy" className="hover:text-gold">
-              Privacy
-            </Link>
-            {" · "}
-            <Link href="/terms" className="hover:text-gold">
-              Terms
-            </Link>
+            {POLICY_LINKS.map(([href, label], i) => (
+              <span key={href}>
+                {i > 0 ? " · " : null}
+                <Link href={href} className="hover:text-gold">
+                  {label.replace(/ Policy$/, "").replace(/ of Use$/, "")}
+                </Link>
+              </span>
+            ))}
           </p>
           <p className="font-rajdhani text-xs font-semibold uppercase tracking-wider text-gold">
             Made in India

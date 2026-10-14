@@ -62,59 +62,9 @@ export function clearLaunchRevealSeen(): void {
   }
 }
 
-export type LaunchPack = {
-  id: string;
-  label: string;
-  cards: string;
-  cardCount: number;
-  price: number;
-  save: number;
-  best?: boolean;
-};
-
-export const LAUNCH_PACKS: LaunchPack[] = [
-  {
-    id: "Single",
-    label: "Single",
-    cards: "1 card",
-    cardCount: 1,
-    price: 499,
-    save: 0,
-  },
-  {
-    id: "Couple / Jodi",
-    label: "Couple / Jodi",
-    cards: "2 cards",
-    cardCount: 2,
-    price: 899,
-    save: 99,
-  },
-  {
-    id: "Parents Suraksha",
-    label: "Parents Suraksha",
-    cards: "2 cards + activation help",
-    cardCount: 2,
-    price: 949,
-    save: 49,
-  },
-  {
-    id: "Family Pack",
-    label: "Family Pack",
-    cards: "4 cards",
-    cardCount: 4,
-    price: 1599,
-    save: 397,
-    best: true,
-  },
-  {
-    id: "Joint Family",
-    label: "Joint Family",
-    cards: "6 cards",
-    cardCount: 6,
-    price: 2199,
-    save: 795,
-  },
-];
+/** Pack catalog lives in pricing.ts (single source of truth with /pricing). */
+export type { LaunchPack } from "@/lib/pricing";
+export { LAUNCH_PACKS } from "@/lib/pricing";
 
 export const ORDER_STATUSES = [
   "requested",

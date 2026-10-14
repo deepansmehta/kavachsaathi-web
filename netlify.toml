@@ -5,6 +5,19 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+# Legacy coming-soon → homepage (Razorpay content readiness)
+[[redirects]]
+  from = "/coming-soon"
+  to = "/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/coming-soon/*"
+  to = "/"
+  status = 301
+  force = true
+
 [build.environment]
   NODE_VERSION = "20"
   NEXT_TELEMETRY_DISABLED = "1"

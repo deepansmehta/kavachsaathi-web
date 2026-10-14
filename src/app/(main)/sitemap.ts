@@ -6,18 +6,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
     process.env.NEXT_PUBLIC_APP_URL ||
     "https://kavachsaathi.in";
 
-  return [
-    {
-      url: `${site}/coming-soon`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 1,
-    },
-    {
-      url: site,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
+  const paths = [
+    "",
+    "/pricing",
+    "/order",
+    "/terms",
+    "/privacy",
+    "/refund-policy",
+    "/shipping-policy",
+    "/contact",
   ];
+
+  return paths.map((path, i) => ({
+    url: `${site}${path}`,
+    lastModified: new Date(),
+    changeFrequency: path === "" ? "daily" : "weekly",
+    priority: path === "" ? 1 : Math.max(0.5, 0.9 - i * 0.05),
+  }));
 }

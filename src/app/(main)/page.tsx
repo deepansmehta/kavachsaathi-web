@@ -28,6 +28,12 @@ import {
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { ReferralCapture } from "@/components/ReferralCapture";
+import {
+  CARD_PRICE,
+  CARD_VALIDITY_YEARS,
+  RENEWAL_PRICE,
+  formatInr,
+} from "@/lib/pricing";
 
 function ShieldPulse() {
   return (
@@ -321,10 +327,10 @@ export default function HomePage() {
               transition={{ duration: 0.5, delay: 0.35 }}
             >
               <Link href="/order">
-                <GoldButton size="lg">Order now</GoldButton>
+                <GoldButton size="lg">Buy now</GoldButton>
               </Link>
-              <Link href="/my-profile">
-                <OutlineButton size="lg">My Profile</OutlineButton>
+              <Link href="/pricing">
+                <OutlineButton size="lg">See pricing</OutlineButton>
               </Link>
             </motion.div>
           </motion.div>
@@ -483,24 +489,23 @@ export default function HomePage() {
         />
         <FadeIn className="relative z-10 mx-auto max-w-2xl text-center">
           <p className="font-rajdhani text-xs font-semibold uppercase tracking-[0.3em] text-gold">
-            Order
+            Buy now
           </p>
           <h2 className="mt-2 font-rajdhani text-3xl font-bold text-cream sm:text-5xl">
             Get your KavachSaathi card
           </h2>
           <p className="mx-auto mt-4 max-w-md font-body text-sm text-cream-soft sm:text-base">
-            <span className="font-mono text-gold">₹649</span>
+            <span className="font-mono text-gold">{formatInr(CARD_PRICE)}</span>
             <span className="mx-2 text-cream-soft/50">·</span>
-            <span className="font-mono line-through">₹1399</span>
-            <span className="mx-2 text-cream-soft/50">·</span>
-            1 year validity · Renew ₹101/year
+            {CARD_VALIDITY_YEARS} year validity · Renew{" "}
+            {formatInr(RENEWAL_PRICE)}/year
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link href="/order">
-              <GoldButton size="lg">Order now</GoldButton>
+              <GoldButton size="lg">Buy now</GoldButton>
             </Link>
-            <Link href="/login">
-              <OutlineButton size="lg">Already have a card?</OutlineButton>
+            <Link href="/pricing">
+              <OutlineButton size="lg">View all packs</OutlineButton>
             </Link>
           </div>
         </FadeIn>

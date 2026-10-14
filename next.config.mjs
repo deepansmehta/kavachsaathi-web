@@ -119,6 +119,20 @@ const nextConfig = {
   // PRELAUNCH_PREVIEW_SECRET: do NOT bake via env{} with || "" — an empty local
   // build would override Netlify runtime. Next Edge inlines process.env at build;
   // Netlify production builds (or CLI with remote env) must supply it.
+  async redirects() {
+    return [
+      {
+        source: "/coming-soon",
+        destination: "/",
+        statusCode: 301,
+      },
+      {
+        source: "/coming-soon/:path*",
+        destination: "/",
+        statusCode: 301,
+      },
+    ];
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [],
