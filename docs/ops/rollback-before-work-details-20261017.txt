@@ -1,0 +1,3 @@
+ROLLBACK_DEPLOY_ID=6acf972e8a8a8a477e44c0ef
+snappedAt=2026-10-17
+flagsSnapshot=docs/ops/feature-flags-before-work-details-20261017.json

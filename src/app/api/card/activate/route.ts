@@ -109,6 +109,7 @@ export async function POST(req: NextRequest) {
       occupation: body.occupation || null,
       alternateContact: body.alternateContact || null,
       hasFamilyPhysician: body.hasFamilyPhysician ?? null,
+      workDetails: body.workDetails || null,
       photoPath: body.photoPath || null,
       idProofs: body.idProofs || null,
       address: body.address || null,

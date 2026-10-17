@@ -164,6 +164,44 @@ export async function buildAdmissionSheetPdf(
     y -= used + 5;
   }
 
+  if (
+    !opts.limited &&
+    (fields.workOrganisation ||
+      fields.employeeId ||
+      fields.esicNumber ||
+      fields.companyInsurer ||
+      fields.companyPolicyNo ||
+      fields.employerContact)
+  ) {
+    y -= 6;
+    page.drawText("Work / Employer", {
+      x: MARGIN,
+      y,
+      size: 10,
+      font: fonts.regular,
+      color: ink,
+    });
+    y -= 14;
+    const workRows: [string, string][] = [
+      ["Work type:", fields.workType || ""],
+      ["Organisation:", fields.workOrganisation || ""],
+      ["City:", fields.workCity || ""],
+      ["Designation:", fields.workDesignation || ""],
+      ["Employer contact:", fields.employerContact || ""],
+      ["Employee ID:", fields.employeeId || ""],
+      ["ESIC:", fields.esicNumber || ""],
+      ["Company insurer:", fields.companyInsurer || ""],
+      ["Company policy:", fields.companyPolicyNo || ""],
+    ];
+    for (const [label, val] of workRows) {
+      if (!val) continue;
+      note(val);
+      const used = drawLineField(page, fonts, label, val, MARGIN, y, contentW);
+      y -= used + 5;
+      if (y < FOOTER_H + 40) break;
+    }
+  }
+
   drawFooter(page, fonts, stamp);
   const bytes = await pdf.save();
   return { bytes, textDump: texts.join("\n") };

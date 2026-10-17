@@ -7,6 +7,10 @@ import type { PublicEmergencyProfile } from "@/lib/cardsRepo";
 import type { FeatureFlags } from "@/lib/features/flags";
 import { telLink, whatsappLink } from "@/lib/profileFields";
 import { t } from "@/lib/i18n-emergency";
+import {
+  publicWorkLine,
+  telLinkWork,
+} from "@/lib/workDetails";
 import { EmergencyActions } from "./EmergencyActions";
 import { EmergencyStickyBar } from "./EmergencyStickyBar";
 import { EmergencyDeferredFooter } from "./EmergencyDeferredFooter";
@@ -414,6 +418,48 @@ export function EmergencyLite({
                 </div>
               );
             })}
+          </section>
+        ) : null}
+
+        {flags.workDetails && profile.workDetails ? (
+          <section
+            className="ks-card"
+            aria-label="Work details"
+            data-testid="public-work-details"
+          >
+            <h2 className="ks-h">Work / काम</h2>
+            {publicWorkLine(profile.workDetails) ? (
+              <p className="ks-body-text">
+                🏭 Works at: {publicWorkLine(profile.workDetails)}
+                {profile.workDetails.designation
+                  ? ` · ${profile.workDetails.designation}`
+                  : ""}
+              </p>
+            ) : profile.workDetails.workType ? (
+              <p className="ks-body-text">
+                Work type: {profile.workDetails.workType}
+              </p>
+            ) : null}
+            {profile.workDetails.employerContactPhone
+              ? (() => {
+                  const empTel = telLinkWork(
+                    profile.workDetails!.employerContactPhone
+                  );
+                  const role =
+                    profile.workDetails!.employerContactRole || "Employer";
+                  return empTel ? (
+                    <a
+                      className="ks-btn ks-btn-call"
+                      style={{ marginTop: 10, width: "100%" }}
+                      href={empTel}
+                      data-testid="call-employer"
+                      aria-label={`Call Employer (${role})`}
+                    >
+                      Call Employer ({role}) / नियोक्ता को कॉल करें
+                    </a>
+                  ) : null;
+                })()
+              : null}
           </section>
         ) : null}
 
