@@ -25,6 +25,12 @@ import {
   type IdProofType,
 } from "@/lib/documentTypes";
 import { uploadViaSignedPut } from "@/lib/clientUpload";
+import {
+  WorkDetailsEditor,
+  emptyWorkDetailsEdit,
+} from "@/components/profile/WorkDetailsEditor";
+import type { WorkDetailsEdit } from "@/lib/workDetails";
+import { validateWorkDetailsInput } from "@/lib/workDetails";
 
 type Contact = { name: string; phone: string; relation: string };
 type Captcha = { token: string; question: string };
@@ -51,6 +57,7 @@ export function ActivationForm({
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackOn, setFeedbackOn] = useState(false);
   const [regionalLangOn, setRegionalLangOn] = useState(false);
+  const [workDetailsOn, setWorkDetailsOn] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -59,6 +66,7 @@ export function ActivationForm({
       .then((d) => {
         setFeedbackOn(Boolean(d.flags?.feedback));
         setRegionalLangOn(Boolean(d.flags?.regionalLang));
+        setWorkDetailsOn(Boolean(d.flags?.workDetails));
       })
       .catch(() => {});
   }, []);
@@ -85,6 +93,10 @@ export function ActivationForm({
   const [criticalTags, setCriticalTags] = useState<string[]>([]);
   const [criticalOther, setCriticalOther] = useState("");
   const [abhaId, setAbhaId] = useState("");
+  const [workDetails, setWorkDetails] = useState<WorkDetailsEdit>(
+    emptyWorkDetailsEdit()
+  );
+  const [workDetailsSkipped, setWorkDetailsSkipped] = useState(false);
 
   // Step 3
   const [photoPath, setPhotoPath] = useState<string | null>(null);
@@ -423,6 +435,10 @@ export function ActivationForm({
               : hasFamilyPhysician === "no"
                 ? false
                 : null,
+          workDetails:
+            workDetailsOn && !workDetailsSkipped
+              ? workDetails
+              : undefined,
           allergies,
           chronic_conditions: conditions,
           medications,
@@ -733,11 +749,36 @@ export function ActivationForm({
               <option value="yes">Yes</option>
               <option value="no">No</option>
             </select>
+            {workDetailsOn ? (
+              <WorkDetailsEditor
+                compact
+                value={workDetails}
+                onChange={setWorkDetails}
+                showSkip
+                skipped={workDetailsSkipped}
+                onSkip={() => setWorkDetailsSkipped((s) => !s)}
+              />
+            ) : null}
             <div className="flex gap-2">
               <GoldButton className="flex-1" onClick={() => setStep(1)}>
                 Back
               </GoldButton>
-              <GoldButton className="flex-1" onClick={next}>
+              <GoldButton
+                className="flex-1"
+                onClick={() => {
+                  if (
+                    workDetailsOn &&
+                    !workDetailsSkipped
+                  ) {
+                    const err = validateWorkDetailsInput(workDetails);
+                    if (err) {
+                      toast.error(err);
+                      return;
+                    }
+                  }
+                  next();
+                }}
+              >
                 Next
               </GoldButton>
             </div>

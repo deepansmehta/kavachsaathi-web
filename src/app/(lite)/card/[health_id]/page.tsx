@@ -164,6 +164,10 @@ export default async function CardPage({ params }: PageProps) {
     }
     const scanToken = makeScanToken(healthId);
     const flags = await loadFeatureFlags().catch(() => featuresFromEnv());
+    // Never serialize workDetails into /card props when flag is OFF
+    if (!flags.workDetails) {
+      delete profile.workDetails;
+    }
     const { computeValidity } = await import("@/lib/validity");
     const validity = computeValidity({
       validFrom: (card as { validFrom?: unknown }).validFrom,

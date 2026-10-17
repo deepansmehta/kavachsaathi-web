@@ -33,7 +33,7 @@ export const FEATURE_GROUPS: {
   { id: "phase2_3", title: "C) Phase 2/3 flags", count: 10 },
   { id: "patientEase", title: "D) Patient Ease flags", count: 12 },
   { id: "pack3", title: "E) Pack 3 flags", count: 9 },
-  { id: "pack4", title: "F) Pack 4 flags", count: 4 },
+  { id: "pack4", title: "F) Pack 4 flags", count: 5 },
 ];
 
 export const FEATURE_INVENTORY: InventoryRow[] = [
@@ -597,9 +597,19 @@ export const FEATURE_INVENTORY: InventoryRow[] = [
     flag: "scanRegister",
     test: "scripts/test-pack4.ts",
   },
+  {
+    id: "F59",
+    group: "pack4",
+    name: "Work / Employer Details",
+    summary:
+      "Optional work/employer block on profile + activation; public /card shows toggled fields only; PIN-only employeeId/ESIC/policy; consent required for employer contact.",
+    where: "/my-profile; Activation step 2; /card; admission PDF; /privacy",
+    flag: "workDetails",
+    test: "scripts/e2e-work-details.ts",
+  },
 ];
 
-export const TOTAL_FEATURES = FEATURE_INVENTORY.length; // 58
+export const TOTAL_FEATURES = FEATURE_INVENTORY.length; // 59
 
 export function inventoryByGroup(group: FeatureGroup): InventoryRow[] {
   return FEATURE_INVENTORY.filter((r) => r.group === group);

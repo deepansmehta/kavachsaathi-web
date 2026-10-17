@@ -19,6 +19,10 @@ import {
   buildAutoSummaryPair,
   summaryFromPublicProfile,
 } from "./autoSummary";
+import {
+  toPublicWorkDetails,
+  type PublicWorkDetails,
+} from "./workDetails";
 
 export type CardRecord = {
   docId: string;
@@ -130,6 +134,8 @@ export type PublicEmergencyProfile = {
   /** F56 — computed public-only auto summary (EN/HI) */
   autoSummaryEn?: string | null;
   autoSummaryHi?: string | null;
+  /** F59 — toggled public work/employer fields only (never PIN-only IDs) */
+  workDetails?: PublicWorkDetails | null;
 };
 
 export async function loadEmergencyProfile(
@@ -223,6 +229,9 @@ function mapPublicProfile(
   if (doctorName || doctorPhone) sectionsRendered.push("doctor");
   if (preferredHospital || city) sectionsRendered.push("location");
 
+  const workDetails = toPublicWorkDetails(data.workDetails);
+  if (workDetails) sectionsRendered.push("work");
+
   const photoObj = data.photo as { path?: string } | undefined;
   const insurance = data.insurance as
     | {
@@ -262,6 +271,7 @@ function mapPublicProfile(
     insurerName: insurance?.private?.insurerName || null,
     schemeName: insurance?.government?.schemeName || null,
     health_id: String(data.health_id || "").trim() || null,
+    workDetails,
   };
   const pair = buildAutoSummaryPair(summaryFromPublicProfile(base));
   return {

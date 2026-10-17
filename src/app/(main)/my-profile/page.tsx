@@ -22,6 +22,11 @@ import {
   type CriticalAlerts,
   type OrganDonorValue,
 } from "@/lib/profileFields";
+import {
+  WorkDetailsEditor,
+  emptyWorkDetailsEdit,
+} from "@/components/profile/WorkDetailsEditor";
+import type { WorkDetailsEdit } from "@/lib/workDetails";
 
 type Contact = { name: string; phone: string; relation?: string };
 type Captcha = { token: string; question: string };
@@ -51,6 +56,7 @@ type Profile = {
   occupation?: string;
   alternateContact?: string;
   hasFamilyPhysician?: boolean | null;
+  workDetails?: WorkDetailsEdit | null;
   insurance?: {
     coverageType?: string;
     private?: {
@@ -341,6 +347,11 @@ export default function MyProfilePage() {
           occupation: profile.occupation || "",
           alternateContact: profile.alternateContact || "",
           hasFamilyPhysician: profile.hasFamilyPhysician ?? null,
+          workDetails: featureFlags.workDetails
+            ? profile.workDetails
+              ? profile.workDetails
+              : { clear: true }
+            : undefined,
           insuranceExtras: {
             tpaName: profile.insurance?.private?.tpaName || "",
             memberId: profile.insurance?.private?.memberId || "",
@@ -1038,6 +1049,17 @@ export default function MyProfilePage() {
                 ))}
               </div>
 
+              {featureFlags.workDetails ? (
+                <WorkDetailsEditor
+                  value={profile.workDetails || emptyWorkDetailsEdit()}
+                  onChange={(wd) =>
+                    setProfile({ ...profile, workDetails: wd })
+                  }
+                  onClear={() =>
+                    setProfile({ ...profile, workDetails: null })
+                  }
+                />
+              ) : null}
 
               <div className="space-y-3 rounded-xl border border-[var(--gold-border)] p-3">
                 <p className="text-xs uppercase tracking-wider text-[var(--gold)]">
@@ -1643,6 +1665,7 @@ function normalizeProfile(raw: Profile): Profile {
       raw.hasFamilyPhysician === true || raw.hasFamilyPhysician === false
         ? raw.hasFamilyPhysician
         : null,
+    workDetails: raw.workDetails || null,
     insurance: raw.insurance || null,
     allergies: raw.allergies || [],
     chronic_conditions: raw.chronic_conditions || [],

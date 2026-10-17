@@ -116,6 +116,21 @@ export default function PrivacyPage() {
           </li>
         </ul>
 
+        {/* pending legal review */}
+        <h2 className="font-rajdhani text-xl font-semibold text-[#FCE49A]">
+          Work details
+        </h2>
+        <p>
+          You may optionally save work or employer information (organisation,
+          city, designation, employer contact, and PIN-only fields such as
+          employee ID, ESIC number, and company insurance). Each public-capable
+          field has its own visibility toggle. Employee ID, ESIC, and company
+          policy numbers never appear on the public emergency card. When you
+          list an employer contact, you must confirm they have agreed to be
+          listed. Organisation-linked pre-fill (when available) can be edited
+          or hidden by you at any time.
+        </p>
+
         <h2 className="font-rajdhani text-xl font-semibold text-[#FCE49A]">
           5. Where data is stored
         </h2>

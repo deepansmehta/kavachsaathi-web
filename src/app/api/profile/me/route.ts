@@ -14,6 +14,7 @@ import {
 } from "@/lib/profileFields";
 
 import { decrypt, hasEncKey } from "@/lib/crypto";
+import { decodeWorkDetailsForEdit } from "@/lib/workDetails";
 
 function safeDec(enc: unknown): string {
   if (!enc || typeof enc !== "string" || !hasEncKey()) return "";
@@ -116,6 +117,7 @@ export async function GET() {
             ? data.hasFamilyPhysician
             : null,
         insurance: redactInsuranceForProfile(data.insurance),
+        workDetails: decodeWorkDetailsForEdit(data.workDetails),
         cardStatus: card ? normalizeCardStatus(card.status) : "unactivated",
         validTill: card?.validTill || null,
         validFrom: (card as { validFrom?: string | null })?.validFrom || card?.activated_at || null,

@@ -37,6 +37,11 @@ import {
 } from "./referralReward";
 import { isFeatureOn, mergeFeatureFlags } from "./features/flags";
 import { addDaysIso } from "./validity";
+import {
+  encodeWorkDetailsForStorage,
+  validateWorkDetailsInput,
+  type WorkDetailsInput,
+} from "./workDetails";
 
 export type ActivateInput = {
   health_id: string;
@@ -65,6 +70,8 @@ export type ActivateInput = {
   occupation?: string | null;
   alternateContact?: string | null;
   hasFamilyPhysician?: boolean | null;
+  /** Optional work / employer details (flag: workDetails) */
+  workDetails?: WorkDetailsInput | null;
   /** Optional Pack 3 referral code from activation step 7 */
   referralCode?: string | null;
   /** Full-details mandatory docs (Part A/B) */
@@ -319,6 +326,25 @@ export async function activateCardAtomic(
     String(input.preferredHospital || "").trim() || null;
   const fullAddress = String(input.fullAddress || "").trim() || null;
 
+  let workDetailsStored: ReturnType<typeof encodeWorkDetailsForStorage> = null;
+  if (input.workDetails && !input.workDetails.clear) {
+    const verr = validateWorkDetailsInput(input.workDetails);
+    if (verr) {
+      return { ok: false, status: 400, error: verr };
+    }
+    if (hasEncKey()) {
+      try {
+        workDetailsStored = encodeWorkDetailsForStorage(input.workDetails);
+      } catch {
+        return {
+          ok: false,
+          status: 503,
+          error: "Encryption not configured for work details",
+        };
+      }
+    }
+  }
+
   try {
     await db.runTransaction(async (tx) => {
       const fresh = await tx.get(cardRef);
@@ -416,6 +442,7 @@ export async function activateCardAtomic(
             : doctorName || doctorPhone
               ? true
               : null,
+        ...(workDetailsStored ? { workDetails: workDetailsStored } : {}),
         allergies: input.allergies || [],
         chronic_conditions: input.chronic_conditions || [],
         medications: input.medications || [],

@@ -1,5 +1,6 @@
 import { decrypt, hasEncKey } from "@/lib/crypto";
 import { ageFromDob, blank } from "./pdfCommon";
+import { workDetailsForAdmission } from "@/lib/workDetails";
 
 export type FormProfileInput = Record<string, unknown>;
 
@@ -49,6 +50,16 @@ export type AdmissionSheetFields = {
   govtCardNumber: string;
   autoSummaryEn?: string;
   autoSummaryHi?: string;
+  /** PIN-session only — work / ESIC / company insurance */
+  workOrganisation?: string;
+  workCity?: string;
+  workDesignation?: string;
+  workType?: string;
+  employerContact?: string;
+  employeeId?: string;
+  esicNumber?: string;
+  companyInsurer?: string;
+  companyPolicyNo?: string;
 };
 
 function safeDecrypt(enc: unknown): string {
@@ -239,6 +250,8 @@ export function extractAdmissionFields(
     }
   }
 
+  const work = opts.limited ? null : workDetailsForAdmission(d.workDetails);
+
   return {
     photoBytes: opts.photoBytes || null,
     photoContentType: "image/jpeg",
@@ -259,6 +272,19 @@ export function extractAdmissionFields(
     memberId: safeDecrypt(insurance?.private?.memberIdEnc),
     schemeName: blank(insurance?.government?.schemeName),
     govtCardNumber: safeDecrypt(insurance?.government?.govtCardNumberEnc),
+    workOrganisation: work?.organisationName || "",
+    workCity: work?.city || "",
+    workDesignation: work?.designation || "",
+    workType: work?.workType || "",
+    employerContact: work
+      ? [work.employerContactName, work.employerContactRole, work.employerContactPhone]
+          .filter(Boolean)
+          .join(" — ")
+      : "",
+    employeeId: work?.employeeId || "",
+    esicNumber: work?.esicNumber || "",
+    companyInsurer: work?.companyInsurer || "",
+    companyPolicyNo: work?.companyPolicyNo || "",
   };
 }
 

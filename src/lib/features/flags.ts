@@ -49,6 +49,8 @@ export const FEATURE_KEYS = [
   "autoSummary",
   "fhirExport",
   "scanRegister",
+  // Work / Employer Details
+  "workDetails",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_KEYS)[number];
@@ -95,6 +97,7 @@ export const DEFAULT_FEATURES: FeatureFlags = {
   autoSummary: false,
   fhirExport: false,
   scanRegister: false,
+  workDetails: false,
 };
 
 const ENV_MAP: Record<FeatureKey, string> = {
@@ -136,6 +139,7 @@ const ENV_MAP: Record<FeatureKey, string> = {
   autoSummary: "FEATURE_AUTO_SUMMARY",
   fhirExport: "FEATURE_FHIR_EXPORT",
   scanRegister: "FEATURE_SCAN_REGISTER",
+  workDetails: "FEATURE_WORK_DETAILS",
 };
 
 function envBool(name: string): boolean | null {
@@ -212,4 +216,5 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   autoSummary: "Doctor auto summary EN+HI (Pack 4 F56)",
   fhirExport: "FHIR R4 / ABDM-ready export (Pack 4 F57)",
   scanRegister: "Hospital Scan & Register (Pack 4 F58)",
+  workDetails: "Work / Employer Details",
 };

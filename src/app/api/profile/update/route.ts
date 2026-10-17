@@ -14,6 +14,11 @@ import {
   parseOrganDonor,
 } from "@/lib/profileFields";
 import { encrypt, hasEncKey } from "@/lib/crypto";
+import {
+  encodeWorkDetailsForStorage,
+  validateWorkDetailsInput,
+  type WorkDetailsInput,
+} from "@/lib/workDetails";
 
 
 /** PATCH /api/profile/update — edit own profile (session required) */
@@ -223,6 +228,33 @@ export async function PATCH(req: NextRequest) {
         };
       }
       patch.insurance = existing;
+    }
+
+    if (body.workDetails !== undefined) {
+      const wd = body.workDetails as WorkDetailsInput | null;
+      const verr = validateWorkDetailsInput(wd || { clear: true });
+      if (verr) {
+        return NextResponse.json({ error: verr }, { status: 400 });
+      }
+      if (!wd || wd.clear) {
+        patch.workDetails = FieldValue.delete();
+      } else {
+        if (!hasEncKey()) {
+          return NextResponse.json(
+            { error: "Encryption not configured" },
+            { status: 503 }
+          );
+        }
+        try {
+          const stored = encodeWorkDetailsForStorage(wd);
+          patch.workDetails = stored ?? FieldValue.delete();
+        } catch (e) {
+          return NextResponse.json(
+            { error: e instanceof Error ? e.message : "Work details failed" },
+            { status: 503 }
+          );
+        }
+      }
     }
 
     // Never allow pin_hash / activation_code / health_id / phone via this route
