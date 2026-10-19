@@ -37,10 +37,13 @@ export function EmergencyDeferredFooter({
   regionalLang,
   elderlyOn,
   readText,
+  healthId,
 }: {
   regionalLang: boolean;
   elderlyOn: boolean;
   readText: string;
+  /** Owner edit link — deferred so it never affects LCP */
+  healthId?: string | null;
 }) {
   const [ready, setReady] = useState(false);
   const [lang, setLang] = useState<Lang>("en");
@@ -93,6 +96,23 @@ export function EmergencyDeferredFooter({
       <p className="ks-footer-brand">
         Powered by KavachSaathi · GDM Technoworld
       </p>
+      {ready && healthId ? (
+        <p className="ks-owner-edit" style={{ margin: "10px 0 0", textAlign: "center" }}>
+          <a
+            href={`/my-profile?health_id=${encodeURIComponent(healthId)}`}
+            data-testid="card-owner-edit-link"
+            style={{
+              fontSize: 12,
+              color: "#8A7010",
+              textDecoration: "underline",
+              fontWeight: 600,
+            }}
+          >
+            Is this your card? Edit profile → / यह आपका कार्ड है? प्रोफ़ाइल
+            बदलें
+          </a>
+        </p>
+      ) : null}
       {ready ? (
         <div className="ks-footer-tools">
           {regionalLang ? (

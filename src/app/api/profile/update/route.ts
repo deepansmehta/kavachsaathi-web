@@ -19,6 +19,7 @@ import {
   validateWorkDetailsInput,
   type WorkDetailsInput,
 } from "@/lib/workDetails";
+import { normalizePin, verifyPin } from "@/lib/pin";
 
 
 /** PATCH /api/profile/update — edit own profile (session required) */
@@ -36,6 +37,25 @@ export async function PATCH(req: NextRequest) {
     const snap = await ref.get();
     if (!snap.exists) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
+
+    // Sensitive: emergency contacts require re-entered PIN
+    if (body.emergency_contacts !== undefined) {
+      const confirmPin = normalizePin(body.confirmPin || body.pin);
+      const ok = await verifyPin(
+        confirmPin,
+        String(snap.data()?.pin_hash || "")
+      );
+      if (!ok) {
+        return NextResponse.json(
+          {
+            error:
+              "PIN required to change emergency contacts / आपातकालीन संपर्क बदलने के लिए पिन चाहिए",
+            code: "PIN_REQUIRED",
+          },
+          { status: 401 }
+        );
+      }
     }
 
     const patch: Record<string, unknown> = {

@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
-import { Shield, Plus, Trash2, Printer } from "lucide-react";import {
+import { Shield, Plus, Trash2, Printer } from "lucide-react";
+import {
   GoldButton,
   OutlineButton,
   GoldInput,
@@ -27,6 +29,12 @@ import {
   emptyWorkDetailsEdit,
 } from "@/components/profile/WorkDetailsEditor";
 import type { WorkDetailsEdit } from "@/lib/workDetails";
+import {
+  ProfileSectionCard,
+  type ProfileSectionId,
+} from "@/components/profile/ProfileSectionCard";
+import { ConfirmPinModal } from "@/components/profile/ConfirmPinModal";
+import { useProfileIdleLock } from "@/hooks/useProfileIdleLock";
 
 type Contact = { name: string; phone: string; relation?: string };
 type Captcha = { token: string; question: string };
@@ -94,10 +102,36 @@ type ScanRow = {
 type Mode = "login" | "forgot" | "edit";
 
 export default function MyProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="relative min-h-screen px-4 py-10">
+          <p className="text-center text-[var(--text-soft)]">Loading…</p>
+        </main>
+      }
+    >
+      <MyProfileInner />
+    </Suspense>
+  );
+}
+
+function MyProfileInner() {
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<Mode>("login");
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [editingSection, setEditingSection] = useState<ProfileSectionId | null>(
+    null
+  );
+  const [sectionSnapshot, setSectionSnapshot] = useState<Profile | null>(null);
+  const [sectionSaving, setSectionSaving] = useState(false);
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [pinModalAction, setPinModalAction] = useState<"contacts" | "changePin">(
+    "contacts"
+  );
+  const [newPin, setNewPin] = useState("");
+  const [newPin2, setNewPin2] = useState("");
   const [scans, setScans] = useState<ScanRow[]>([]);
   const [accessLogs, setAccessLogs] = useState<
     {
@@ -200,6 +234,48 @@ export default function MyProfilePage() {
       .then((d) => setFeatureFlags(d.flags || {}))
       .catch(() => {});
   }, []);
+
+  // Prefill Health ID from /card or Full Details entry links
+  useEffect(() => {
+    const hid = searchParams.get("health_id");
+    if (hid && !identifier) setIdentifier(hid);
+  }, [searchParams, identifier]);
+
+  // Scroll to requested section once after login
+  useEffect(() => {
+    if (mode !== "edit" || !profile) return;
+    const sec = searchParams.get("section") as ProfileSectionId | null;
+    if (!sec) return;
+    const t = window.setTimeout(() => {
+      document.getElementById(`section-${sec}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      setEditingSection((cur) => cur ?? sec);
+      setSectionSnapshot((s) => s ?? structuredClone(profile));
+    }, 400);
+    return () => clearTimeout(t);
+    // intentionally only when mode flips to edit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  const lockNow = useCallback(async () => {
+    try {
+      await fetch("/api/profile/me", { method: "DELETE" });
+    } catch {
+      /* */
+    }
+    setProfile(null);
+    setMode("login");
+    setEditingSection(null);
+    setPin("");
+    toast.success("Locked / लॉक हो गया");
+  }, []);
+
+  useProfileIdleLock(mode === "edit", () => {
+    void lockNow();
+    toast.error("Session locked after 10 min idle / 10 मिनट बाद लॉक");
+  });
 
   // Load vault when mode=edit and feature on
   useEffect(() => {
@@ -310,10 +386,163 @@ export default function MyProfilePage() {
     setPin("");
   };
 
+  const beginEdit = (id: ProfileSectionId) => {
+    if (!profile) return;
+    setSectionSnapshot(structuredClone(profile));
+    setEditingSection(id);
+  };
+
+  const cancelEdit = () => {
+    if (sectionSnapshot) setProfile(sectionSnapshot);
+    setEditingSection(null);
+    setSectionSnapshot(null);
+  };
+
+  const patchUpdate = async (
+    body: Record<string, unknown>
+  ): Promise<{ ok: boolean; error?: string; code?: string }> => {
+    const res = await fetch("/api/profile/update", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = (await res.json()) as {
+      error?: string;
+      code?: string;
+      success?: boolean;
+    };
+    if (!res.ok) {
+      return { ok: false, error: data.error || "Save failed", code: data.code };
+    }
+    return { ok: true };
+  };
+
+  const saveSection = async (
+    id: ProfileSectionId,
+    confirmPin?: string
+  ): Promise<boolean> => {
+    if (!profile) return false;
+    setSectionSaving(true);
+    try {
+      let body: Record<string, unknown> = {};
+      if (id === "personal") {
+        if (!profile.full_name || profile.full_name.trim().length < 2) {
+          toast.error(
+            "Name is required / नाम आवश्यक है"
+          );
+          return false;
+        }
+        if (!profile.city || profile.city.trim().length < 2) {
+          toast.error("City is required / शहर आवश्यक है");
+          return false;
+        }
+        body = {
+          full_name: profile.full_name,
+          city: profile.city,
+          gender: profile.gender || "",
+          dateOfBirth: profile.dateOfBirth || "",
+          photo_url: profile.photo_url,
+          abhaId: profile.abhaId,
+        };
+      } else if (id === "medical") {
+        body = {
+          blood_group: profile.blood_group,
+          organDonor: profile.organDonor,
+          preferredHospital: profile.preferredHospital,
+          criticalAlerts: profile.criticalAlerts,
+          allergies: profile.allergies,
+          chronic_conditions: profile.chronic_conditions,
+          medications: profile.medications,
+          familyDoctorName: profile.familyDoctorName,
+          familyDoctorPhone: profile.familyDoctorPhone,
+          family_doctor: {
+            name: profile.familyDoctorName || "",
+            phone: profile.familyDoctorPhone || "",
+          },
+          hasFamilyPhysician: profile.hasFamilyPhysician ?? null,
+        };
+      } else if (id === "contacts") {
+        if (!confirmPin) {
+          setPinModalAction("contacts");
+          setPinModalOpen(true);
+          return false;
+        }
+        body = {
+          emergency_contacts: profile.emergency_contacts,
+          confirmPin,
+        };
+      } else if (id === "work") {
+        body = {
+          workDetails: profile.workDetails
+            ? profile.workDetails
+            : { clear: true },
+        };
+      } else if (id === "address") {
+        body = {
+          fullAddress: profile.fullAddress,
+          city: profile.city,
+        };
+      } else if (id === "insurance") {
+        body = {
+          occupation: profile.occupation || "",
+          alternateContact: profile.alternateContact || "",
+          gender: profile.gender || "",
+          dateOfBirth: profile.dateOfBirth || "",
+          insuranceExtras: {
+            tpaName: profile.insurance?.private?.tpaName || "",
+            memberId: profile.insurance?.private?.memberId || "",
+            isGroupPolicy: Boolean(profile.insurance?.private?.isGroupPolicy),
+            corporateName: profile.insurance?.private?.corporateName || "",
+            employeeId: profile.insurance?.private?.employeeId || "",
+            otherMediclaim: {
+              hasOther: Boolean(profile.insurance?.otherMediclaim?.hasOther),
+              companyName: profile.insurance?.otherMediclaim?.companyName || "",
+              policyNumber:
+                profile.insurance?.otherMediclaim?.policyNumber || "",
+            },
+          },
+        };
+      } else if (id === "ids") {
+        toast.success(
+          "ID documents are managed securely — contact support to replace / आईडी बदलने के लिए सहायता से संपर्क करें"
+        );
+        setEditingSection(null);
+        return true;
+      } else if (id === "security") {
+        return true;
+      }
+
+      const result = await patchUpdate(body);
+      if (!result.ok) {
+        if (result.code === "PIN_REQUIRED" || /PIN/i.test(result.error || "")) {
+          setPinModalAction("contacts");
+          setPinModalOpen(true);
+          return false;
+        }
+        toast.error(result.error || "Save failed");
+        return false;
+      }
+      toast.success("✅ Saved / सेव हो गया");
+      setEditingSection(null);
+      setSectionSnapshot(null);
+      // Bust public card cache: force-dynamic already; nudge via HEAD
+      void fetch(`/card/${profile.health_id}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      }).catch(() => {});
+      return true;
+    } catch {
+      toast.error("Network error / नेटवर्क त्रुटि");
+      return false;
+    } finally {
+      setSectionSaving(false);
+    }
+  };
+
   const save = async () => {
     if (!profile) return;
     if (!profile.city || profile.city.trim().length < 2) {
-      toast.error("City is required");
+      toast.error("City is required / शहर आवश्यक है");
       return;
     }
     setLoading(true);
@@ -333,7 +562,6 @@ export default function MyProfilePage() {
           allergies: profile.allergies,
           chronic_conditions: profile.chronic_conditions,
           medications: profile.medications,
-          emergency_contacts: profile.emergency_contacts,
           familyDoctorName: profile.familyDoctorName,
           familyDoctorPhone: profile.familyDoctorPhone,
           family_doctor: {
@@ -371,11 +599,45 @@ export default function MyProfilePage() {
         toast.error(data.error || "Save failed");
         return;
       }
-      toast.success("Profile saved");
+      toast.success("✅ Saved / सेव हो गया");
+      void fetch(`/card/${profile.health_id}`, { cache: "no-store" }).catch(
+        () => {}
+      );
     } catch {
       toast.error("Network error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const submitChangePin = async (currentPin: string) => {
+    if (newPin.length < 4 || newPin !== newPin2) {
+      toast.error(
+        "New PINs must match (4–6 digits) / नए पिन मेल खाने चाहिए"
+      );
+      return;
+    }
+    setSectionSaving(true);
+    try {
+      const res = await fetch("/api/profile/change-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPin, newPin }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        toast.error(data.error || "PIN change failed");
+        return;
+      }
+      toast.success("✅ Saved / सेव हो गया");
+      setNewPin("");
+      setNewPin2("");
+      setPinModalOpen(false);
+      setEditingSection(null);
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setSectionSaving(false);
     }
   };
 
@@ -707,13 +969,23 @@ export default function MyProfilePage() {
                     </p>
                   )}
                 </div>
-                <button
-                  type="button"
-                  className="text-sm text-[var(--text-soft)]"
-                  onClick={logout}
-                >
-                  Log out
-                </button>
+                <div className="flex flex-col items-end gap-1">
+                  <button
+                    type="button"
+                    className="text-sm text-[var(--gold)]"
+                    onClick={() => void lockNow()}
+                    data-testid="lock-now"
+                  >
+                    Lock now / अभी लॉक
+                  </button>
+                  <button
+                    type="button"
+                    className="text-sm text-[var(--text-soft)]"
+                    onClick={logout}
+                  >
+                    Log out
+                  </button>
+                </div>
               </div>
 
               {renewalSoon && (
@@ -775,44 +1047,80 @@ export default function MyProfilePage() {
                 )}
               </div>
 
+              <ProfileSectionCard
+                id="personal"
+                titleEn="Personal"
+                titleHi="व्यक्तिगत"
+                editing={editingSection === "personal"}
+                saving={sectionSaving}
+                onEdit={() => beginEdit("personal")}
+                onSave={() => void saveSection("personal")}
+                onCancel={cancelEdit}
+                note="Name, photo path, DOB, gender"
+              >
               <GoldInput
-                label="Full name"
+                label="Full name / पूरा नाम"
                 value={profile.full_name}
                 onChange={(e) =>
                   setProfile({ ...profile, full_name: e.target.value })
                 }
               />
-
+              <select
+                className="w-full rounded-lg border border-[var(--gold-border)] bg-black px-3 py-2 text-sm"
+                value={profile.gender || ""}
+                onChange={(e) =>
+                  setProfile({ ...profile, gender: e.target.value })
+                }
+                disabled={editingSection !== "personal"}
+              >
+                <option value="">Gender / लिंग</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Third Gender">Third Gender</option>
+              </select>
               <GoldInput
-                label="City (public on emergency page)"
+                label="Date of birth / जन्म तिथि"
+                type="date"
+                value={profile.dateOfBirth || ""}
+                onChange={(e) =>
+                  setProfile({ ...profile, dateOfBirth: e.target.value })
+                }
+              />
+              <GoldInput
+                label="City (public) / शहर"
                 value={profile.city || ""}
                 onChange={(e) =>
                   setProfile({ ...profile, city: e.target.value })
                 }
               />
+              <GoldInput
+                label="ABHA ID (private)"
+                value={profile.abhaId || ""}
+                onChange={(e) =>
+                  setProfile({
+                    ...profile,
+                    abhaId: e.target.value
+                      .replace(/[^\d-]/g, "")
+                      .slice(0, 17),
+                  })
+                }
+              />
+              <p className="text-[11px] text-[var(--text-soft)]">
+                Photo retake: use Records Vault upload or support. / फोटो बदलने
+                के लिए वॉल्ट या सहायता।
+              </p>
+              </ProfileSectionCard>
 
-              <div className={includePrivatePrint ? "" : "no-print"}>
-                <GoldInput
-                  label="Full address (private)"
-                  value={profile.fullAddress || ""}
-                  onChange={(e) =>
-                    setProfile({ ...profile, fullAddress: e.target.value })
-                  }
-                />
-                <GoldInput
-                  label="ABHA ID (private)"
-                  value={profile.abhaId || ""}
-                  onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      abhaId: e.target.value
-                        .replace(/[^\d-]/g, "")
-                        .slice(0, 17),
-                    })
-                  }
-                />
-              </div>
-
+              <ProfileSectionCard
+                id="medical"
+                titleEn="Medical"
+                titleHi="मेडिकल"
+                editing={editingSection === "medical"}
+                saving={sectionSaving}
+                onEdit={() => beginEdit("medical")}
+                onSave={() => void saveSection("medical")}
+                onCancel={cancelEdit}
+              >
               <div>
                 <label className="mb-2 block text-xs uppercase tracking-wider text-[var(--gold)]">
                   Blood group
@@ -946,11 +1254,43 @@ export default function MyProfilePage() {
                   setProfile({ ...profile, medications })
                 }
               />
+              <GoldInput
+                label="Family doctor"
+                value={profile.familyDoctorName || ""}
+                onChange={(e) =>
+                  setProfile({ ...profile, familyDoctorName: e.target.value })
+                }
+              />
+              <GoldInput
+                label="Doctor phone"
+                value={profile.familyDoctorPhone || ""}
+                onChange={(e) =>
+                  setProfile({
+                    ...profile,
+                    familyDoctorPhone: e.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, 10),
+                  })
+                }
+                inputMode="numeric"
+              />
+              </ProfileSectionCard>
 
+              <ProfileSectionCard
+                id="contacts"
+                titleEn="Emergency contacts"
+                titleHi="आपातकालीन संपर्क"
+                editing={editingSection === "contacts"}
+                saving={sectionSaving}
+                onEdit={() => beginEdit("contacts")}
+                onSave={() => void saveSection("contacts")}
+                onCancel={cancelEdit}
+                note="Saving requires your PIN / सेव करने पर पिन लगेगा"
+              >
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <p className="text-xs uppercase tracking-wider text-[var(--gold)]">
-                    Emergency contacts
+                    Priority order (#1 first)
                   </p>
                   {(profile.emergency_contacts?.length || 0) < 3 && (
                     <button
@@ -979,6 +1319,39 @@ export default function MyProfilePage() {
                       <span className="text-xs text-[var(--text-soft)]">
                         #{i + 1}
                       </span>
+                      <div className="flex gap-2">
+                        {i > 0 && (
+                          <button
+                            type="button"
+                            className="text-xs text-[var(--gold)]"
+                            onClick={() => {
+                              const next = [...profile.emergency_contacts];
+                              [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                              setProfile({
+                                ...profile,
+                                emergency_contacts: next,
+                              });
+                            }}
+                          >
+                            ↑
+                          </button>
+                        )}
+                        {i < profile.emergency_contacts.length - 1 && (
+                          <button
+                            type="button"
+                            className="text-xs text-[var(--gold)]"
+                            onClick={() => {
+                              const next = [...profile.emergency_contacts];
+                              [next[i], next[i + 1]] = [next[i + 1], next[i]];
+                              setProfile({
+                                ...profile,
+                                emergency_contacts: next,
+                              });
+                            }}
+                          >
+                            ↓
+                          </button>
+                        )}
                       {(profile.emergency_contacts || []).length > 1 && (
                         <button
                           type="button"
@@ -995,6 +1368,7 @@ export default function MyProfilePage() {
                           <Trash2 className="h-4 w-4 text-red-400" />
                         </button>
                       )}
+                      </div>
                     </div>
                     <GoldInput
                       label="Name"
@@ -1048,8 +1422,19 @@ export default function MyProfilePage() {
                   </div>
                 ))}
               </div>
+              </ProfileSectionCard>
 
               {featureFlags.workDetails ? (
+                <ProfileSectionCard
+                  id="work"
+                  titleEn="Work details"
+                  titleHi="काम की जानकारी"
+                  editing={editingSection === "work"}
+                  saving={sectionSaving}
+                  onEdit={() => beginEdit("work")}
+                  onSave={() => void saveSection("work")}
+                  onCancel={cancelEdit}
+                >
                 <WorkDetailsEditor
                   value={profile.workDetails || emptyWorkDetailsEdit()}
                   onChange={(wd) =>
@@ -1059,33 +1444,64 @@ export default function MyProfilePage() {
                     setProfile({ ...profile, workDetails: null })
                   }
                 />
+                </ProfileSectionCard>
               ) : null}
 
-              <div className="space-y-3 rounded-xl border border-[var(--gold-border)] p-3">
-                <p className="text-xs uppercase tracking-wider text-[var(--gold)]">
-                  Insurance — optional cashless pre-fill
-                </p>
-                <p className="text-[11px] text-[var(--text-soft)]">
-                  All fields optional. Used to pre-fill the IRDAI cashless form and admission sheet.
-                </p>
-                <select
-                  className="w-full rounded-lg border border-[var(--gold-border)] bg-black px-3 py-2 text-sm"
-                  value={profile.gender || ""}
-                  onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
-                >
-                  <option value="">Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Third Gender">Third Gender</option>
-                </select>
+              <ProfileSectionCard
+                id="address"
+                titleEn="Address"
+                titleHi="पता"
+                editing={editingSection === "address"}
+                saving={sectionSaving}
+                onEdit={() => beginEdit("address")}
+                onSave={() => void saveSection("address")}
+                onCancel={cancelEdit}
+              >
                 <GoldInput
-                  label="Date of birth"
-                  type="date"
-                  value={profile.dateOfBirth || ""}
+                  label="Full address (private) / पूरा पता"
+                  value={profile.fullAddress || ""}
                   onChange={(e) =>
-                    setProfile({ ...profile, dateOfBirth: e.target.value })
+                    setProfile({ ...profile, fullAddress: e.target.value })
                   }
                 />
+                <p className="text-[11px] text-[var(--text-soft)]">
+                  Address proof images: contact support to replace. / पता प्रमाण
+                  बदलने के लिए सहायता।
+                </p>
+              </ProfileSectionCard>
+
+              <ProfileSectionCard
+                id="ids"
+                titleEn="ID proofs"
+                titleHi="पहचान पत्र"
+                editing={editingSection === "ids"}
+                saving={sectionSaving}
+                onEdit={() => beginEdit("ids")}
+                onSave={() => void saveSection("ids")}
+                onCancel={cancelEdit}
+                note="Encrypted at rest — replace via support for now"
+              >
+                <p className="text-sm text-[var(--text-soft)]">
+                  Your ID proofs stay PIN-only and encrypted. To replace an
+                  uploaded card image, contact KavachSaathi support with your
+                  Health ID.
+                  <br />
+                  आईडी प्रमाण एन्क्रिप्टेड हैं — बदलने के लिए सहायता से संपर्क
+                  करें।
+                </p>
+              </ProfileSectionCard>
+
+              <ProfileSectionCard
+                id="insurance"
+                titleEn="Insurance"
+                titleHi="बीमा"
+                editing={editingSection === "insurance"}
+                saving={sectionSaving}
+                onEdit={() => beginEdit("insurance")}
+                onSave={() => void saveSection("insurance")}
+                onCancel={cancelEdit}
+                note="Optional cashless pre-fill"
+              >
                 <GoldInput
                   label="Occupation"
                   value={profile.occupation || ""}
@@ -1317,32 +1733,49 @@ export default function MyProfilePage() {
                   <option value="yes">Yes</option>
                   <option value="no">No</option>
                 </select>
-              </div>
+              </ProfileSectionCard>
 
-              <GoldInput
-                label="Family doctor"
-                value={profile.familyDoctorName || ""}
-                onChange={(e) =>
-                  setProfile({ ...profile, familyDoctorName: e.target.value })
-                }
-              />
-              <GoldInput
-                label="Doctor phone"
-                value={profile.familyDoctorPhone || ""}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    familyDoctorPhone: e.target.value
-                      .replace(/\D/g, "")
-                      .slice(0, 10),
-                  })
-                }
-                inputMode="numeric"
-              />
+              <ProfileSectionCard
+                id="security"
+                titleEn="Security"
+                titleHi="सुरक्षा"
+                editing={editingSection === "security"}
+                saving={sectionSaving}
+                onEdit={() => beginEdit("security")}
+                onSave={() => {
+                  setPinModalAction("changePin");
+                  setPinModalOpen(true);
+                }}
+                onCancel={cancelEdit}
+                note="Change PIN requires current PIN"
+              >
+                <GoldInput
+                  label="New PIN / नया पिन"
+                  type="password"
+                  inputMode="numeric"
+                  value={newPin}
+                  onChange={(e) =>
+                    setNewPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
+                />
+                <GoldInput
+                  label="Confirm new PIN"
+                  type="password"
+                  inputMode="numeric"
+                  value={newPin2}
+                  onChange={(e) =>
+                    setNewPin2(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
+                />
+                <p className="text-[11px] text-[var(--text-soft)]">
+                  Save will ask for your current PIN. / सेव पर वर्तमान पिन पूछा
+                  जाएगा।
+                </p>
+              </ProfileSectionCard>
 
               <div className="no-print space-y-3">
                 <GoldButton className="w-full" onClick={save} disabled={loading}>
-                  {loading ? "Saving…" : "Save changes"}
+                  {loading ? "Saving…" : "Save all sections"}
                 </GoldButton>
                 <Link href={`/card/${profile.health_id}`} className="block">
                   <OutlineButton className="w-full">
@@ -1640,6 +2073,19 @@ export default function MyProfilePage() {
           </div>
         )}
       </div>
+      <ConfirmPinModal
+        open={pinModalOpen}
+        loading={sectionSaving}
+        onCancel={() => setPinModalOpen(false)}
+        onConfirm={async (enteredPin) => {
+          if (pinModalAction === "contacts") {
+            const ok = await saveSection("contacts", enteredPin);
+            if (ok) setPinModalOpen(false);
+          } else {
+            await submitChangePin(enteredPin);
+          }
+        }}
+      />
     </Shell>
   );
 }

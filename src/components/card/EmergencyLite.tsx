@@ -519,6 +519,7 @@ export function EmergencyLite({
           regionalLang={flags.regionalLang === true}
           elderlyOn={flags.elderlyMode === true}
           readText={readText}
+          healthId={profile.health_id || null}
         />
       </div>
 
