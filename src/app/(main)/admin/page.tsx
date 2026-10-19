@@ -26,6 +26,9 @@ type CardRow = {
   isDemo?: boolean;
   serial?: string | null;
   batch?: number | null;
+  activationLocked?: boolean;
+  activationFailCount?: number;
+  activationLockedUntil?: string | null;
 };
 
 type InsurerRow = {
@@ -238,6 +241,32 @@ export default function AdminPage() {
       return;
     }
     toast.success(data.message || "Reset");
+    void load();
+  };
+
+  const unlockActivation = async (health_id: string) => {
+    if (
+      !confirm(
+        `Unlock activation for ${health_id}? Clears the 24h lock after too many wrong codes.`
+      )
+    ) {
+      return;
+    }
+    const t = await token();
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${t}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action: "unlock-activation", health_id }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error(data.error || "Unlock failed");
+      return;
+    }
+    toast.success(data.message || "Activation unlocked");
     void load();
   };
 
@@ -671,6 +700,7 @@ export default function AdminPage() {
                     >
                       {c.status}
                       {c.isDemo ? " · DEMO" : ""}
+                      {c.activationLocked ? " · LOCKED" : ""}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-[var(--text-soft)]">
@@ -695,6 +725,17 @@ export default function AdminPage() {
                       >
                         open QR URL
                       </Link>
+                      {(c.activationLocked ||
+                        (c.activationFailCount != null &&
+                          c.activationFailCount > 0)) && (
+                        <button
+                          type="button"
+                          className="text-xs text-orange-300 hover:underline"
+                          onClick={() => void unlockActivation(c.health_id)}
+                        >
+                          unlock activation
+                        </button>
+                      )}
                       {(c.status === "activated" || c.status === "blocked") && (
                         <>
                           <button
