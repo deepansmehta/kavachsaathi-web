@@ -42,6 +42,12 @@ import {
   validateWorkDetailsInput,
   type WorkDetailsInput,
 } from "./workDetails";
+import {
+  ACTIVATION_LOCK_MESSAGE,
+  clearActivationFailures,
+  readActivationLock,
+  recordActivationCodeFailure,
+} from "./activationLock";
 
 export type ActivateInput = {
   health_id: string;
@@ -243,8 +249,29 @@ export async function activateCardAtomic(
     };
   }
 
+  const cardSnapForLock = await db.collection("cards").doc(card.docId).get();
+  const lockState = readActivationLock(cardSnapForLock.data());
+  if (lockState.locked) {
+    return {
+      ok: false,
+      status: 429,
+      error: ACTIVATION_LOCK_MESSAGE,
+    };
+  }
+
   // Pre-check activation code (also re-checked inside transaction)
   if (card.activation_code.padStart(4, "0") !== enteredCode) {
+    const after = await recordActivationCodeFailure(db, {
+      docId: card.docId,
+      health_id,
+    });
+    if (after.locked) {
+      return {
+        ok: false,
+        status: 429,
+        error: ACTIVATION_LOCK_MESSAGE,
+      };
+    }
     return {
       ok: false,
       status: 403,
@@ -364,6 +391,12 @@ export async function activateCardAtomic(
           status: 409,
         });
       }
+      const txLock = readActivationLock(data);
+      if (txLock.locked) {
+        throw Object.assign(new Error(ACTIVATION_LOCK_MESSAGE), {
+          status: 429,
+        });
+      }
       const storedCode = String(data.activation_code || fresh.id)
         .padStart(4, "0")
         .slice(0, 4);
@@ -476,12 +509,20 @@ export async function activateCardAtomic(
         ? Number((err as { status: number }).status)
         : 500;
     const message = err instanceof Error ? err.message : "Activation failed";
-    if (status === 400 || status === 403 || status === 409 || status === 404) {
+    if (
+      status === 400 ||
+      status === 403 ||
+      status === 409 ||
+      status === 404 ||
+      status === 429
+    ) {
       return { ok: false, status, error: message };
     }
     console.error("activateCardAtomic", err);
     return { ok: false, status: 500, error: message };
   }
+
+  await clearActivationFailures(db, card.docId).catch(() => {});
 
   // Exclude demo / disposable / rehearsal from sold-inventory analytics
   if (

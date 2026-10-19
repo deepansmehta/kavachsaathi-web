@@ -18,6 +18,12 @@ import {
   makeMathCaptcha,
   verifyMathCaptcha,
 } from "@/lib/rateLimit";
+import {
+  ACTIVATION_LOCK_MESSAGE,
+  clearActivationFailures,
+  readActivationLock,
+  recordActivationCodeFailure,
+} from "@/lib/activationLock";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -100,12 +106,59 @@ export async function POST(req: NextRequest) {
     if (cardIsActivated(card)) {
       return NextResponse.json({ error: "Already activated" }, { status: 409 });
     }
-    if (card.activation_code.padStart(4, "0") !== activation_code) {
+
+    // Per-card lock (in addition to IP rate limit above)
+    const cardSnap = await db.collection("cards").doc(card.docId).get();
+    const lock = readActivationLock(cardSnap.data());
+    if (lock.locked) {
       return NextResponse.json(
-        { error: "Activation code does not match this card" },
-        { status: 403 }
+        {
+          error: ACTIVATION_LOCK_MESSAGE,
+          code: "ACTIVATION_LOCKED",
+          retryAfterSec: lock.retryAfterSec,
+        },
+        {
+          status: 429,
+          headers: {
+            ...NO_STORE_HEADERS,
+            ...(lock.retryAfterSec
+              ? { "Retry-After": String(lock.retryAfterSec) }
+              : {}),
+          },
+        }
       );
     }
+
+    if (card.activation_code.padStart(4, "0") !== activation_code) {
+      const after = await recordActivationCodeFailure(db, {
+        docId: card.docId,
+        health_id,
+      });
+      if (after.locked) {
+        return NextResponse.json(
+          {
+            error: ACTIVATION_LOCK_MESSAGE,
+            code: "ACTIVATION_LOCKED",
+            retryAfterSec: after.retryAfterSec,
+          },
+          {
+            status: 429,
+            headers: {
+              ...NO_STORE_HEADERS,
+              ...(after.retryAfterSec
+                ? { "Retry-After": String(after.retryAfterSec) }
+                : {}),
+            },
+          }
+        );
+      }
+      return NextResponse.json(
+        { error: "Activation code does not match this card" },
+        { status: 403, headers: NO_STORE_HEADERS }
+      );
+    }
+
+    await clearActivationFailures(db, card.docId);
 
     const sessionId = randomBytes(12).toString("hex");
     // Cleanup old pending uploads for this card

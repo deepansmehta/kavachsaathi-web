@@ -3,6 +3,10 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { cardIsActivated, findCardByHealthId } from "@/lib/cardsRepo";
 import { normalizeCardStatus, normalizeHealthId, isValidHealthId } from "@/lib/healthId";
+import {
+  readActivationLock,
+  unlockActivationForCard,
+} from "@/lib/activationLock";
 
 function adminEmails(): Set<string> {
   const raw =
@@ -129,6 +133,7 @@ export async function GET(req: NextRequest) {
     let cards = snap.docs.map((d) => {
       const data = d.data();
       const status = normalizeCardStatus(data.status);
+      const lock = readActivationLock(data);
       return {
         docId: d.id,
         health_id: String(data.health_id || ""),
@@ -143,6 +148,11 @@ export async function GET(req: NextRequest) {
         isTest: data.isTest === true,
         serial: data.serial ? String(data.serial) : null,
         batch: typeof data.batch === "number" ? data.batch : null,
+        activationLocked: lock.locked,
+        activationFailCount: lock.failCount,
+        activationLockedUntil: lock.lockedUntilMs
+          ? new Date(lock.lockedUntilMs).toISOString()
+          : null,
       };
     });
 
@@ -490,6 +500,27 @@ export async function POST(req: NextRequest) {
         health_id,
         idProofs: revealed,
         message: "Reveal logged to accessLogs",
+      });
+    }
+
+    if (action === "unlock-activation") {
+      const health_id = normalizeHealthId(String(body.health_id || ""));
+      if (!isValidHealthId(health_id)) {
+        return NextResponse.json({ error: "Invalid health_id" }, { status: 400 });
+      }
+      const card = await findCardByHealthId(db, health_id);
+      if (!card) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+      await unlockActivationForCard(db, {
+        docId: card.docId,
+        health_id,
+        byEmail: admin.email,
+      });
+      return NextResponse.json({
+        ok: true,
+        success: true,
+        message: `Activation unlocked for ${health_id}`,
       });
     }
 
