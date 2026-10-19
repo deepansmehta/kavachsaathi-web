@@ -1,0 +1,3 @@
+ROLLBACK_DEPLOY_ID=6ad6071604f1dcd614126553
+snappedAt=2026-10-19
+reason=edit-profile-everywhere

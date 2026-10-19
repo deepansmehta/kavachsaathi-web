@@ -439,6 +439,23 @@ export function FullDetailsModal({
 
         {tab === "view" && details && (
           <div style={{ display: "grid", gap: 12, fontSize: 14 }}>
+            {details.scope === "pin" ? (
+              <a
+                href={`/my-profile?health_id=${encodeURIComponent(healthId)}&section=personal`}
+                data-testid="edit-profile-sticky"
+                style={{
+                  ...btn,
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 2,
+                  textAlign: "center",
+                  textDecoration: "none",
+                  display: "block",
+                }}
+              >
+                ✏️ Edit Profile / प्रोफ़ाइल बदलें
+              </a>
+            ) : null}
             {details.watermark && (
               <p style={{ fontSize: 11, color: "#D4AF37", opacity: 0.85 }}>
                 {details.watermark}
@@ -454,6 +471,15 @@ export function FullDetailsModal({
             )}
             <p style={{ textAlign: "center", fontSize: 18, fontWeight: 700 }}>
               {details.full_name}
+              {details.scope === "pin" ? (
+                <a
+                  href={`/my-profile?health_id=${encodeURIComponent(healthId)}&section=personal`}
+                  aria-label="Edit personal"
+                  style={{ marginLeft: 8, fontSize: 14, textDecoration: "none" }}
+                >
+                  ✏️
+                </a>
+              ) : null}
             </p>
             {details.note && (
               <p style={{ color: "#FCE49A", fontSize: 13 }}>{details.note}</p>
@@ -621,7 +647,16 @@ export function FullDetailsModal({
             {/* ID Proofs (PIN scope) */}
             {details.scope === "pin" && details.idProofs && (
               <section>
-                <h3 style={{ color: "#D4AF37", fontSize: 13 }}>ID proofs</h3>
+                <h3 style={{ color: "#D4AF37", fontSize: 13 }}>
+                  ID proofs{" "}
+                  <a
+                    href={`/my-profile?health_id=${encodeURIComponent(healthId)}&section=ids`}
+                    aria-label="Edit ID proofs"
+                    style={{ textDecoration: "none" }}
+                  >
+                    ✏️
+                  </a>
+                </h3>
                 {details.idProofs.map((id, i) => (
                   <div key={i} style={{ marginBottom: 8 }}>
                     <div>
@@ -639,7 +674,16 @@ export function FullDetailsModal({
             {/* Address (PIN scope) */}
             {details.scope === "pin" && details.address && (
               <section>
-                <h3 style={{ color: "#D4AF37", fontSize: 13 }}>Address</h3>
+                <h3 style={{ color: "#D4AF37", fontSize: 13 }}>
+                  Address{" "}
+                  <a
+                    href={`/my-profile?health_id=${encodeURIComponent(healthId)}&section=address`}
+                    aria-label="Edit address"
+                    style={{ textDecoration: "none" }}
+                  >
+                    ✏️
+                  </a>
+                </h3>
                 <p>
                   {details.address.line}
                   <br />
@@ -653,7 +697,18 @@ export function FullDetailsModal({
             {/* Insurance */}
             {details.insurance && (
               <section>
-                <h3 style={{ color: "#D4AF37", fontSize: 13 }}>Insurance</h3>
+                <h3 style={{ color: "#D4AF37", fontSize: 13 }}>
+                  Insurance{" "}
+                  {details.scope === "pin" ? (
+                    <a
+                      href={`/my-profile?health_id=${encodeURIComponent(healthId)}&section=insurance`}
+                      aria-label="Edit insurance"
+                      style={{ textDecoration: "none" }}
+                    >
+                      ✏️
+                    </a>
+                  ) : null}
+                </h3>
                 <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, color: "#F0EEE8" }}>
                   {JSON.stringify(details.insurance, null, 2)}
                 </pre>

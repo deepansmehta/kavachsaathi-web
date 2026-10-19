@@ -13,14 +13,14 @@ const publicLinks = [
   { href: "/", label: "Home" },
   { href: "/pricing", label: "Pricing" },
   { href: "/order", label: "Order" },
-  { href: "/my-profile", label: "My Profile" },
+  { href: "/my-profile", label: "My Profile / Login" },
   { href: "/doctor", label: "Doctor" },
 ];
 
 const appLinks = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/my-card", label: "My Card" },
-  { href: "/my-profile", label: "My Profile" },
+  { href: "/my-profile", label: "My Profile / Login" },
   { href: "/scan-history", label: "Scans" },
 ];
 
@@ -80,11 +80,8 @@ export function Navbar() {
             </Link>
           ) : (
             <>
-              <Link href="/login">
-                <OutlineButton size="sm">Login</OutlineButton>
-              </Link>
               <Link href="/my-profile">
-                <GoldButton size="sm">My Profile</GoldButton>
+                <GoldButton size="sm">My Profile / Login</GoldButton>
               </Link>
             </>
           )}
