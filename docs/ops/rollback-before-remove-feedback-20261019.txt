@@ -1,0 +1,3 @@
+ROLLBACK_DEPLOY_ID=6ad31b58cd125a28f4d3047e
+snappedAt=2026-10-19
+reason=remove-feedback-modal-full-details

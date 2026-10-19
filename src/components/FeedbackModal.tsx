@@ -7,7 +7,10 @@ type Props = {
   context: "activation" | "full_details";
 };
 
-/** F52 feedback modal — no health data sent */
+/**
+ * F52 feedback UI — kept for optional manual use / admin data path.
+ * Not mounted on /card or Full Details (hotfix 2026-10: no auto popups).
+ */
 export function FeedbackModal({ enabled, context }: Props) {
   const key = `ks_feedback_${context}`;
   const [open, setOpen] = useState(false);

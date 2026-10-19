@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef, type CSSProperties } from "react";
 import toast from "react-hot-toast";
 import QRCode from "react-qr-code";
-import { FeedbackModal } from "@/components/FeedbackModal";
 import { NeedBloodButton } from "./NeedBloodButton";
 import { JAN_AUSHADHI_INFO, SCHEMES } from "@/lib/patientEase/officialLinks";
 
@@ -850,10 +849,6 @@ export function FullDetailsModal({
           </div>
         )}
       </div>
-      <FeedbackModal
-        enabled={Boolean(flags.feedback) && Boolean(details)}
-        context="full_details"
-      />
     </div>
   );
 }

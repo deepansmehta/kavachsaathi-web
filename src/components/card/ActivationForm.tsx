@@ -4,7 +4,6 @@ import { useMemo, useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import toast from "react-hot-toast";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { FeedbackModal } from "@/components/FeedbackModal";
 import { Shield, Plus, Trash2, Camera } from "lucide-react";
 import { GoldButton, GoldInput, TagInput } from "@/components/ui";
 import { BLOOD_GROUPS, RELATIONS } from "@/lib/types";
@@ -54,8 +53,6 @@ export function ActivationForm({
   onActivated: () => void;
 }) {
   const [step, setStep] = useState<Step>(1);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [feedbackOn, setFeedbackOn] = useState(false);
   const [regionalLangOn, setRegionalLangOn] = useState(false);
   const [workDetailsOn, setWorkDetailsOn] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -64,7 +61,6 @@ export function ActivationForm({
     fetch("/api/features")
       .then((r) => r.json())
       .then((d) => {
-        setFeedbackOn(Boolean(d.flags?.feedback));
         setRegionalLangOn(Boolean(d.flags?.regionalLang));
         setWorkDetailsOn(Boolean(d.flags?.workDetails));
       })
@@ -496,7 +492,6 @@ export function ActivationForm({
       }
       confetti({ particleCount: 90, spread: 70, origin: { y: 0.65 } });
       toast.success("Card activated");
-      setShowFeedback(true);
       onActivated();
     } catch {
       toast.error("Network error");
@@ -508,9 +503,6 @@ export function ActivationForm({
   return (
     <div className="mx-auto max-w-lg space-y-5">
       <LanguageSwitcher enabled={regionalLangOn} compact />
-      {showFeedback ? (
-        <FeedbackModal enabled={feedbackOn} context="activation" />
-      ) : null}
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#FCE49A] to-[#B8860B]">
           <Shield className="h-6 w-6 text-black" />
