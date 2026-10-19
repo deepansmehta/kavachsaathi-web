@@ -532,8 +532,9 @@ export const FEATURE_INVENTORY: InventoryRow[] = [
     id: "F52",
     group: "pack3",
     name: "Post-activation feedback",
-    summary: "Optional feedback modal after activation / Full Details.",
-    where: "FeedbackModal on card flows",
+    summary:
+      "Feedback API + admin list only — no automatic modal on /card or Full Details (removed hotfix 2026-10).",
+    where: "/api/feedback; /admin/pack3 (manual)",
     flag: "feedback",
     test: "scripts/test-pack3.ts",
   },
