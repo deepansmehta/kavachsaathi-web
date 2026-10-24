@@ -5,6 +5,9 @@ import toast from "react-hot-toast";
 import QRCode from "react-qr-code";
 import { NeedBloodButton } from "./NeedBloodButton";
 import { JAN_AUSHADHI_INFO, SCHEMES } from "@/lib/patientEase/officialLinks";
+import { editPoliciesHref } from "@/components/policy/EditPoliciesLink";
+import { InformInsurerSheet } from "@/components/policy/InformInsurerSheet";
+import { buildInformInsurerMessage } from "@/lib/policy/informMessage";
 
 type Captcha = { token: string; question: string };
 
@@ -37,6 +40,17 @@ type Details =
         nottoPledgeId?: string | null;
         advanceDirectiveUrl?: string | null;
       } | null;
+      policies?: {
+        id: string;
+        typeLabelEn: string;
+        insurerName: string;
+        policyNumber: string | null;
+        endDate: string | null;
+        cashlessHelpline: string | null;
+        claimHelpline: string | null;
+        nominee: { name: string; relation: string; phone: string } | null;
+        agent: { agentCode: string; name: string; phone: string } | null;
+      }[];
     }
   | null;
 
@@ -139,6 +153,9 @@ export function FullDetailsModal({
 
   // ABHA copy state
   const [abhaCopied, setAbhaCopied] = useState(false);
+
+  // Policy Saathi — Inform Insurer sheet
+  const [informPolicyId, setInformPolicyId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -440,21 +457,34 @@ export function FullDetailsModal({
         {tab === "view" && details && (
           <div style={{ display: "grid", gap: 12, fontSize: 14 }}>
             {details.scope === "pin" ? (
-              <a
-                href={`/my-profile?health_id=${encodeURIComponent(healthId)}&section=personal`}
-                data-testid="edit-profile-sticky"
-                style={{
-                  ...btn,
-                  position: "sticky",
-                  top: 0,
-                  zIndex: 2,
-                  textAlign: "center",
-                  textDecoration: "none",
-                  display: "block",
-                }}
-              >
-                ✏️ Edit Profile / प्रोफ़ाइल बदलें
-              </a>
+              <div style={{ position: "sticky", top: 0, zIndex: 2, display: "grid", gap: 6 }}>
+                <a
+                  href={`/my-profile?health_id=${encodeURIComponent(healthId)}&section=personal`}
+                  data-testid="edit-profile-sticky"
+                  style={{
+                    ...btn,
+                    textAlign: "center",
+                    textDecoration: "none",
+                    display: "block",
+                  }}
+                >
+                  ✏️ Edit Profile / प्रोफ़ाइल बदलें
+                </a>
+                {flags.policyWallet ? (
+                  <a
+                    href={editPoliciesHref(healthId)}
+                    data-testid="edit-policies-sticky"
+                    style={{
+                      ...btnOutline,
+                      textAlign: "center",
+                      textDecoration: "none",
+                      display: "block",
+                    }}
+                  >
+                    Edit policies / पॉलिसी बदलें
+                  </a>
+                ) : null}
+              </div>
             ) : null}
             {details.watermark && (
               <p style={{ fontSize: 11, color: "#D4AF37", opacity: 0.85 }}>
@@ -715,6 +745,69 @@ export function FullDetailsModal({
               </section>
             )}
 
+            {/* Policy Saathi — full policy details (PIN scope only) */}
+            {details.scope === "pin" && flags.policyWallet && details.policies && details.policies.length > 0 && (
+              <section>
+                <h3 style={{ color: "#D4AF37", fontSize: 13 }}>
+                  Policies{" "}
+                  <a
+                    href={editPoliciesHref(healthId)}
+                    aria-label="Edit policies"
+                    style={{ textDecoration: "none" }}
+                  >
+                    ✏️
+                  </a>
+                </h3>
+                {details.policies.map((p) => (
+                  <div
+                    key={p.id}
+                    style={{
+                      marginBottom: 10,
+                      padding: 10,
+                      border: "1px solid #D4AF3755",
+                      borderRadius: 10,
+                    }}
+                  >
+                    <p style={{ margin: 0, fontWeight: 700 }}>
+                      {p.insurerName} — {p.typeLabelEn}
+                    </p>
+                    {p.policyNumber ? (
+                      <p style={{ margin: "4px 0 0", fontSize: 12, color: "#A8A59C" }}>
+                        Policy #{p.policyNumber}
+                        {p.endDate ? ` · Ends ${p.endDate}` : ""}
+                      </p>
+                    ) : null}
+                    {p.nominee && (p.nominee.name || p.nominee.phone) ? (
+                      <p style={{ margin: "4px 0 0", fontSize: 12, color: "#A8A59C" }}>
+                        Nominee: {p.nominee.name} {p.nominee.relation ? `(${p.nominee.relation})` : ""}
+                        {p.nominee.phone ? ` · ${p.nominee.phone}` : ""}
+                      </p>
+                    ) : null}
+                    {p.agent ? (
+                      <p style={{ margin: "4px 0 0", fontSize: 12, color: "#A8A59C" }}>
+                        Agent: {p.agent.name} ({p.agent.agentCode})
+                        {p.agent.phone ? (
+                          <>
+                            {" · "}
+                            <a href={`tel:+91${p.agent.phone.replace(/\D/g, "").slice(-10)}`} style={{ color: "#D4AF37" }}>
+                              {p.agent.phone}
+                            </a>
+                          </>
+                        ) : null}
+                      </p>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setInformPolicyId(p.id)}
+                      style={{ ...btnOutline, marginTop: 8, fontSize: 12, padding: "6px 10px" }}
+                    >
+                      Inform Insurer
+                    </button>
+                  </div>
+                ))}
+              </section>
+            )}
+
             {/* F8: ABHA Link (PIN scope only) */}
             {details.scope === "pin" && flags.abhaLink && details.abha?.number && (
               <div
@@ -904,6 +997,33 @@ export function FullDetailsModal({
           </div>
         )}
       </div>
+
+      {(() => {
+        const informPolicy = details?.policies?.find((p) => p.id === informPolicyId) || null;
+        return (
+          <InformInsurerSheet
+            open={!!informPolicy}
+            onClose={() => setInformPolicyId(null)}
+            insurerName={informPolicy?.insurerName}
+            cashlessHelpline={informPolicy?.cashlessHelpline}
+            claimHelpline={informPolicy?.claimHelpline}
+            message={
+              informPolicy
+                ? buildInformInsurerMessage({
+                    holderName: details?.full_name || "Cardholder",
+                    cardId: healthId,
+                    insurerName: informPolicy.insurerName,
+                    policyNumberLast4: informPolicy.policyNumber
+                      ? informPolicy.policyNumber.replace(/\D/g, "").slice(-4)
+                      : null,
+                    hospitalName: "",
+                    date: new Date().toISOString().slice(0, 10),
+                  })
+                : ""
+            }
+          />
+        );
+      })()}
     </div>
   );
 }

@@ -11,7 +11,8 @@ export type FeatureGroup =
   | "phase2_3"
   | "patientEase"
   | "pack3"
-  | "pack4";
+  | "pack4"
+  | "policySaathi";
 
 export type InventoryRow = {
   id: string;
@@ -34,6 +35,7 @@ export const FEATURE_GROUPS: {
   { id: "patientEase", title: "D) Patient Ease flags", count: 12 },
   { id: "pack3", title: "E) Pack 3 flags", count: 9 },
   { id: "pack4", title: "F) Pack 4 flags", count: 5 },
+  { id: "policySaathi", title: "G) Policy Saathi flags", count: 9 },
 ];
 
 export const FEATURE_INVENTORY: InventoryRow[] = [
@@ -608,9 +610,93 @@ export const FEATURE_INVENTORY: InventoryRow[] = [
     flag: "workDetails",
     test: "scripts/e2e-work-details.ts",
   },
+  // ── G) Policy Saathi ───────────────────────────────────────────────────
+  {
+    id: "PS01",
+    group: "policySaathi",
+    name: "Policy Wallet",
+    summary:
+      "Add/edit/delete up to 10 policies with encrypted numbers; optional activation step; Edit policies entry points.",
+    where: "/my-profile section=policies; Activation optional step; /api/policies",
+    flag: "policyWallet",
+    test: "scripts/test-policy-saathi.ts",
+  },
+  {
+    id: "PS02",
+    group: "policySaathi",
+    name: "Emergency Insured block",
+    summary:
+      "Public scan shows Insured ✓ with insurer, type, TPA, cashless tel, masked policy; Inform Insurer sheet.",
+    where: "/card; EmergencyPolicyBlock; /api/policies/inform",
+    flag: "policyEmergencyBlock",
+    test: "scripts/test-policy-saathi.ts",
+  },
+  {
+    id: "PS03",
+    group: "policySaathi",
+    name: "Policy renewal reminders",
+    summary: "In-app banner + .ics calendar (30/7/1 day) for renewals.",
+    where: "/my-profile; /api/policies/ics; /api/policies/reminders",
+    flag: "policyReminders",
+    test: "scripts/test-policy-saathi.ts",
+  },
+  {
+    id: "PS04",
+    group: "policySaathi",
+    name: "Policy web push",
+    summary: "Optional FCM web push at 30/7/1 days; silent skip if unsupported.",
+    where: "fcmClient; netlify/functions/policy-reminders; /api/policies/reminders",
+    flag: "policyPush",
+    test: "scripts/test-policy-saathi.ts",
+  },
+  {
+    id: "PS05",
+    group: "policySaathi",
+    name: "Claim helper",
+    summary: "Checklists, claim folder, status tracker, coverage summary.",
+    where: "PolicyWallet claims; /api/policies/claims",
+    flag: "claimHelper",
+    test: "scripts/test-policy-saathi.ts",
+  },
+  {
+    id: "PS06",
+    group: "policySaathi",
+    name: "Family floater linking",
+    summary: "Link another card via health ID + PIN; emergency shows Insured ✓; unlink either side.",
+    where: "/api/policies/floater",
+    flag: "familyFloater",
+    test: "scripts/test-policy-saathi.ts",
+  },
+  {
+    id: "PS07",
+    group: "policySaathi",
+    name: "Cashless info PDF",
+    summary: "PIN-gated one-page cashless sheet (pdf-lib letterhead).",
+    where: "/api/policies/cashless-pdf",
+    flag: "cashlessPdf",
+    test: "scripts/test-policy-saathi.ts",
+  },
+  {
+    id: "PS08",
+    group: "policySaathi",
+    name: "Agent connect",
+    summary: "Free agent registration, admin approve, customer link by code+PIN, agent dashboard CSV.",
+    where: "/agent; /agent/dashboard; /api/agent/*; /api/admin/agents",
+    flag: "agentConnect",
+    test: "scripts/test-policy-saathi.ts",
+  },
+  {
+    id: "PS09",
+    group: "policySaathi",
+    name: "Insurer website links",
+    summary: "Static insurer homepage links only; no helplines hardcoded.",
+    where: "data/insurers.json; /api/policies/insurers",
+    flag: "insurerLinks",
+    test: "scripts/test-policy-saathi.ts",
+  },
 ];
 
-export const TOTAL_FEATURES = FEATURE_INVENTORY.length; // 59
+export const TOTAL_FEATURES = FEATURE_INVENTORY.length; // 68
 
 export function inventoryByGroup(group: FeatureGroup): InventoryRow[] {
   return FEATURE_INVENTORY.filter((r) => r.group === group);

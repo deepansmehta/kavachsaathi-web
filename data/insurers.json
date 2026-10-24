@@ -1,0 +1,23 @@
+[
+  { "name": "LIC", "website": "https://www.licindia.in" },
+  { "name": "New India Assurance", "website": "https://www.newindia.co.in" },
+  { "name": "United India Insurance", "website": "https://uiic.co.in" },
+  { "name": "National Insurance", "website": "https://nationalinsurance.nic.co.in" },
+  { "name": "Oriental Insurance", "website": "https://orientalinsurance.org.in" },
+  { "name": "Star Health", "website": "https://www.starhealth.in" },
+  { "name": "Niva Bupa", "website": "https://www.nivabupa.com" },
+  { "name": "Care Health", "website": "https://www.careinsurance.com" },
+  { "name": "HDFC ERGO", "website": "https://www.hdfcergo.com" },
+  { "name": "ICICI Lombard", "website": "https://www.icicilombard.com" },
+  { "name": "Bajaj Allianz", "website": "https://www.bajajallianz.com" },
+  { "name": "Tata AIG", "website": "https://www.tataaig.com" },
+  { "name": "SBI General", "website": "https://www.sbigeneral.in" },
+  { "name": "Go Digit", "website": "https://www.godigit.com" },
+  { "name": "Aditya Birla Health", "website": "https://www.adityabirlacapital.com/healthinsurance" },
+  { "name": "ManipalCigna", "website": "https://www.manipalcigna.com" },
+  { "name": "HDFC Life", "website": "https://www.hdfclife.com" },
+  { "name": "SBI Life", "website": "https://www.sbilife.co.in" },
+  { "name": "ICICI Prudential", "website": "https://www.iciciprulife.com" },
+  { "name": "Max Life", "website": "https://www.maxlifeinsurance.com" },
+  { "name": "Axis Max Life", "website": "https://www.axismaxlife.com" }
+]

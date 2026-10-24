@@ -35,6 +35,7 @@ import {
 } from "@/components/profile/ProfileSectionCard";
 import { ConfirmPinModal } from "@/components/profile/ConfirmPinModal";
 import { useProfileIdleLock } from "@/hooks/useProfileIdleLock";
+import { PolicyWallet, PolicyRenewalBanner } from "@/components/policy/PolicyWallet";
 
 type Contact = { name: string; phone: string; relation?: string };
 type Captcha = { token: string; question: string };
@@ -932,6 +933,10 @@ function MyProfileInner() {
 
         {mode === "edit" && profile && (
           <div className="space-y-4">
+            {featureFlags.policyWallet ? (
+              <PolicyRenewalBanner flags={featureFlags} />
+            ) : null}
+
             {newScans > 0 && (
               <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 no-print">
                 <p className="text-sm text-amber-100">
@@ -1734,6 +1739,24 @@ function MyProfileInner() {
                   <option value="no">No</option>
                 </select>
               </ProfileSectionCard>
+
+              {featureFlags.policyWallet ? (
+                <section
+                  id="section-policies"
+                  data-testid="profile-section-policies"
+                  className="space-y-3 rounded-xl border border-[var(--gold-border)] bg-black/20 p-3"
+                >
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--gold)]">
+                    Policies / पॉलिसी
+                  </h2>
+                  <PolicyWallet
+                    healthId={profile.health_id}
+                    holderName={profile.full_name}
+                    flags={featureFlags}
+                    workDetails={profile.workDetails}
+                  />
+                </section>
+              ) : null}
 
               <ProfileSectionCard
                 id="security"

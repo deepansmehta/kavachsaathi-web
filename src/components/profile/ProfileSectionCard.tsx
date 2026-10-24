@@ -10,6 +10,7 @@ export type ProfileSectionId =
   | "ids"
   | "address"
   | "insurance"
+  | "policies"
   | "security";
 
 type Props = {

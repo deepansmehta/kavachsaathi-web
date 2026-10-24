@@ -23,6 +23,9 @@ import {
   toPublicWorkDetails,
   type PublicWorkDetails,
 } from "./workDetails";
+import { publicPolicyBlocksFromProfile } from "./policy/public";
+import type { PublicPolicyBlock } from "./policy/types";
+import { loadFeatureFlags } from "./features/server";
 
 export type CardRecord = {
   docId: string;
@@ -136,6 +139,8 @@ export type PublicEmergencyProfile = {
   autoSummaryHi?: string | null;
   /** F59 — toggled public work/employer fields only (never PIN-only IDs) */
   workDetails?: PublicWorkDetails | null;
+  /** Policy Saathi — safe emergency insurance blocks (masked numbers only) */
+  policyBlocks?: PublicPolicyBlock[];
 };
 
 export async function loadEmergencyProfile(
@@ -144,17 +149,26 @@ export async function loadEmergencyProfile(
 ): Promise<PublicEmergencyProfile | null> {
   if (!cardIsActivated(card) || cardIsBlocked(card)) return null;
 
+  const flags = await loadFeatureFlags();
+  const policyEmergencyBlockOn = flags.policyEmergencyBlock === true;
+
   if (card.linkedProfileId) {
     const snap = await db.collection("profiles").doc(card.linkedProfileId).get();
     if (snap.exists) {
-      return mapPublicProfile(snap.data() as Record<string, unknown>);
+      return mapPublicProfile(
+        snap.data() as Record<string, unknown>,
+        policyEmergencyBlockOn
+      );
     }
   }
 
   if (card.user_uid) {
     const snap = await db.collection("users").doc(card.user_uid).get();
     if (snap.exists) {
-      return mapPublicProfile(snap.data() as Record<string, unknown>);
+      return mapPublicProfile(
+        snap.data() as Record<string, unknown>,
+        policyEmergencyBlockOn
+      );
     }
   }
 
@@ -162,7 +176,8 @@ export async function loadEmergencyProfile(
 }
 
 function mapPublicProfile(
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
+  policyEmergencyBlockOn: boolean = false
 ): PublicEmergencyProfile {
   const contactsRaw =
     (Array.isArray(data.emergency_contacts) && data.emergency_contacts) ||
@@ -232,6 +247,14 @@ function mapPublicProfile(
   const workDetails = toPublicWorkDetails(data.workDetails);
   if (workDetails) sectionsRendered.push("work");
 
+  // Policy Saathi — additive, masked-only emergency insurance blocks.
+  // Gated by the policyEmergencyBlock feature flag; stripped entirely when off.
+  // Include own policies OR floaterPolicies linked from another card.
+  const policyBlocks = policyEmergencyBlockOn
+    ? publicPolicyBlocksFromProfile(data)
+    : [];
+  if (policyBlocks.length) sectionsRendered.push("policy");
+
   const photoObj = data.photo as { path?: string } | undefined;
   const insurance = data.insurance as
     | {
@@ -272,6 +295,7 @@ function mapPublicProfile(
     schemeName: insurance?.government?.schemeName || null,
     health_id: String(data.health_id || "").trim() || null,
     workDetails,
+    ...(policyBlocks.length ? { policyBlocks } : {}),
   };
   const pair = buildAutoSummaryPair(summaryFromPublicProfile(base));
   return {

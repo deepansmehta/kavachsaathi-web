@@ -54,9 +54,9 @@ async function main() {
     console.error("INVENTORY FLAG MISMATCH", coverErrs);
     process.exit(1);
   }
-  if (FEATURE_INVENTORY.length !== 59 || TOTAL_FEATURES !== 59) {
+  if (FEATURE_INVENTORY.length !== 68 || TOTAL_FEATURES !== 68) {
     console.error(
-      `Expected 59 features, got inventory=${FEATURE_INVENTORY.length} TOTAL=${TOTAL_FEATURES}`
+      `Expected 68 features, got inventory=${FEATURE_INVENTORY.length} TOTAL=${TOTAL_FEATURES}`
     );
     process.exit(1);
   }

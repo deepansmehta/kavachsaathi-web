@@ -38,12 +38,15 @@ export function EmergencyDeferredFooter({
   elderlyOn,
   readText,
   healthId,
+  policyWalletOn,
 }: {
   regionalLang: boolean;
   elderlyOn: boolean;
   readText: string;
   /** Owner edit link — deferred so it never affects LCP */
   healthId?: string | null;
+  /** Show "Edit policies" next to "Edit profile" when Policy Wallet is on */
+  policyWalletOn?: boolean;
 }) {
   const [ready, setReady] = useState(false);
   const [lang, setLang] = useState<Lang>("en");
@@ -111,6 +114,23 @@ export function EmergencyDeferredFooter({
             Is this your card? Edit profile → / यह आपका कार्ड है? प्रोफ़ाइल
             बदलें
           </a>
+          {policyWalletOn ? (
+            <>
+              {" · "}
+              <a
+                href={`/my-profile?health_id=${encodeURIComponent(healthId)}&section=policies`}
+                data-testid="card-owner-edit-policies-link"
+                style={{
+                  fontSize: 12,
+                  color: "#8A7010",
+                  textDecoration: "underline",
+                  fontWeight: 600,
+                }}
+              >
+                Edit policies / पॉलिसी बदलें
+              </a>
+            </>
+          ) : null}
         </p>
       ) : null}
       {ready ? (

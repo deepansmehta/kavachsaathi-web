@@ -22,6 +22,8 @@ import {
 } from "@/lib/rateLimit";
 import { computeValidity, pastGraceResponseBody } from "@/lib/validity";
 import { loadFeatureFlags } from "@/lib/features/server";
+import { readPoliciesFromProfile, toClientPolicy } from "@/lib/policy/cryptoPolicy";
+import { POLICY_TYPE_LABELS } from "@/lib/policy/constants";
 
 async function loadProfile(health_id: string) {
   const db = getAdminDb();
@@ -283,6 +285,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
     const d = found.data;
+    const flags = await loadFeatureFlags().catch(() => null);
     const photoPath = (d.photo as { path?: string } | undefined)?.path;
     const photoUrl = await signed(photoPath);
 
@@ -396,9 +399,32 @@ export async function GET(req: NextRequest) {
       advanceDirectiveUrl,
     };
 
+    // Policy Saathi — full policy details (PIN scope only, never emergency).
+    // Never include full policy numbers / nominee / agent in the emergency
+    // scope response above — only the masked public block fields are allowed there.
+    const policies =
+      flags?.policyWallet === true
+        ? readPoliciesFromProfile(d).map((stored) => {
+            const p = toClientPolicy(stored);
+            const labels = POLICY_TYPE_LABELS[p.type] || POLICY_TYPE_LABELS.other;
+            return {
+              id: p.id,
+              typeLabelEn: labels.en,
+              insurerName: p.insurerName,
+              policyNumber: p.policyNumber,
+              endDate: p.endDate,
+              cashlessHelpline: p.cashlessHelpline,
+              claimHelpline: p.claimHelpline,
+              nominee: p.nominee,
+              agent: p.agent,
+            };
+          })
+        : [];
+
     return NextResponse.json({
       ...base,
       idProofs: idsOut,
+      ...(policies.length ? { policies } : {}),
       address: {
         line: safeDecrypt(addr?.lineEnc),
         city: addr?.city,

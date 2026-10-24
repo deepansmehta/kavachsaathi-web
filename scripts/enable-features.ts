@@ -59,6 +59,18 @@ const PACK4: FeatureKey[] = [
   "scanRegister",
 ];
 
+const POLICY_SAATHI: FeatureKey[] = [
+  "policyWallet",
+  "policyEmergencyBlock",
+  "policyReminders",
+  "policyPush",
+  "claimHelper",
+  "familyFloater",
+  "cashlessPdf",
+  "agentConnect",
+  "insurerLinks",
+];
+
 async function main() {
   const args = process.argv.slice(2);
   const off = args.includes("--off");
@@ -74,6 +86,9 @@ async function main() {
   }
   if (args.includes("--pack4")) {
     keys = [...keys, ...PACK4];
+  }
+  if (args.includes("--policy") || args.includes("--policy-saathi")) {
+    keys = [...keys, ...POLICY_SAATHI];
   }
   const ki = args.indexOf("--keys");
   if (ki >= 0) {
@@ -93,7 +108,7 @@ async function main() {
   keys = keys.filter((k) => !skip.has(k));
   if (!keys.length) {
     console.error(
-      "Usage: --phase2 | --pack2 | --pack3 | --pack4 | --keys a,b [--skip x] [--off]"
+      "Usage: --phase2 | --pack2 | --pack3 | --pack4 | --policy | --keys a,b [--skip x] [--off]"
     );
     process.exit(1);
   }

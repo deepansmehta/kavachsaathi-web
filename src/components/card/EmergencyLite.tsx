@@ -15,6 +15,7 @@ import { EmergencyActions } from "./EmergencyActions";
 import { EmergencyStickyBar } from "./EmergencyStickyBar";
 import { EmergencyDeferredFooter } from "./EmergencyDeferredFooter";
 import { EmergencyAutoSummary } from "./EmergencyAutoSummary";
+import { EmergencyPolicyBlock } from "@/components/policy/EmergencyPolicyBlock";
 
 const css = `
 .ks-e{--ink:#0B0812;--gold:#D4AF37;--gold2:#E8BF3E;--red:#C62828;--surface:#FAFAF7;--card:#FFFFFF;--muted:#5C574E;--line:rgba(11,8,18,.08);--shadow:0 4px 16px rgba(11,8,18,.06);max-width:480px;margin:0 auto;min-height:100vh;background:var(--surface);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:0 0 calc(72px + env(safe-area-inset-bottom,0px));box-sizing:border-box;-webkit-text-size-adjust:100%}
@@ -369,6 +370,14 @@ export function EmergencyLite({
           </section>
         ) : null}
 
+        {flags.policyEmergencyBlock && profile.policyBlocks?.length ? (
+          <EmergencyPolicyBlock
+            blocks={profile.policyBlocks}
+            holderName={profile.name}
+            healthId={profile.health_id}
+          />
+        ) : null}
+
         {profile.emergency_contacts.length > 0 ? (
           <section className="ks-card" aria-label={t("contacts", "en")}>
             <div className="ks-card-head">
@@ -520,6 +529,7 @@ export function EmergencyLite({
           elderlyOn={flags.elderlyMode === true}
           readText={readText}
           healthId={profile.health_id || null}
+          policyWalletOn={flags.policyWallet === true}
         />
       </div>
 

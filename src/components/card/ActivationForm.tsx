@@ -30,10 +30,11 @@ import {
 } from "@/components/profile/WorkDetailsEditor";
 import type { WorkDetailsEdit } from "@/lib/workDetails";
 import { validateWorkDetailsInput } from "@/lib/workDetails";
+import { PolicyActivationStep } from "@/components/policy/PolicyActivationStep";
 
 type Contact = { name: string; phone: string; relation: string };
 type Captcha = { token: string; question: string };
-type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 const STEPS: { n: Step; label: string }[] = [
   { n: 1, label: "Code" },
@@ -44,6 +45,7 @@ const STEPS: { n: Step; label: string }[] = [
   { n: 6, label: "Insurance" },
   { n: 7, label: "PIN" },
 ];
+const POLICY_STEP: { n: Step; label: string } = { n: 8, label: "Policy" };
 
 export function ActivationForm({
   healthId,
@@ -55,6 +57,8 @@ export function ActivationForm({
   const [step, setStep] = useState<Step>(1);
   const [regionalLangOn, setRegionalLangOn] = useState(false);
   const [workDetailsOn, setWorkDetailsOn] = useState(false);
+  const [policyWalletOn, setPolicyWalletOn] = useState(false);
+  const [addPolicyAfterActivation, setAddPolicyAfterActivation] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -63,6 +67,7 @@ export function ActivationForm({
       .then((d) => {
         setRegionalLangOn(Boolean(d.flags?.regionalLang));
         setWorkDetailsOn(Boolean(d.flags?.workDetails));
+        setPolicyWalletOn(Boolean(d.flags?.policyWallet));
       })
       .catch(() => {});
   }, []);
@@ -162,9 +167,13 @@ export function ActivationForm({
     }
   }, []);
 
+  const stepsList = useMemo(
+    () => (policyWalletOn ? [...STEPS, POLICY_STEP] : STEPS),
+    [policyWalletOn]
+  );
   const progress = useMemo(
-    () => STEPS.map((s) => ({ ...s, active: s.n === step, done: s.n < step })),
-    [step]
+    () => stepsList.map((s) => ({ ...s, active: s.n === step, done: s.n < step })),
+    [stepsList, step]
   );
 
   const startSession = async () => {
@@ -492,7 +501,11 @@ export function ActivationForm({
       }
       confetti({ particleCount: 90, spread: 70, origin: { y: 0.65 } });
       toast.success("Card activated");
-      onActivated();
+      if (addPolicyAfterActivation) {
+        window.location.href = `/my-profile?health_id=${encodeURIComponent(healthId)}&section=policies`;
+      } else {
+        onActivated();
+      }
     } catch {
       toast.error("Network error");
     } finally {
@@ -1342,12 +1355,48 @@ export function ActivationForm({
               <GoldButton
                 className="flex-1"
                 disabled={loading}
-                onClick={submit}
+                onClick={() => {
+                  if (!consentPhoto || !consentDocs || !consentDpdp || !consentLegal) {
+                    toast.error("All consents are required (including Privacy & Terms)");
+                    return;
+                  }
+                  if (pin !== pinConfirm) {
+                    toast.error("PINs do not match");
+                    return;
+                  }
+                  if (!/^\d{4,6}$/.test(pin)) {
+                    toast.error("PIN must be 4–6 digits");
+                    return;
+                  }
+                  if (policyWalletOn) {
+                    setStep(8);
+                  } else {
+                    void submit();
+                  }
+                }}
               >
-                {loading ? "Activating…" : "Activate card"}
+                {policyWalletOn
+                  ? "Next"
+                  : loading
+                    ? "Activating…"
+                    : "Activate card"}
               </GoldButton>
             </div>
           </>
+        )}
+
+        {step === 8 && (
+          <PolicyActivationStep
+            busy={loading}
+            onSkip={() => {
+              setAddPolicyAfterActivation(false);
+              void submit();
+            }}
+            onAddNow={() => {
+              setAddPolicyAfterActivation(true);
+              void submit();
+            }}
+          />
         )}
       </div>
     </div>

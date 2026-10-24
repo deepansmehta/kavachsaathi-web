@@ -15,6 +15,7 @@ import { Shield, Download, RefreshCw, Search, LogOut } from "lucide-react";
 import { GoldButton, OutlineButton, ECGBackground } from "@/components/ui";
 import { auth, initPersistentAuth } from "@/lib/firebase";
 import { AdminFeatureFlags } from "@/components/admin/AdminFeatureFlags";
+import { AdminAgents } from "@/components/admin/AdminAgents";
 
 type CardRow = {
   health_id: string;
@@ -545,6 +546,10 @@ export default function AdminPage() {
 
         <div className="mb-6">
           <AdminFeatureFlags getToken={token} />
+        </div>
+
+        <div className="mb-6">
+          <AdminAgents getToken={token} />
         </div>
 
         <div className="mb-4 flex flex-wrap gap-3">

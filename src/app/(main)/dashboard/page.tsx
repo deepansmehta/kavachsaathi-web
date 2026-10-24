@@ -14,6 +14,7 @@ import {
   Download,
   LogOut,
   Shield,
+  FileText,
 } from "lucide-react";
 import {
   LoadingSpinner,
@@ -46,6 +47,7 @@ export default function DashboardPage() {
   const [deferredPrompt, setDeferredPrompt] = useState<{
     prompt: () => Promise<void>;
   } | null>(null);
+  const [policyWalletOn, setPolicyWalletOn] = useState(false);
 
   const data = profile || (isDemo ? getDemoProfile() : null);
 
@@ -61,6 +63,13 @@ export default function DashboardPage() {
     getUserNotifications(data.uid).then(setNotifs);
     getUnreadNotificationCount(data.uid).then(setUnread);
   }, [data?.uid]);
+
+  useEffect(() => {
+    fetch("/api/features")
+      .then((r) => r.json())
+      .then((d) => setPolicyWalletOn(!!d?.flags?.policyWallet))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -298,6 +307,15 @@ export default function DashboardPage() {
             },
             { href: "/scan-history", icon: History, label: "Scan History" },
             { href: "/my-card", icon: CreditCard, label: "My Card" },
+            ...(policyWalletOn
+              ? [
+                  {
+                    href: `/my-profile?health_id=${encodeURIComponent(data.health_id || "")}&section=policies`,
+                    icon: FileText,
+                    label: "Edit policies / पॉलिसी बदलें",
+                  },
+                ]
+              : []),
           ].map((item) => (
             <Link
               key={item.href}

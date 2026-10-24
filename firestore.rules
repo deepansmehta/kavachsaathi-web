@@ -54,6 +54,15 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Policy Saathi agents — Admin SDK only (deny-all for clients)
+    match /agents/{agentId} {
+      allow read, write: if false;
+    }
+
+    match /agentLinks/{linkId} {
+      allow read, write: if false;
+    }
+
     // Deny anything else by default
     match /{document=**} {
       allow read, write: if false;

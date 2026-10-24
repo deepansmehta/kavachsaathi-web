@@ -51,6 +51,16 @@ export const FEATURE_KEYS = [
   "scanRegister",
   // Work / Employer Details
   "workDetails",
+  // Policy Saathi (all default OFF)
+  "policyWallet",
+  "policyEmergencyBlock",
+  "policyReminders",
+  "policyPush",
+  "claimHelper",
+  "familyFloater",
+  "cashlessPdf",
+  "agentConnect",
+  "insurerLinks",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_KEYS)[number];
@@ -98,6 +108,15 @@ export const DEFAULT_FEATURES: FeatureFlags = {
   fhirExport: false,
   scanRegister: false,
   workDetails: false,
+  policyWallet: false,
+  policyEmergencyBlock: false,
+  policyReminders: false,
+  policyPush: false,
+  claimHelper: false,
+  familyFloater: false,
+  cashlessPdf: false,
+  agentConnect: false,
+  insurerLinks: false,
 };
 
 const ENV_MAP: Record<FeatureKey, string> = {
@@ -140,6 +159,15 @@ const ENV_MAP: Record<FeatureKey, string> = {
   fhirExport: "FEATURE_FHIR_EXPORT",
   scanRegister: "FEATURE_SCAN_REGISTER",
   workDetails: "FEATURE_WORK_DETAILS",
+  policyWallet: "FEATURE_POLICY_WALLET",
+  policyEmergencyBlock: "FEATURE_POLICY_EMERGENCY_BLOCK",
+  policyReminders: "FEATURE_POLICY_REMINDERS",
+  policyPush: "FEATURE_POLICY_PUSH",
+  claimHelper: "FEATURE_CLAIM_HELPER",
+  familyFloater: "FEATURE_FAMILY_FLOATER",
+  cashlessPdf: "FEATURE_CASHLESS_PDF",
+  agentConnect: "FEATURE_AGENT_CONNECT",
+  insurerLinks: "FEATURE_INSURER_LINKS",
 };
 
 function envBool(name: string): boolean | null {
@@ -217,4 +245,13 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   fhirExport: "FHIR R4 / ABDM-ready export (Pack 4 F57)",
   scanRegister: "Hospital Scan & Register (Pack 4 F58)",
   workDetails: "Work / Employer Details",
+  policyWallet: "Policy Wallet / मेरी पॉलिसी",
+  policyEmergencyBlock: "Emergency Insured ✓ block",
+  policyReminders: "Policy renewal reminders (banner + ICS)",
+  policyPush: "Policy web-push reminders (opt-in)",
+  claimHelper: "Claim helper + checklist + tracker",
+  familyFloater: "Family floater card linking",
+  cashlessPdf: "Cashless info sheet PDF",
+  agentConnect: "Agent connect + dashboard",
+  insurerLinks: "Insurer website quick links",
 };
