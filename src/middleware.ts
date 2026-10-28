@@ -147,6 +147,10 @@ function isPreLaunchApiAllowed(pathname: string): boolean {
     pathname.startsWith("/api/disclosure-vault/") ||
     // Launch-reveal / marketing pack orders + server clock
     pathname === "/api/orders" ||
+    pathname === "/api/payment" ||
+    pathname.startsWith("/api/payment/") ||
+    pathname === "/api/razorpay" ||
+    pathname.startsWith("/api/razorpay/") ||
     pathname === "/api/time" ||
     pathname.startsWith("/api/launch-reveal/")
   );

@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { LAUNCH_PACKS } from "@/lib/launchReveal";
+import {
+  createPaymentOrder,
+  openRazorpayCheckout,
+} from "@/lib/razorpayCheckout";
 
 function fmt(n: number) {
   return "₹" + n.toLocaleString("en-IN");
@@ -19,6 +24,7 @@ export function OrderForm({
   source = "web",
   className = "",
 }: Props) {
+  const router = useRouter();
   const [sel, setSel] = useState({
     p: LAUNCH_PACKS[0].id,
     v: LAUNCH_PACKS[0].price,
@@ -27,11 +33,6 @@ export function OrderForm({
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
   const [busy, setBusy] = useState(false);
-  const [captcha, setCaptcha] = useState<{
-    token: string;
-    question: string;
-  } | null>(null);
-  const [captchaAnswer, setCaptchaAnswer] = useState("");
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +45,9 @@ export function OrderForm({
     const phone = (
       form.querySelector("[name=phone]") as HTMLInputElement
     ).value.trim();
+    const email = (
+      form.querySelector("[name=email]") as HTMLInputElement
+    )?.value?.trim();
     const address = (
       form.querySelector("[name=address]") as HTMLTextAreaElement
     ).value.trim();
@@ -58,52 +62,55 @@ export function OrderForm({
     }
     setBusy(true);
     try {
-      const r = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          phone,
-          address,
-          pack: sel.p,
-          quantity: qty,
-          source,
-          demo: rehearsal || undefined,
-          rehearsal: rehearsal || undefined,
-          captchaToken: captcha?.token,
-          captchaAnswer: captchaAnswer || undefined,
-        }),
-      });
-      const j = (await r.json().catch(() => ({}))) as {
-        ok?: boolean;
-        error?: string;
-        orderNo?: string;
-        message?: string;
-        demo?: boolean;
-        code?: string;
-        captcha?: { token: string; question: string };
-      };
-      if (j.code === "CAPTCHA_REQUIRED" && j.captcha) {
-        setCaptcha(j.captcha);
-        setCaptchaAnswer("");
-        setErr("Please solve the captcha. / कैप्चा हल करें।");
-        return;
-      }
-      if (!r.ok || !j.ok) {
-        setErr(j.error || "Could not place order. Please try again.");
-        return;
-      }
-      if (j.demo || rehearsal) {
+      if (rehearsal) {
+        const r = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            phone,
+            address,
+            pack: sel.p,
+            quantity: qty,
+            source,
+            demo: true,
+            rehearsal: true,
+          }),
+        });
+        const j = (await r.json().catch(() => ({}))) as {
+          ok?: boolean;
+          error?: string;
+        };
+        if (!r.ok || !j.ok) {
+          setErr(j.error || "Could not place demo order.");
+          return;
+        }
         setOk("Demo — not saved");
         return;
       }
-      setOk(
-        j.message ||
-          `Order received (${j.orderNo}). Our team will call you to confirm payment and delivery.`
-      );
-      setCaptcha(null);
-    } catch {
-      setErr("Network error. Please try again.");
+
+      const order = await createPaymentOrder({
+        name,
+        phone,
+        email: email || undefined,
+        address,
+        pack: sel.p,
+        quantity: qty,
+        source,
+      });
+      const paid = await openRazorpayCheckout({
+        order,
+        source,
+        onDismiss: () => setBusy(false),
+      });
+      const q = new URLSearchParams({
+        orderNo: paid.orderNo,
+        amount: String(paid.amount),
+      });
+      router.push(`/order/success?${q.toString()}`);
+    } catch (ex) {
+      const msg = ex instanceof Error ? ex.message : "Payment failed";
+      if (msg !== "Payment cancelled") setErr(msg);
     } finally {
       setBusy(false);
     }
@@ -148,6 +155,15 @@ export function OrderForm({
           />
         </label>
         <label className="full">
+          Email (optional) / ईमेल
+          <input
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+          />
+        </label>
+        <label className="full">
           Delivery address + PIN / पता + पिन
           <textarea
             name="address"
@@ -169,31 +185,24 @@ export function OrderForm({
             <option value={3}>3</option>
           </select>
         </label>
-        {captcha ? (
-          <label className="full">
-            {captcha.question}
-            <input
-              value={captchaAnswer}
-              onChange={(e) => setCaptchaAnswer(e.target.value)}
-              inputMode="numeric"
-              placeholder="Answer"
-            />
-          </label>
-        ) : null}
         {err ? <div className="err">{err}</div> : null}
         <button className="cta" type="submit" disabled={busy}>
           {busy
-            ? "Sending…"
+            ? "Opening payment…"
             : rehearsal
               ? `Demo order · ${fmt(sel.v * qty)}`
-              : `Order now · ${fmt(sel.v * qty)}`}
+              : `Pay now · ${fmt(sel.v * qty)}`}
         </button>
         {ok ? <div className="ok">{ok}</div> : null}
         {rehearsal ? (
           <p className="help" style={{ gridColumn: "1 / -1" }}>
             Demo — not saved
           </p>
-        ) : null}
+        ) : (
+          <p className="help" style={{ gridColumn: "1 / -1" }}>
+            Secure Razorpay payment · Free delivery · Activate after card arrives
+          </p>
+        )}
       </form>
     </div>
   );

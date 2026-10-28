@@ -1,168 +1,331 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Check,
+  HeartPulse,
+  Loader2,
+  MapPin,
+  Shield,
+  Truck,
+} from "lucide-react";
 import { LAUNCH_PACKS } from "@/lib/launchReveal";
+import {
+  CARD_MRP,
+  CARD_PRICE,
+  ORDER_BENEFITS,
+  formatInr,
+} from "@/lib/pricing";
+import {
+  createPaymentOrder,
+  openRazorpayCheckout,
+} from "@/lib/razorpayCheckout";
 
-function fmt(n: number) {
-  return "₹" + n.toLocaleString("en-IN");
+const inputClass =
+  "rounded-lg border border-gold/25 bg-kavach-s1 px-3 py-2.5 text-sm text-cream placeholder:text-cream-soft/50 focus:border-gold/60 focus:outline-none";
+
+function composeAddress(parts: {
+  line: string;
+  city: string;
+  state: string;
+  pincode: string;
+}): string {
+  return [parts.line, parts.city, parts.state, parts.pincode]
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(", ");
 }
 
 export function PackOrderForm({ source = "order_page" }: { source?: string }) {
-  const [sel, setSel] = useState({
-    p: LAUNCH_PACKS[0].id,
-    v: LAUNCH_PACKS[0].price,
-  });
+  const router = useRouter();
+  const [packId, setPackId] = useState(LAUNCH_PACKS[0].id);
   const [qty, setQty] = useState(1);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [line, setLine] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [pincode, setPincode] = useState("");
   const [err, setErr] = useState("");
-  const [ok, setOk] = useState("");
   const [busy, setBusy] = useState(false);
-  const [captcha, setCaptcha] = useState<{
-    token: string;
-    question: string;
-  } | null>(null);
-  const [captchaAnswer, setCaptchaAnswer] = useState("");
+
+  const pack = useMemo(
+    () => LAUNCH_PACKS.find((p) => p.id === packId) || LAUNCH_PACKS[0],
+    [packId]
+  );
+  const total = pack.price * qty;
+
+  const formValid = useMemo(() => {
+    const ph = phone.replace(/\D/g, "").slice(-10);
+    const pin = pincode.replace(/\D/g, "");
+    return (
+      name.trim().length >= 2 &&
+      /^[6-9]\d{9}$/.test(ph) &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) &&
+      line.trim().length >= 5 &&
+      city.trim().length >= 2 &&
+      state.trim().length >= 2 &&
+      /^\d{6}$/.test(pin)
+    );
+  }, [name, phone, email, line, city, state, pincode]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr("");
-    setOk("");
-    const form = e.target as HTMLFormElement;
-    const name = (
-      form.querySelector("[name=name]") as HTMLInputElement
-    ).value.trim();
-    const phone = (
-      form.querySelector("[name=phone]") as HTMLInputElement
-    ).value.trim();
-    const address = (
-      form.querySelector("[name=address]") as HTMLTextAreaElement
-    ).value.trim();
-    const miss: string[] = [];
-    if (!name) miss.push("name / नाम");
-    if (!/^[6-9]\d{9}$/.test(phone.replace(/\D/g, "").slice(-10)))
-      miss.push("valid mobile / सही मोबाइल");
-    if (address.length < 10) miss.push("full address + PIN / पूरा पता");
-    if (miss.length) {
-      setErr("Please add " + miss.join(", ") + ".");
+    if (!formValid) {
+      setErr("Please fill all required fields correctly before paying.");
       return;
     }
+    const address = composeAddress({ line, city, state, pincode });
     setBusy(true);
     try {
-      const r = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          phone,
-          address,
-          pack: sel.p,
-          quantity: qty,
-          source,
-          captchaToken: captcha?.token,
-          captchaAnswer: captchaAnswer || undefined,
-        }),
+      const order = await createPaymentOrder({
+        name: name.trim(),
+        phone: phone.replace(/\D/g, "").slice(-10),
+        email: email.trim(),
+        address,
+        pack: pack.id,
+        quantity: qty,
+        source,
       });
-      const j = (await r.json().catch(() => ({}))) as {
-        ok?: boolean;
-        error?: string;
-        orderNo?: string;
-        message?: string;
-        code?: string;
-        captcha?: { token: string; question: string };
-      };
-      if (j.code === "CAPTCHA_REQUIRED" && j.captcha) {
-        setCaptcha(j.captcha);
-        setCaptchaAnswer("");
-        setErr("Please solve the captcha. / कैप्चा हल करें।");
-        return;
+      const paid = await openRazorpayCheckout({
+        order,
+        source,
+        onDismiss: () => {
+          setBusy(false);
+          setErr(
+            "Payment cancelled. No charge was made — tap Pay again when you’re ready."
+          );
+        },
+      });
+      const q = new URLSearchParams({
+        orderNo: paid.orderNo,
+        amount: String(paid.amount),
+      });
+      router.push(`/order/success?${q.toString()}`);
+    } catch (ex) {
+      const msg = ex instanceof Error ? ex.message : "Payment failed";
+      if (msg === "Payment cancelled") {
+        setErr(
+          "Payment cancelled. No charge was made — tap Pay again when you’re ready."
+        );
+      } else {
+        setErr(
+          msg.includes("verif")
+            ? `${msg} Please contact helpline with your payment ID if money was deducted.`
+            : `${msg} Please try again — no paid order is created until payment succeeds.`
+        );
       }
-      if (!r.ok || !j.ok) {
-        setErr(j.error || "Could not place order.");
-        return;
-      }
-      setOk(
-        j.message ||
-          `Order received (${j.orderNo}). Our team will call you to confirm payment and delivery.`
-      );
-      setCaptcha(null);
-      form.reset();
-    } catch {
-      setErr("Network error. Please try again.");
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div>
-      <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        {LAUNCH_PACKS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => setSel({ p: p.id, v: p.price })}
-            aria-pressed={sel.p === p.id}
-            className={`relative rounded-xl border p-3 text-left transition ${
-              sel.p === p.id
-                ? "border-gold bg-gold/10"
-                : "border-gold/25 bg-kavach-s1/80"
-            } ${p.best ? "border-gold" : ""}`}
-          >
-            {p.best ? (
-              <span className="absolute -top-2 left-2 rounded bg-gold px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-kavach-black">
-                BEST VALUE
-              </span>
-            ) : null}
-            <div className="font-rajdhani text-sm font-semibold text-cream">
-              {p.label}
-            </div>
-            <div className="text-xs text-cream-soft">{p.cards}</div>
-            <div className="mt-1 font-mono text-lg font-bold text-gold">
-              {fmt(p.price)}
-            </div>
-            {p.save > 0 ? (
-              <div className="text-[11px] text-emerald-400">Save ₹{p.save}</div>
-            ) : (
-              <div className="text-[11px]">&nbsp;</div>
-            )}
-          </button>
-        ))}
+    <div className="space-y-10">
+      {/* Hero pricing */}
+      <div className="text-center">
+        <p className="font-rajdhani text-xs font-semibold uppercase tracking-[0.2em] text-gold">
+          KavachSaathi
+        </p>
+        <h2 className="mt-2 font-rajdhani text-2xl font-bold text-cream sm:text-3xl">
+          KavachSaathi – Smart QR Emergency Health Card
+        </h2>
+        <div className="mt-4 flex flex-wrap items-baseline justify-center gap-3">
+          <span className="font-mono text-lg text-cream-soft line-through decoration-cream-soft/60">
+            {formatInr(CARD_MRP)}
+          </span>
+          <span className="font-mono text-4xl font-bold text-gold">
+            {formatInr(CARD_PRICE)}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-300">
+            <Truck className="h-3.5 w-3.5" />
+            FREE Delivery
+          </span>
+        </div>
+        <p className="mt-2 text-xs text-cream-soft">
+          Offer price for 1 card · no shipping charge · GST inclusive
+        </p>
       </div>
 
+      {/* Benefits */}
+      <section aria-labelledby="order-benefits-heading">
+        <div className="mb-4 flex items-center gap-2">
+          <HeartPulse className="h-5 w-5 text-gold" />
+          <h3
+            id="order-benefits-heading"
+            className="font-rajdhani text-lg font-semibold text-cream"
+          >
+            Card Benefits / Why KavachSaathi
+          </h3>
+        </div>
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {ORDER_BENEFITS.map((b) => (
+            <li
+              key={b}
+              className="flex gap-2.5 rounded-xl border border-gold/15 bg-kavach-black/30 px-3 py-2.5 text-sm text-cream-soft"
+            >
+              <Check
+                className="mt-0.5 h-4 w-4 shrink-0 text-gold"
+                aria-hidden
+              />
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* Packs */}
+      <section aria-labelledby="order-packs-heading">
+        <h3
+          id="order-packs-heading"
+          className="mb-3 font-rajdhani text-lg font-semibold text-cream"
+        >
+          Choose a pack
+        </h3>
+        <div
+          className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5"
+          role="radiogroup"
+          aria-label="Pack options"
+        >
+          {LAUNCH_PACKS.map((p) => {
+            const selected = packId === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => setPackId(p.id)}
+                className={`relative rounded-xl border p-3 text-left transition ${
+                  selected
+                    ? "border-gold bg-gold/10 ring-1 ring-gold/40"
+                    : "border-gold/25 bg-kavach-s1/80 hover:border-gold/50"
+                }`}
+              >
+                {p.best ? (
+                  <span className="absolute -top-2 left-2 rounded bg-gold px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-kavach-black">
+                    BEST VALUE
+                  </span>
+                ) : null}
+                <div className="font-rajdhani text-sm font-semibold text-cream">
+                  {p.id === "Single" ? "Single Card" : p.label}
+                </div>
+                <div className="text-xs text-cream-soft">{p.cards}</div>
+                <div className="mt-1 font-mono text-lg font-bold text-gold">
+                  {formatInr(p.price)}
+                </div>
+                {p.save > 0 ? (
+                  <div className="text-[11px] text-emerald-400">
+                    Save {formatInr(p.save)}
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-cream-soft">Base offer</div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Form */}
       <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2" noValidate>
+        <div className="mb-1 flex items-center gap-2 sm:col-span-2">
+          <MapPin className="h-4 w-4 text-gold" />
+          <h3 className="font-rajdhani text-lg font-semibold text-cream">
+            Shipping details
+          </h3>
+        </div>
+
         <label className="flex flex-col gap-1 text-xs uppercase tracking-wider text-cream-soft">
-          Name / नाम
+          Name *
           <input
             name="name"
             autoComplete="name"
-            className="rounded-lg border border-gold/25 bg-kavach-s1 px-3 py-2.5 text-sm text-cream"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={inputClass}
             placeholder="Your full name"
+            required
           />
         </label>
         <label className="flex flex-col gap-1 text-xs uppercase tracking-wider text-cream-soft">
-          Mobile / मोबाइल
+          Phone *
           <input
             name="phone"
             inputMode="numeric"
             maxLength={10}
-            className="rounded-lg border border-gold/25 bg-kavach-s1 px-3 py-2.5 text-sm text-cream"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            className={inputClass}
             placeholder="10-digit mobile"
+            required
           />
         </label>
         <label className="flex flex-col gap-1 text-xs uppercase tracking-wider text-cream-soft sm:col-span-2">
-          Delivery address + PIN / पता + पिन
-          <textarea
-            name="address"
-            rows={3}
-            className="rounded-lg border border-gold/25 bg-kavach-s1 px-3 py-2.5 text-sm text-cream"
-            placeholder="House, street, city, PIN code"
+          Email *
+          <input
+            name="email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={inputClass}
+            placeholder="you@example.com"
+            required
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs uppercase tracking-wider text-cream-soft sm:col-span-2">
+          Address line *
+          <input
+            name="address_line"
+            autoComplete="street-address"
+            value={line}
+            onChange={(e) => setLine(e.target.value)}
+            className={inputClass}
+            placeholder="House / flat, street, landmark"
+            required
           />
         </label>
         <label className="flex flex-col gap-1 text-xs uppercase tracking-wider text-cream-soft">
-          Selected pack
+          City *
           <input
-            readOnly
-            value={`${sel.p} · ${fmt(sel.v)}`}
-            className="rounded-lg border border-gold/25 bg-kavach-s1 px-3 py-2.5 text-sm text-cream"
+            name="city"
+            autoComplete="address-level2"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            className={inputClass}
+            placeholder="City"
+            required
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs uppercase tracking-wider text-cream-soft">
+          State *
+          <input
+            name="state"
+            autoComplete="address-level1"
+            value={state}
+            onChange={(e) => setState(e.target.value)}
+            className={inputClass}
+            placeholder="State"
+            required
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs uppercase tracking-wider text-cream-soft">
+          Pincode *
+          <input
+            name="pincode"
+            inputMode="numeric"
+            maxLength={6}
+            value={pincode}
+            onChange={(e) =>
+              setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))
+            }
+            className={inputClass}
+            placeholder="6-digit PIN"
+            required
           />
         </label>
         <label className="flex flex-col gap-1 text-xs uppercase tracking-wider text-cream-soft">
@@ -170,42 +333,48 @@ export function PackOrderForm({ source = "order_page" }: { source?: string }) {
           <select
             value={qty}
             onChange={(e) => setQty(Number(e.target.value))}
-            className="rounded-lg border border-gold/25 bg-kavach-s1 px-3 py-2.5 text-sm text-cream"
+            className={inputClass}
           >
             <option value={1}>1</option>
             <option value={2}>2</option>
             <option value={3}>3</option>
           </select>
         </label>
-        {captcha ? (
-          <label className="flex flex-col gap-1 text-xs uppercase tracking-wider text-cream-soft sm:col-span-2">
-            {captcha.question}
-            <input
-              value={captchaAnswer}
-              onChange={(e) => setCaptchaAnswer(e.target.value)}
-              inputMode="numeric"
-              className="rounded-lg border border-gold/25 bg-kavach-s1 px-3 py-2.5 text-sm text-cream"
-              placeholder="Answer"
-            />
-          </label>
-        ) : null}
+
         {err ? (
-          <p className="text-sm text-red-300 sm:col-span-2">{err}</p>
-        ) : null}
-        <button
-          type="submit"
-          disabled={busy}
-          className="sm:col-span-2 rounded-xl bg-gradient-to-r from-gold-dark to-gold-light py-3.5 font-rajdhani text-base font-bold text-kavach-black disabled:opacity-60"
-        >
-          {busy ? "Sending…" : `Order now · ${fmt(sel.v * qty)}`}
-        </button>
-        {ok ? (
-          <p className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-cream sm:col-span-2">
-            {ok}
+          <p
+            role="alert"
+            className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200 sm:col-span-2"
+          >
+            {err}
           </p>
         ) : null}
+
+        <button
+          type="submit"
+          disabled={busy || !formValid}
+          className="sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-gold-dark to-gold-light py-4 font-rajdhani text-lg font-bold text-kavach-black disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Opening secure payment…
+            </>
+          ) : (
+            <>
+              <Shield className="h-5 w-5" />
+              Pay {formatInr(total)} Securely
+            </>
+          )}
+        </button>
+        <p className="text-center text-xs text-cream-soft sm:col-span-2">
+          FREE delivery · Secure Razorpay checkout · Card ships after payment —
+          activate after it arrives (pay first, then activate). Paid orders are
+          created only after successful verification.
+        </p>
       </form>
-      <p className="mt-4 text-center text-xs text-cream-soft">
+
+      <p className="text-center text-xs text-cream-soft">
         Helpline <b className="text-gold">+91 72730 00075</b> ·{" "}
         <b className="text-gold">+91 73001 00102</b>
       </p>

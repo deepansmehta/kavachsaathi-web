@@ -4,8 +4,11 @@
  */
 
 /** Optional compare-at price for marketing display (not charged). */
-export const CARD_MRP = 999;
-export const CARD_PRICE = 499;
+export const CARD_MRP = 699;
+/** Single-card sell price (INR). Razorpay amount = CARD_PRICE * 100 * quantity (paise). */
+export const CARD_PRICE = 599;
+/** Same unit in paise — never trust client-supplied amounts for charge. */
+export const CARD_PRICE_PAISE = CARD_PRICE * 100;
 export const CARD_VALIDITY_YEARS = 1;
 export const RENEWAL_PRICE = 199;
 
@@ -17,8 +20,20 @@ export const DELIVERY = {
   chargeInr: 0,
   label: "Free standard delivery across India",
   eta: "Typically 7–12 business days after payment confirmation",
-  note: "Remote / difficult PIN codes may take longer. Exact timelines are confirmed on the order call.",
+  note: "Remote / difficult PIN codes may take longer.",
 } as const;
+
+/** Order-page benefit bullets (conversion copy). */
+export const ORDER_BENEFITS = [
+  "One QR scan shows your emergency health info — no app needed",
+  "Blood group, allergies, current medicines & medical conditions",
+  "Emergency contacts shown instantly to any helper",
+  "Insurance / policy details on scan",
+  "PIN-protected — your private data stays safe",
+  "Waterproof, scratch-resistant premium PVC card",
+  "Works for seniors, bikers, travellers, children & whole family",
+  "1-year validity + referral rewards",
+] as const;
 
 export const WHAT_IS_INCLUDED = [
   "Printed PVC KavachSaathi smart health card with unique QR",
@@ -54,24 +69,24 @@ export const LAUNCH_PACKS: LaunchPack[] = [
     label: "Couple / Jodi",
     cards: "2 cards",
     cardCount: 2,
-    price: 899,
-    save: CARD_PRICE * 2 - 899,
+    price: 1099,
+    save: CARD_PRICE * 2 - 1099,
   },
   {
     id: "Parents Suraksha",
     label: "Parents Suraksha",
     cards: "2 cards + activation help",
     cardCount: 2,
-    price: 949,
-    save: CARD_PRICE * 2 - 949,
+    price: 1149,
+    save: CARD_PRICE * 2 - 1149,
   },
   {
     id: "Family Pack",
     label: "Family Pack",
     cards: "4 cards",
     cardCount: 4,
-    price: 1599,
-    save: CARD_PRICE * 4 - 1599,
+    price: 1999,
+    save: CARD_PRICE * 4 - 1999,
     best: true,
   },
   {
@@ -79,8 +94,8 @@ export const LAUNCH_PACKS: LaunchPack[] = [
     label: "Joint Family",
     cards: "6 cards",
     cardCount: 6,
-    price: 2199,
-    save: CARD_PRICE * 6 - 2199,
+    price: 2799,
+    save: CARD_PRICE * 6 - 2799,
   },
 ];
 

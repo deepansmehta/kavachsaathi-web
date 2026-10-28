@@ -20,6 +20,46 @@ export async function requestNotificationPermission(): Promise<boolean> {
   }
 }
 
+async function waitUntilActive(
+  reg: ServiceWorkerRegistration,
+  ms = 12000
+): Promise<boolean> {
+  if (reg.active) return true;
+  const worker = reg.installing || reg.waiting;
+  if (!worker) return !!reg.active;
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(!!reg.active), ms);
+    worker.addEventListener("statechange", () => {
+      if (worker.state === "activated") {
+        clearTimeout(timer);
+        resolve(true);
+      }
+    });
+  });
+}
+
+async function getMessagingRegistration(): Promise<
+  ServiceWorkerRegistration | undefined
+> {
+  if (!("serviceWorker" in navigator)) return undefined;
+  try {
+    // Narrow scope so next-pwa's /sw.js (scope /) does not fight FCM.
+    // Passing this registration into getToken() is enough for PushManager.
+    const reg = await navigator.serviceWorker.register(
+      "/firebase-messaging-sw.js",
+      { scope: "/firebase-cloud-messaging-push-scope" }
+    );
+    await waitUntilActive(reg);
+    return reg;
+  } catch {
+    try {
+      return (await navigator.serviceWorker.getRegistration()) || undefined;
+    } catch {
+      return undefined;
+    }
+  }
+}
+
 /**
  * Get an FCM registration token for this browser, or null if messaging is
  * unsupported, the VAPID key is missing, or anything else goes wrong.
@@ -29,7 +69,7 @@ export async function getPolicyFcmToken(): Promise<string | null> {
   try {
     if (typeof window === "undefined") return null;
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-    if (!vapidKey) return null;
+    if (!vapidKey || vapidKey.length < 80) return null;
     if (!("serviceWorker" in navigator)) return null;
 
     const { isSupported, getMessaging, getToken } = await import(
@@ -43,18 +83,12 @@ export async function getPolicyFcmToken(): Promise<string | null> {
 
     const appMod = await import("@/lib/firebase");
     const messaging = getMessaging(appMod.default);
-
-    let registration: ServiceWorkerRegistration | undefined;
-    try {
-      registration =
-        (await navigator.serviceWorker.getRegistration()) || undefined;
-    } catch {
-      registration = undefined;
-    }
+    const registration = await getMessagingRegistration();
+    if (!registration?.active) return null;
 
     const token = await getToken(messaging, {
       vapidKey,
-      ...(registration ? { serviceWorkerRegistration: registration } : {}),
+      serviceWorkerRegistration: registration,
     }).catch(() => null);
 
     return token || null;
