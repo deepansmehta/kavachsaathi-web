@@ -8,6 +8,7 @@ import {
   resolveOrderAmount,
   verifyRazorpaySignature,
 } from "@/lib/razorpayServer";
+import { sendPaidOrderEmails } from "@/lib/orderEmails";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -145,6 +146,25 @@ export async function POST(req: NextRequest) {
       },
       { merge: true }
     );
+
+    // After paid save only. Await so serverless doesn't freeze before SMTP;
+    // failures are swallowed inside sendPaidOrderEmails (order already saved).
+    try {
+      await sendPaidOrderEmails({
+        orderNo,
+        name,
+        phone,
+        email,
+        address,
+        pack: resolved.packId,
+        cardsLabel: resolved.cardsLabel,
+        qty: resolved.qty,
+        amountInr: resolved.amountInr,
+        razorpay_payment_id,
+      });
+    } catch (e) {
+      console.error("[order-email] unexpected", e);
+    }
 
     return NextResponse.json({
       ok: true,
