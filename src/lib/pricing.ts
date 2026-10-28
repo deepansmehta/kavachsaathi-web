@@ -103,7 +103,10 @@ export const COMPANY = {
   legalName: "GDM Technoworld Pvt. Ltd.",
   productLine: "KavachSaathi is a product of GDM Technoworld Pvt. Ltd.",
   website: "https://www.gdmtechnoworld.in",
-  addressLine: "Sector 3, HUDA Sector, Fatehabad, Haryana",
+  /** Public product site (Merchant / customer-facing). */
+  siteUrl: "https://kavachsaathi.in",
+  addressLine:
+    "Sector 3, HUDA Sector, Fatehabad, Haryana, India – 125050",
   country: "India",
   email: "gdmtechnoworld@gmail.com",
   phones: [

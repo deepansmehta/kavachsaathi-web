@@ -894,3 +894,14 @@ html.ks-elderly body, html.ks-elderly .ks-e { font-size: 118%; }
 html.ks-elderly button, html.ks-elderly a.ks-call { min-height: 48px; font-size: 1.1em; }
 html.ks-elderly .ks-name { font-size: 1.35em; }
 html.ks-elderly .ks-blood { font-size: 1.25em; }
+
+/* Order page — gentle Pay CTA pulse */
+@keyframes ks-pay-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(212, 175, 55, 0);
+  }
+}

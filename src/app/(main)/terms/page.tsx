@@ -31,13 +31,25 @@ export default function TermsPage() {
 
       <section className="mt-8 space-y-4 text-sm leading-relaxed text-[#F0EEE8]">
         <h2 className="font-rajdhani text-xl font-semibold text-[#FCE49A]">
-          1. Information aid — not a medical service
+          1. Information aid — not a medical device
         </h2>
         <p>
-          KavachSaathi helps share emergency and admission-related information
-          via a scanned card. It is not a doctor, hospital, ambulance service,
-          or insurance provider. Always seek qualified medical help in an
-          emergency (for example, dial 108 / local emergency numbers).
+          KavachSaathi is an <strong>information-sharing tool</strong>. It is{" "}
+          <strong>not</strong> a medical or diagnostic device and is{" "}
+          <strong>not a substitute</strong> for professional medical care. It is
+          not a doctor, hospital, ambulance service, or insurance provider.
+          Always seek qualified medical help in an emergency (for example, dial
+          108 / local emergency numbers).
+        </p>
+
+        <h2 className="font-rajdhani text-xl font-semibold text-[#FCE49A]">
+          1A. Card validity
+        </h2>
+        <p>
+          Digital emergency profile access is valid for{" "}
+          <strong>1 year from activation</strong>, unless renewed. Physical
+          cards remain a QR pointer; continued online access may require renewal
+          as published on the site.
         </p>
 
         <h2 className="font-rajdhani text-xl font-semibold text-[#FCE49A]">
@@ -83,12 +95,33 @@ export default function TermsPage() {
         </p>
 
         <h2 className="font-rajdhani text-xl font-semibold text-[#FCE49A]">
-          6. Limitation
+          6. Proper use
+        </h2>
+        <p>
+          Use the card and website only for lawful emergency and personal health
+          information sharing. Do not rely on the card alone for diagnosis,
+          treatment, or insurance claims without verifying details with
+          professionals and your insurer.
+        </p>
+
+        <h2 className="font-rajdhani text-xl font-semibold text-[#FCE49A]">
+          7. Limitation of liability
         </h2>
         <p>
           To the extent allowed by law, GDM Technoworld Pvt. Ltd. is not liable
-          for outcomes of medical decisions made using information on the card.
-          The card is a convenience tool; verify critical details when possible.
+          for outcomes of medical decisions made using information on the card,
+          courier delays outside our control, or misuse of a lost/stolen card
+          after you notify us. The card is a convenience tool; verify critical
+          details when possible.
+        </p>
+
+        <h2 className="font-rajdhani text-xl font-semibold text-[#FCE49A]">
+          8. Governing law
+        </h2>
+        <p>
+          These terms are governed by the laws of <strong>India</strong>. Courts
+          in <strong>Haryana</strong> shall have exclusive jurisdiction, subject
+          to mandatory consumer protections.
         </p>
 
         <p className="pt-4 text-[#A8A59C]">

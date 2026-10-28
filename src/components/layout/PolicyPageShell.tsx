@@ -44,11 +44,11 @@ export function PolicyPageShell({
           Privacy
         </Link>
         {" · "}
-        <Link href="/refund-policy" className="text-[#D4AF37] underline">
-          Refunds
+        <Link href="/returns" className="text-[#D4AF37] underline">
+          Returns
         </Link>
         {" · "}
-        <Link href="/shipping-policy" className="text-[#D4AF37] underline">
+        <Link href="/shipping" className="text-[#D4AF37] underline">
           Shipping
         </Link>
         {" · "}

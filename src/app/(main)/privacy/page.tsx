@@ -70,7 +70,15 @@ export default function PrivacyPage() {
           2. What we collect
         </h2>
         <ul className="list-disc space-y-2 pl-5">
-          <li>Emergency medical information (blood group, allergies, conditions, medications, contacts)</li>
+          <li>
+            Order &amp; shipping details: name, phone, email, and shipping
+            address when you buy a card
+          </li>
+          <li>
+            Medical / emergency information you enter for your card (blood
+            group, allergies, conditions, medications, emergency contacts, and
+            related profile fields)
+          </li>
           <li>Photo of the card holder</li>
           <li>
             Two ID proofs (Aadhaar: only last 4 digits stored; please upload a
@@ -81,6 +89,26 @@ export default function PrivacyPage() {
           <li>Phone number and a PIN (stored only as a secure hash — we never store your PIN in plain text)</li>
           <li>Access logs when Full Details is viewed (time, mode, hospital/staff if emergency access)</li>
         </ul>
+
+        <h2 className="font-rajdhani text-xl font-semibold text-[#FCE49A]">
+          2A. Payments (Razorpay)
+        </h2>
+        <p>
+          Payments are processed securely by <strong>Razorpay</strong>. We do{" "}
+          <strong>not</strong> store your card number, UPI PIN, or full payment
+          instrument details on KavachSaathi servers. Razorpay may process
+          payment data under its own privacy policy.
+        </p>
+
+        <h2 className="font-rajdhani text-xl font-semibold text-[#FCE49A]">
+          2B. Medical data security
+        </h2>
+        <p>
+          Medical and emergency data is stored securely and shown only via the
+          card&apos;s QR (public emergency view) and PIN-protected full profile.
+          We never sell or share personal data for advertising. Your private
+          fields stay protected by your PIN.
+        </p>
 
         <h2 className="font-rajdhani text-xl font-semibold text-[#FCE49A]">
           3. Why we collect it
@@ -180,6 +208,20 @@ export default function PrivacyPage() {
         <p>
           We do not sell your data. We do not use it for advertising. We share
           it only as described above, or when required by law.
+        </p>
+
+        <h2 className="font-rajdhani text-xl font-semibold text-[#FCE49A]">
+          10. Data deletion
+        </h2>
+        <p>
+          You can request deletion of your personal data by emailing{" "}
+          <a
+            className="text-[#D4AF37] underline"
+            href="mailto:gdmtechnoworld@gmail.com"
+          >
+            gdmtechnoworld@gmail.com
+          </a>{" "}
+          (include your order number or Health ID; never send your PIN).
         </p>
 
         <p className="pt-4 text-[#A8A59C]">

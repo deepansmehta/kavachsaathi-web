@@ -2,28 +2,66 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   Check,
-  HeartPulse,
   Loader2,
   MapPin,
+  QrCode,
   Shield,
+  ShieldCheck,
   Truck,
+  Users,
+  Droplets,
+  PhoneCall,
+  Lock,
+  Award,
 } from "lucide-react";
 import { LAUNCH_PACKS } from "@/lib/launchReveal";
-import {
-  CARD_MRP,
-  CARD_PRICE,
-  ORDER_BENEFITS,
-  formatInr,
-} from "@/lib/pricing";
+import { CARD_MRP, CARD_PRICE, formatInr } from "@/lib/pricing";
 import {
   createPaymentOrder,
   openRazorpayCheckout,
 } from "@/lib/razorpayCheckout";
+import { ProductGallery } from "./ProductGallery";
 
 const inputClass =
   "rounded-lg border border-gold/25 bg-kavach-s1 px-3 py-2.5 text-sm text-cream placeholder:text-cream-soft/50 focus:border-gold/60 focus:outline-none";
+
+const BENEFIT_ITEMS: { icon: typeof QrCode; text: string }[] = [
+  {
+    icon: QrCode,
+    text: "One QR scan shows your emergency health info — no app needed",
+  },
+  {
+    icon: Droplets,
+    text: "Blood group, allergies, current medicines & medical conditions",
+  },
+  {
+    icon: PhoneCall,
+    text: "Emergency contacts shown instantly to any helper",
+  },
+  {
+    icon: ShieldCheck,
+    text: "Insurance / policy details on scan",
+  },
+  {
+    icon: Lock,
+    text: "PIN-protected — your private data stays safe",
+  },
+  {
+    icon: Shield,
+    text: "Waterproof, scratch-resistant premium PVC card",
+  },
+  {
+    icon: Users,
+    text: "Works for seniors, bikers, travellers, children & whole family",
+  },
+  {
+    icon: Award,
+    text: "1-year validity + referral rewards",
+  },
+];
 
 function composeAddress(parts: {
   line: string;
@@ -124,119 +162,143 @@ export function PackOrderForm({ source = "order_page" }: { source?: string }) {
   };
 
   return (
-    <div className="space-y-10">
-      {/* Hero pricing */}
-      <div className="text-center">
-        <p className="font-rajdhani text-xs font-semibold uppercase tracking-[0.2em] text-gold">
-          KavachSaathi
-        </p>
-        <h2 className="mt-2 font-rajdhani text-2xl font-bold text-cream sm:text-3xl">
-          KavachSaathi – Smart QR Emergency Health Card
-        </h2>
-        <div className="mt-4 flex flex-wrap items-baseline justify-center gap-3">
-          <span className="font-mono text-lg text-cream-soft line-through decoration-cream-soft/60">
-            {formatInr(CARD_MRP)}
-          </span>
-          <span className="font-mono text-4xl font-bold text-gold">
-            {formatInr(CARD_PRICE)}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-300">
-            <Truck className="h-3.5 w-3.5" />
-            FREE Delivery
-          </span>
-        </div>
-        <p className="mt-2 text-xs text-cream-soft">
-          Offer price for 1 card · no shipping charge · GST inclusive
-        </p>
+    <div className="space-y-12">
+      {/* Catalog hero: gallery + buy box */}
+      <div className="grid gap-8 lg:grid-cols-2 lg:gap-10 lg:items-start">
+        <motion.div
+          initial={{ opacity: 0, x: -16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <ProductGallery />
+        </motion.div>
+
+        <motion.div
+          className="space-y-5"
+          initial={{ opacity: 0, x: 16 }}
+          animate={{ opacity: 1, y: 0, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div>
+            <p className="font-rajdhani text-xs font-semibold uppercase tracking-[0.2em] text-gold">
+              KavachSaathi
+            </p>
+            <h1 className="mt-2 font-rajdhani text-2xl font-bold leading-tight text-cream sm:text-3xl">
+              KavachSaathi – Smart QR Emergency Health Card
+            </h1>
+          </div>
+
+          <div className="flex flex-wrap items-baseline gap-3">
+            <span className="font-mono text-lg text-cream-soft line-through decoration-cream-soft/60">
+              {formatInr(CARD_MRP)}
+            </span>
+            <span className="font-mono text-4xl font-bold text-gold">
+              {formatInr(CARD_PRICE)}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-300">
+              <Truck className="h-3.5 w-3.5" />
+              FREE Delivery
+            </span>
+          </div>
+          <p className="text-xs text-cream-soft">
+            Offer price for 1 card · no shipping charge · GST inclusive
+          </p>
+
+          <div>
+            <h2 className="mb-2 font-rajdhani text-sm font-semibold uppercase tracking-wider text-cream-soft">
+              Choose a pack
+            </h2>
+            <div
+              className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+              role="radiogroup"
+              aria-label="Pack options"
+            >
+              {LAUNCH_PACKS.map((p) => {
+                const selected = packId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setPackId(p.id)}
+                    className={`relative rounded-xl border p-3 text-left transition ${
+                      selected
+                        ? "border-gold bg-gold/10 ring-1 ring-gold/40"
+                        : "border-gold/25 bg-kavach-s1/80 hover:border-gold/50"
+                    }`}
+                  >
+                    {p.best ? (
+                      <span className="absolute -top-2 left-2 rounded bg-gold px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-kavach-black">
+                        BEST
+                      </span>
+                    ) : null}
+                    <div className="font-rajdhani text-sm font-semibold text-cream">
+                      {p.id === "Single" ? "Single Card" : p.label}
+                    </div>
+                    <div className="text-[11px] text-cream-soft">{p.cards}</div>
+                    <div className="mt-1 font-mono text-base font-bold text-gold">
+                      {formatInr(p.price)}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <a
+            href="#order-form"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-gold-dark to-gold-light py-3.5 font-rajdhani text-base font-bold text-kavach-black animate-[ks-pay-pulse_2.4s_ease-in-out_infinite]"
+          >
+            <Shield className="h-5 w-5" />
+            Pay {formatInr(total)} Securely — fill details below
+          </a>
+        </motion.div>
       </div>
 
       {/* Benefits */}
-      <section aria-labelledby="order-benefits-heading">
-        <div className="mb-4 flex items-center gap-2">
-          <HeartPulse className="h-5 w-5 text-gold" />
-          <h3
-            id="order-benefits-heading"
-            className="font-rajdhani text-lg font-semibold text-cream"
-          >
-            Card Benefits / Why KavachSaathi
-          </h3>
-        </div>
+      <motion.section
+        aria-labelledby="order-benefits-heading"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-40px" }}
+        transition={{ duration: 0.45 }}
+      >
+        <h2
+          id="order-benefits-heading"
+          className="mb-4 font-rajdhani text-xl font-semibold text-cream"
+        >
+          Card Benefits / Why KavachSaathi
+        </h2>
         <ul className="grid gap-3 sm:grid-cols-2">
-          {ORDER_BENEFITS.map((b) => (
+          {BENEFIT_ITEMS.map(({ icon: Icon, text }) => (
             <li
-              key={b}
-              className="flex gap-2.5 rounded-xl border border-gold/15 bg-kavach-black/30 px-3 py-2.5 text-sm text-cream-soft"
+              key={text}
+              className="flex gap-3 rounded-xl border border-gold/15 bg-kavach-black/30 px-3 py-3 text-sm text-cream-soft"
             >
-              <Check
-                className="mt-0.5 h-4 w-4 shrink-0 text-gold"
-                aria-hidden
-              />
-              <span>{b}</span>
+              <Icon className="mt-0.5 h-4 w-4 shrink-0 text-gold" aria-hidden />
+              <span>{text}</span>
             </li>
           ))}
         </ul>
-      </section>
-
-      {/* Packs */}
-      <section aria-labelledby="order-packs-heading">
-        <h3
-          id="order-packs-heading"
-          className="mb-3 font-rajdhani text-lg font-semibold text-cream"
-        >
-          Choose a pack
-        </h3>
-        <div
-          className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5"
-          role="radiogroup"
-          aria-label="Pack options"
-        >
-          {LAUNCH_PACKS.map((p) => {
-            const selected = packId === p.id;
-            return (
-              <button
-                key={p.id}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() => setPackId(p.id)}
-                className={`relative rounded-xl border p-3 text-left transition ${
-                  selected
-                    ? "border-gold bg-gold/10 ring-1 ring-gold/40"
-                    : "border-gold/25 bg-kavach-s1/80 hover:border-gold/50"
-                }`}
-              >
-                {p.best ? (
-                  <span className="absolute -top-2 left-2 rounded bg-gold px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-kavach-black">
-                    BEST VALUE
-                  </span>
-                ) : null}
-                <div className="font-rajdhani text-sm font-semibold text-cream">
-                  {p.id === "Single" ? "Single Card" : p.label}
-                </div>
-                <div className="text-xs text-cream-soft">{p.cards}</div>
-                <div className="mt-1 font-mono text-lg font-bold text-gold">
-                  {formatInr(p.price)}
-                </div>
-                {p.save > 0 ? (
-                  <div className="text-[11px] text-emerald-400">
-                    Save {formatInr(p.save)}
-                  </div>
-                ) : (
-                  <div className="text-[11px] text-cream-soft">Base offer</div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      </motion.section>
 
       {/* Form */}
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2" noValidate>
+      <motion.form
+        id="order-form"
+        onSubmit={submit}
+        className="grid gap-3 rounded-2xl border border-gold/25 bg-kavach-s1/80 p-5 sm:grid-cols-2 sm:p-6"
+        noValidate
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-40px" }}
+        transition={{ duration: 0.45 }}
+      >
         <div className="mb-1 flex items-center gap-2 sm:col-span-2">
           <MapPin className="h-4 w-4 text-gold" />
-          <h3 className="font-rajdhani text-lg font-semibold text-cream">
+          <h2 className="font-rajdhani text-lg font-semibold text-cream">
             Shipping details
-          </h3>
+          </h2>
         </div>
 
         <label className="flex flex-col gap-1 text-xs uppercase tracking-wider text-cream-soft">
@@ -258,7 +320,9 @@ export function PackOrderForm({ source = "order_page" }: { source?: string }) {
             inputMode="numeric"
             maxLength={10}
             value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            onChange={(e) =>
+              setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
+            }
             className={inputClass}
             placeholder="10-digit mobile"
             required
@@ -341,6 +405,18 @@ export function PackOrderForm({ source = "order_page" }: { source?: string }) {
           </select>
         </label>
 
+        <div className="sm:col-span-2 rounded-lg border border-gold/20 bg-kavach-black/40 px-3 py-2 text-sm text-cream-soft">
+          Selected:{" "}
+          <span className="font-semibold text-cream">
+            {pack.id === "Single" ? "Single Card" : pack.label}
+          </span>{" "}
+          · Qty {qty} · Total{" "}
+          <span className="font-mono font-bold text-gold">
+            {formatInr(total)}
+          </span>{" "}
+          · FREE delivery
+        </div>
+
         {err ? (
           <p
             role="alert"
@@ -353,7 +429,7 @@ export function PackOrderForm({ source = "order_page" }: { source?: string }) {
         <button
           type="submit"
           disabled={busy || !formValid}
-          className="sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-gold-dark to-gold-light py-4 font-rajdhani text-lg font-bold text-kavach-black disabled:cursor-not-allowed disabled:opacity-50"
+          className="sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-gold-dark to-gold-light py-4 font-rajdhani text-lg font-bold text-kavach-black disabled:cursor-not-allowed disabled:opacity-50 animate-[ks-pay-pulse_2.4s_ease-in-out_infinite] disabled:animate-none"
         >
           {busy ? (
             <>
@@ -362,17 +438,16 @@ export function PackOrderForm({ source = "order_page" }: { source?: string }) {
             </>
           ) : (
             <>
-              <Shield className="h-5 w-5" />
+              <Check className="h-5 w-5" />
               Pay {formatInr(total)} Securely
             </>
           )}
         </button>
         <p className="text-center text-xs text-cream-soft sm:col-span-2">
-          FREE delivery · Secure Razorpay checkout · Card ships after payment —
-          activate after it arrives (pay first, then activate). Paid orders are
-          created only after successful verification.
+          Secure Razorpay checkout · Card ships after payment — activate after
+          delivery. Paid orders are created only after successful verification.
         </p>
-      </form>
+      </motion.form>
 
       <p className="text-center text-xs text-cream-soft">
         Helpline <b className="text-gold">+91 72730 00075</b> ·{" "}

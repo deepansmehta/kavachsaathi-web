@@ -39,7 +39,9 @@ const PUBLIC_ROUTES = [
   "/privacy",
   "/terms",
   "/refund-policy",
+  "/returns",
   "/shipping-policy",
+  "/shipping",
   "/contact",
   "/schemes", // F22 scheme guide — always open (public health info)
 ];

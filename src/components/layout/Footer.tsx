@@ -7,11 +7,11 @@ import { GoldDivider } from "@/components/ui/GoldDivider";
 import { COMPANY } from "@/lib/pricing";
 
 const POLICY_LINKS: [string, string][] = [
-  ["/terms", "Terms of Use"],
+  ["/shipping", "Shipping"],
+  ["/returns", "Returns & Refunds"],
   ["/privacy", "Privacy Policy"],
-  ["/refund-policy", "Refund Policy"],
-  ["/shipping-policy", "Shipping Policy"],
-  ["/contact", "Contact"],
+  ["/terms", "Terms & Conditions"],
+  ["/contact", "Contact Us"],
 ];
 
 const QUICK_LINKS: [string, string][] = [
@@ -116,11 +116,7 @@ export function Footer() {
               ))}
               <li className="flex items-start gap-2">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-                <span>
-                  {COMPANY.addressLine}
-                  <br />
-                  {COMPANY.country}
-                </span>
+                <span>{COMPANY.addressLine}</span>
               </li>
             </ul>
           </div>
