@@ -32,15 +32,14 @@ export function ProductGallery() {
   return (
     <div className="space-y-3">
       <motion.div
-        className="relative aspect-square overflow-hidden rounded-2xl border border-gold/25 bg-kavach-black/60 shadow-gold-sm"
-        whileHover={{ scale: 1.015 }}
+        className="relative aspect-square overflow-hidden rounded-2xl border border-gold/25 bg-[#0c0c0a] shadow-gold-sm"
+        whileHover={{ scale: 1.01 }}
         transition={{ type: "spring", stiffness: 260, damping: 22 }}
-        style={{ transformStyle: "preserve-3d" }}
       >
         <AnimatePresence mode="wait">
           <motion.div
             key={current.id}
-            className="absolute inset-0"
+            className="absolute inset-0 p-2 sm:p-3"
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.02 }}
@@ -52,11 +51,10 @@ export function ProductGallery() {
               fill
               priority
               sizes="(max-width: 768px) 100vw, 480px"
-              className="object-cover"
+              className="object-contain object-center"
             />
           </motion.div>
         </AnimatePresence>
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-kavach-black/35 via-transparent to-transparent" />
       </motion.div>
 
       <div className="flex gap-2" role="tablist" aria-label="Product images">

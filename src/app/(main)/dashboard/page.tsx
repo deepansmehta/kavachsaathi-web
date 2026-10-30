@@ -201,18 +201,20 @@ export default function DashboardPage() {
         </div>
 
         <div className="rounded-card border border-kavach-border bg-kavach-s1 p-5">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-5 flex items-center justify-between">
             <h2 className="font-rajdhani text-lg font-bold text-cream">
               Your Card
             </h2>
             <Badge>{data.tier || "STANDARD"}</Badge>
           </div>
-          <PhysicalCardPreview
-            name={data.full_name}
-            healthId={data.health_id}
-            bloodGroup={data.blood_group}
-            interactive
-          />
+          <div className="flex justify-center">
+            <PhysicalCardPreview
+              name={data.full_name}
+              healthId={data.health_id}
+              bloodGroup={data.blood_group}
+              interactive
+            />
+          </div>
         </div>
 
         <div className="rounded-card border border-kavach-border bg-kavach-s1 p-5">
