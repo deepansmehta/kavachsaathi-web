@@ -16,20 +16,20 @@ type Props = {
 const SIDES = {
   front: {
     src: "/images/product/card-front.webp",
-    w: 1332,
-    h: 854,
+    w: 2658,
+    h: 1707,
     alt: "KavachSaathi card — front",
   },
   back: {
     src: "/images/product/card-back.webp",
-    w: 1332,
-    h: 886,
+    w: 2658,
+    h: 1770,
     alt: "KavachSaathi card — back",
   },
 } as const;
 
 /**
- * Crystal-clear PVC cutout (HQ WebP, no white box) + soft 3D float.
+ * HD PVC cutout — served unoptimized (no Next recompress) so text stays razor-clear.
  */
 export function PhysicalCardPreview({
   name,
@@ -42,24 +42,38 @@ export function PhysicalCardPreview({
   const current = SIDES[side];
 
   return (
-    <div className={cn("mx-auto w-full max-w-[420px]", className)}>
-      <div style={{ perspective: "1200px" }}>
+    <div className={cn("mx-auto w-full max-w-[460px]", className)}>
+      <div className="relative" style={{ perspective: "1400px" }}>
+        {/* Soft ground glow — no CSS filter on the card bitmap (filters blur text) */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-[58%] h-[28%] w-[78%] -translate-x-1/2 rounded-[100%] bg-black/55 blur-2xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-[48%] h-[22%] w-[62%] -translate-x-1/2 rounded-[100%] bg-gold/25 blur-xl"
+        />
+
         <motion.button
           type="button"
-          className="relative mx-auto block w-full cursor-pointer border-0 bg-transparent p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold rounded-xl"
-          style={{ transformStyle: "preserve-3d" }}
-          initial={{ rotateX: 7, rotateY: -11 }}
-          animate={{
-            rotateX: [7, 5, 7],
-            rotateY: [-11, -7, -11],
-            y: [0, -8, 0],
+          className="relative mx-auto block w-full cursor-pointer border-0 bg-transparent p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+          style={{
+            transformStyle: "preserve-3d",
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
           }}
-          transition={{ duration: 5.2, repeat: Infinity, ease: "easeInOut" }}
+          initial={{ rotateX: 5, rotateY: -8 }}
+          animate={{
+            rotateX: [5, 3.5, 5],
+            rotateY: [-8, -5, -8],
+            y: [0, -5, 0],
+          }}
+          transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
           whileHover={{
-            rotateX: 3,
-            rotateY: 7,
-            scale: 1.035,
-            transition: { duration: 0.35 },
+            rotateX: 2,
+            rotateY: 5,
+            scale: 1.02,
+            transition: { duration: 0.3 },
           }}
           onClick={() =>
             interactive && setSide((s) => (s === "front" ? "back" : "front"))
@@ -73,14 +87,14 @@ export function PhysicalCardPreview({
           <AnimatePresence mode="wait">
             <motion.div
               key={side}
-              initial={{ opacity: 0, scale: 0.985 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.99 }}
-              transition={{ duration: 0.28 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.22 }}
               className="relative w-full"
               style={{
-                filter:
-                  "drop-shadow(0 22px 36px rgba(0,0,0,0.6)) drop-shadow(0 0 28px rgba(212,175,55,0.28))",
+                transform: "translateZ(0)",
+                WebkitTransform: "translateZ(0)",
               }}
             >
               <Image
@@ -89,9 +103,14 @@ export function PhysicalCardPreview({
                 width={current.w}
                 height={current.h}
                 priority
-                quality={100}
-                sizes="(max-width: 640px) 94vw, 420px"
+                unoptimized
+                sizes="(max-width: 640px) 96vw, 920px"
                 className="h-auto w-full select-none"
+                style={{
+                  imageRendering: "auto",
+                  // Keep crisp when GPU-composited
+                  transform: "translateZ(0)",
+                }}
                 draggable={false}
               />
             </motion.div>

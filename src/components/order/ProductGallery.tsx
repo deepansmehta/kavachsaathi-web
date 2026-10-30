@@ -10,24 +10,24 @@ const GALLERY = [
     label: "Front",
     src: "/images/product/card-front.webp",
     alt: "KavachSaathi Smart QR Emergency Health Card — front",
-    w: 1332,
-    h: 854,
+    w: 2658,
+    h: 1707,
   },
   {
     id: "back",
     label: "Back",
     src: "/images/product/card-back.webp",
     alt: "KavachSaathi Smart QR Emergency Health Card — back",
-    w: 1332,
-    h: 886,
+    w: 2658,
+    h: 1770,
   },
   {
     id: "features",
     label: "Detail",
     src: "/images/product/card-features.webp",
     alt: "KavachSaathi card detail view",
-    w: 1400,
-    h: 933,
+    w: 3000,
+    h: 3000,
   },
 ] as const;
 
@@ -37,18 +37,31 @@ export function ProductGallery() {
 
   return (
     <div className="space-y-4">
-      <div style={{ perspective: "1200px" }} className="mx-auto max-w-lg">
+      <div className="relative mx-auto max-w-xl" style={{ perspective: "1400px" }}>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-[58%] h-[28%] w-[78%] -translate-x-1/2 rounded-[100%] bg-black/50 blur-2xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-[48%] h-[20%] w-[60%] -translate-x-1/2 rounded-[100%] bg-gold/20 blur-xl"
+        />
+
         <motion.div
           className="relative w-full"
-          style={{ transformStyle: "preserve-3d" }}
-          initial={{ rotateX: 6, rotateY: -10 }}
-          animate={{
-            rotateX: [6, 4, 6],
-            rotateY: [-10, -6, -10],
-            y: [0, -6, 0],
+          style={{
+            transformStyle: "preserve-3d",
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
           }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-          whileHover={{ rotateY: 8, scale: 1.025 }}
+          initial={{ rotateX: 4, rotateY: -7 }}
+          animate={{
+            rotateX: [4, 3, 4],
+            rotateY: [-7, -4, -7],
+            y: [0, -4, 0],
+          }}
+          transition={{ duration: 5.2, repeat: Infinity, ease: "easeInOut" }}
+          whileHover={{ rotateY: 5, scale: 1.015 }}
         >
           <AnimatePresence mode="wait">
             <motion.div
@@ -56,11 +69,8 @@ export function ProductGallery() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              style={{
-                filter:
-                  "drop-shadow(0 22px 36px rgba(0,0,0,0.55)) drop-shadow(0 0 24px rgba(212,175,55,0.25))",
-              }}
+              transition={{ duration: 0.22 }}
+              style={{ transform: "translateZ(0)" }}
             >
               <Image
                 src={current.src}
@@ -68,8 +78,8 @@ export function ProductGallery() {
                 width={current.w}
                 height={current.h}
                 priority
-                quality={100}
-                sizes="(max-width: 768px) 94vw, 480px"
+                unoptimized
+                sizes="(max-width: 768px) 96vw, 960px"
                 className="h-auto w-full select-none"
                 draggable={false}
               />
@@ -102,8 +112,8 @@ export function ProductGallery() {
                 src={g.src}
                 alt=""
                 fill
-                quality={90}
-                sizes="80px"
+                unoptimized
+                sizes="160px"
                 className="object-contain p-1"
               />
               <span className="sr-only">{g.label}</span>
