@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 type Props = {
-  /** Shown under the photo — not overlaid on the PVC print */
   name?: string;
   healthId?: string;
   bloodGroup?: string;
@@ -15,8 +14,8 @@ type Props = {
 };
 
 /**
- * Real marketplace PVC photos (1500×1500 square).
- * object-contain keeps the full card centered — no crop / skew.
+ * Real PVC card cutout (transparent PNG) — no white studio box.
+ * Soft 3D tilt / float for depth.
  */
 export function PhysicalCardPreview({
   name,
@@ -28,54 +27,74 @@ export function PhysicalCardPreview({
   const [side, setSide] = useState<"front" | "back">("front");
   const src =
     side === "front"
-      ? "/images/product/card-front.jpg"
-      : "/images/product/card-back.jpg";
+      ? "/images/product/card-front.png"
+      : "/images/product/card-back.png";
 
   return (
-    <div className={cn("mx-auto w-full max-w-[320px] sm:max-w-[360px]", className)}>
-      <motion.button
-        type="button"
-        className="relative mx-auto block aspect-square w-full overflow-hidden rounded-2xl border border-gold/30 bg-[#0c0c0a] shadow-gold-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-        whileHover={interactive ? { scale: 1.01 } : undefined}
-        transition={{ type: "spring", stiffness: 280, damping: 24 }}
-        onClick={() =>
-          interactive && setSide((s) => (s === "front" ? "back" : "front"))
-        }
-        aria-label={
-          interactive
-            ? `KavachSaathi card ${side}. Click to flip.`
-            : "KavachSaathi card"
-        }
-      >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={side}
-            className="absolute inset-0 flex items-center justify-center p-2 sm:p-3"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22 }}
-          >
-            <Image
-              src={src}
-              alt={
-                side === "front"
-                  ? "KavachSaathi card — front"
-                  : "KavachSaathi card — back"
-              }
-              fill
-              priority
-              sizes="(max-width: 640px) 320px, 360px"
-              className="object-contain object-center"
-            />
-          </motion.div>
-        </AnimatePresence>
-      </motion.button>
+    <div className={cn("mx-auto w-full max-w-[380px]", className)}>
+      <div style={{ perspective: "1100px" }}>
+        <motion.button
+          type="button"
+          className="relative mx-auto block w-full cursor-pointer border-0 bg-transparent p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold rounded-xl"
+          style={{ transformStyle: "preserve-3d" }}
+          initial={{ rotateX: 8, rotateY: -12 }}
+          animate={{
+            rotateX: [8, 6, 8],
+            rotateY: [-12, -8, -12],
+            y: [0, -8, 0],
+          }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          whileHover={{
+            rotateX: 4,
+            rotateY: 6,
+            scale: 1.03,
+            transition: { duration: 0.35 },
+          }}
+          onClick={() =>
+            interactive && setSide((s) => (s === "front" ? "back" : "front"))
+          }
+          aria-label={
+            interactive
+              ? `KavachSaathi card ${side}. Click to flip.`
+              : "KavachSaathi card"
+          }
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={side}
+              initial={{ opacity: 0, rotateY: side === "back" ? -25 : 25 }}
+              animate={{ opacity: 1, rotateY: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35 }}
+              className="relative w-full"
+              style={{
+                filter:
+                  "drop-shadow(0 18px 28px rgba(0,0,0,0.55)) drop-shadow(0 0 24px rgba(212,175,55,0.22))",
+              }}
+            >
+              <Image
+                src={src}
+                alt={
+                  side === "front"
+                    ? "KavachSaathi card — front"
+                    : "KavachSaathi card — back"
+                }
+                width={1317}
+                height={836}
+                priority
+                sizes="(max-width: 640px) 90vw, 380px"
+                className="h-auto w-full select-none"
+                draggable={false}
+              />
+            </motion.div>
+          </AnimatePresence>
+        </motion.button>
+      </div>
 
       {(name || healthId || bloodGroup) && (
-        <div className="mt-3 space-y-1 text-center">
+        <div className="mt-4 space-y-1 text-center">
           {name ? (
-            <p className="font-rajdhani text-base font-bold text-cream truncate">
+            <p className="truncate font-rajdhani text-base font-bold text-cream">
               {name}
             </p>
           ) : null}
