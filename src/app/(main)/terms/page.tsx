@@ -46,10 +46,12 @@ export default function TermsPage() {
           1A. Card validity
         </h2>
         <p>
-          Digital emergency profile access is valid for{" "}
-          <strong>1 year from activation</strong>, unless renewed. Physical
-          cards remain a QR pointer; continued online access may require renewal
-          as published on the site.
+          Digital emergency profile access is{" "}
+          <strong>lifetime free</strong> from activation — there is{" "}
+          <strong>no yearly renewal fee</strong>. The physical card remains a QR
+          pointer to your online emergency profile. GDM Technoworld may update
+          the service for security or legal reasons; we will communicate material
+          changes on the website.
         </p>
 
         <h2 className="font-rajdhani text-xl font-semibold text-[#FCE49A]">

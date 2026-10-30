@@ -3,8 +3,9 @@
  * Emergency view is NEVER blocked by expiry — only owner Full Details / PDFs / vault.
  */
 
+/** Default ~100 years ≈ lifetime free access (no yearly renewal). Override via CARD_VALIDITY_DAYS. */
 export const VALIDITY_DAYS =
-  Number(process.env.CARD_VALIDITY_DAYS || 365) || 365;
+  Number(process.env.CARD_VALIDITY_DAYS || 36500) || 36500;
 export const GRACE_DAYS = Number(process.env.CARD_GRACE_DAYS || 30) || 30;
 
 export type ValidityInput = {

@@ -240,7 +240,8 @@ export function EmergencyLite({
       <div className="ks-body">
         {validityExpired ? (
           <p className="ks-expired">
-            Card validity expired — renew at kavachsaathi.in
+            Profile needs attention — contact KavachSaathi support at
+            kavachsaathi.in
           </p>
         ) : null}
 

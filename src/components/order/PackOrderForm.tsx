@@ -59,7 +59,7 @@ const BENEFIT_ITEMS: { icon: typeof QrCode; text: string }[] = [
   },
   {
     icon: Award,
-    text: "1-year validity + referral rewards",
+    text: "Lifetime free emergency access + referral rewards",
   },
 ];
 

@@ -188,14 +188,6 @@ function MyProfileInner() {
     [profile]
   );
 
-  const renewalSoon = useMemo(() => {
-    if (!profile?.validTill) return false;
-    const till = new Date(profile.validTill);
-    if (Number.isNaN(till.getTime())) return false;
-    const days = (till.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
-    return days >= 0 && days <= 30;
-  }, [profile?.validTill]);
-
   const loadScans = useCallback(async () => {
     try {
       const res = await fetch("/api/profile/scans");
@@ -968,11 +960,9 @@ function MyProfileInner() {
                   <p className="text-xs text-[var(--text-soft)]">
                     Status: {profile.cardStatus || "activated"}
                   </p>
-                  {profile.validTill && (
-                    <p className="text-xs text-[var(--gold)]">
-                      Valid till {profile.validTill}
-                    </p>
-                  )}
+                  <p className="text-xs text-emerald-300/90">
+                    Lifetime free emergency access
+                  </p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   <button
@@ -992,12 +982,6 @@ function MyProfileInner() {
                   </button>
                 </div>
               </div>
-
-              {renewalSoon && (
-                <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-sm text-amber-100 no-print">
-                  Renewal due soon — valid till {profile.validTill}
-                </p>
-              )}
 
               <Pack2ProfileTools
                 flags={featureFlags}

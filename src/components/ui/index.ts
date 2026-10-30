@@ -4,6 +4,7 @@ export { GoldInput } from "./GoldInput";
 export { GoldCard } from "./GoldCard";
 export { Badge } from "./Badge";
 export { HealthCard3D } from "./HealthCard3D";
+export { PhysicalCardPreview } from "./PhysicalCardPreview";
 export { LoadingSpinner } from "./LoadingSpinner";
 export { ToastProvider, useToast } from "./Toast";
 export { StepIndicator } from "./StepIndicator";

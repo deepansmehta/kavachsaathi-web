@@ -10,7 +10,7 @@ import {
   LoadingSpinner,
   OutlineButton,
   GoldButton,
-  HealthCard3D,
+  PhysicalCardPreview,
 } from "@/components/ui";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDemoProfile } from "@/lib/demo";
@@ -73,9 +73,10 @@ export default function MyCardPage() {
         </div>
 
         <div className="mx-auto w-full max-w-[360px]">
-          <HealthCard3D
+          <PhysicalCardPreview
+            name={data.full_name}
+            healthId={data.health_id}
             bloodGroup={data.blood_group}
-            activationCode={data.activation_code}
             interactive
           />
         </div>

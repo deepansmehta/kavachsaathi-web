@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { ValidityBar } from "@/components/profile/ValidityBar";
 import { EmergencyWallpaper } from "@/components/profile/EmergencyWallpaper";
 import { ElderlyToggle } from "@/components/ElderlyMode";
 import { OfflineCardControls } from "@/components/pwa/OfflineCardControls";
@@ -76,24 +75,6 @@ export function Pack3ProfileTools({
   useEffect(() => {
     void loadReferral();
   }, [loadReferral]);
-
-  const renew = async () => {
-    setBusy(true);
-    try {
-      const r = await fetch("/api/profile/renewal-request", { method: "POST" });
-      const j = await r.json();
-      if (!r.ok) {
-        toast.error(j.error || "Renewal request failed");
-        return;
-      }
-      if (j.whatsappUrl) window.open(j.whatsappUrl, "_blank");
-      toast.success("Renewal request recorded");
-    } catch {
-      toast.error("Network error");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const reportLost = async () => {
     if (!confirm("Report this card as lost? Scanners will not see your data.")) {
@@ -304,14 +285,10 @@ export function Pack3ProfileTools({
   return (
     <div className="no-print space-y-4">
       <PwaInstallPrompt featureOn={!!flags.pwaApp} />
-      <ValidityBar
-        enabled={!!flags.cardValidity}
-        validFrom={validFrom}
-        validTill={validTill}
-        healthId={healthId}
-        name={name}
-        onRenew={() => void renew()}
-      />
+      {/* Card access is lifetime free — no renewal bar / ₹199 upsell */}
+      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+        Lifetime free emergency access — no yearly renewal fee.
+      </div>
 
       {flags.elderlyMode && (
         <div className="rounded-xl border border-[var(--gold-border)] p-4">

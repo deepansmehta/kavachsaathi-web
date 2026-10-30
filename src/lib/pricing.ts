@@ -9,8 +9,12 @@ export const CARD_MRP = 699;
 export const CARD_PRICE = 599;
 /** Same unit in paise — never trust client-supplied amounts for charge. */
 export const CARD_PRICE_PAISE = CARD_PRICE * 100;
-export const CARD_VALIDITY_YEARS = 1;
-export const RENEWAL_PRICE = 199;
+/** Marketing: digital emergency access is lifetime (no yearly renewal fee). */
+export const CARD_LIFETIME = true;
+/** @deprecated Kept for old imports — always treat as lifetime (no paid renewal). */
+export const CARD_VALIDITY_YEARS = 0;
+/** @deprecated No renewal fee — card access is lifetime free after purchase. */
+export const RENEWAL_PRICE = 0;
 
 export const GST_NOTE =
   "All prices are inclusive of GST. An invoice with GST details is shared after payment confirmation.";
@@ -32,13 +36,13 @@ export const ORDER_BENEFITS = [
   "PIN-protected — your private data stays safe",
   "Waterproof, scratch-resistant premium PVC card",
   "Works for seniors, bikers, travellers, children & whole family",
-  "1-year validity + referral rewards",
+  "Lifetime free emergency access + referral rewards",
 ] as const;
 
 export const WHAT_IS_INCLUDED = [
   "Printed PVC KavachSaathi smart health card with unique QR",
   "Box sticker with QR + 4-digit activation code",
-  `${CARD_VALIDITY_YEARS} year digital emergency profile access from activation`,
+  "Lifetime free digital emergency profile access from activation — no yearly renewal fee",
   "Instant scan page for doctors — no app, no login",
   "Phone + PIN locked full profile and document vault",
   "Order support and activation help from GDM Technoworld",
@@ -120,6 +124,7 @@ export const COMPANY = {
 export const PRICING = {
   mrp: CARD_MRP,
   price: CARD_PRICE,
+  lifetime: CARD_LIFETIME,
   validityYears: CARD_VALIDITY_YEARS,
   renewal: RENEWAL_PRICE,
   gstNote: GST_NOTE,

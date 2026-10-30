@@ -1,12 +1,10 @@
 import Link from "next/link";
 import {
   CARD_PRICE,
-  CARD_VALIDITY_YEARS,
   COMPANY,
   DELIVERY,
   GST_NOTE,
   LAUNCH_PACKS,
-  RENEWAL_PRICE,
   WHAT_IS_INCLUDED,
   formatInr,
 } from "@/lib/pricing";
@@ -15,7 +13,7 @@ import { GoldButton } from "@/components/ui/GoldButton";
 export const metadata = {
   title: "Pricing",
   description:
-    "KavachSaathi smart health card pricing — single card ₹499, family packs, renewal ₹199/year. GST inclusive. Free India delivery.",
+    "KavachSaathi smart health card pricing — single card ₹599, family packs, lifetime free emergency access. GST inclusive. Free India delivery.",
   robots: { index: true, follow: true },
 };
 
@@ -30,14 +28,14 @@ export default function PricingPage() {
           Pricing
         </p>
         <h1 className="mt-2 font-rajdhani text-4xl font-bold text-cream sm:text-5xl">
-          Simple packs. Clear renewals.
+          Simple packs. Lifetime access.
         </h1>
         <p className="mt-4 font-body text-sm text-cream-soft sm:text-base">
-          Same prices as the order form. No hidden fees at checkout call.
+          One-time card price. Emergency digital access is lifetime free — no
+          yearly renewal fee.
         </p>
       </div>
 
-      {/* Single card */}
       <section className="mx-auto mt-12 max-w-md">
         <article className="rounded-card border-2 border-gold/50 bg-kavach-s1 p-8 text-center shadow-gold-sm">
           <p className="font-rajdhani text-xs font-semibold uppercase tracking-[0.25em] text-gold">
@@ -47,12 +45,10 @@ export default function PricingPage() {
             {formatInr(CARD_PRICE)}
           </p>
           <p className="mt-2 font-body text-sm text-cream-soft">
-            {single.cards} · {CARD_VALIDITY_YEARS} year validity from activation
+            {single.cards} · lifetime free emergency access
           </p>
-          <p className="mt-4 font-body text-sm text-cream">
-            Renewal{" "}
-            <span className="font-mono text-gold">{formatInr(RENEWAL_PRICE)}</span>
-            /year
+          <p className="mt-4 font-body text-sm text-emerald-300">
+            No renewal fee — pay once, keep access for life
           </p>
           <div className="mt-8">
             <Link href="/order">
@@ -64,7 +60,6 @@ export default function PricingPage() {
         </article>
       </section>
 
-      {/* Family / combo */}
       <section className="mt-16">
         <h2 className="text-center font-rajdhani text-2xl font-bold text-cream sm:text-3xl">
           Family &amp; combo packs
@@ -109,7 +104,6 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* What's included */}
       <section className="mt-16 rounded-card border border-gold/20 bg-kavach-s1/60 p-6 sm:p-8">
         <h2 className="font-rajdhani text-2xl font-bold text-cream">
           What&apos;s included
@@ -121,7 +115,6 @@ export default function PricingPage() {
         </ul>
       </section>
 
-      {/* GST + delivery */}
       <section className="mt-10 grid gap-6 md:grid-cols-2">
         <div className="rounded-card border border-gold/20 bg-kavach-s1/40 p-6">
           <h2 className="font-rajdhani text-xl font-bold text-gold">GST</h2>

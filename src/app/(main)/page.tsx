@@ -30,8 +30,6 @@ import { cn } from "@/lib/utils";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import {
   CARD_PRICE,
-  CARD_VALIDITY_YEARS,
-  RENEWAL_PRICE,
   formatInr,
 } from "@/lib/pricing";
 
@@ -497,8 +495,7 @@ export default function HomePage() {
           <p className="mx-auto mt-4 max-w-md font-body text-sm text-cream-soft sm:text-base">
             <span className="font-mono text-gold">{formatInr(CARD_PRICE)}</span>
             <span className="mx-2 text-cream-soft/50">·</span>
-            {CARD_VALIDITY_YEARS} year validity · Renew{" "}
-            {formatInr(RENEWAL_PRICE)}/year
+            lifetime free emergency access · no renewal fee
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link href="/order">

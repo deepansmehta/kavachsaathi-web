@@ -21,7 +21,7 @@ import {
   Badge,
   GoldButton,
   OutlineButton,
-  HealthCard3D,
+  PhysicalCardPreview,
   BloodGroupBadge,
 } from "@/components/ui";
 import { useAuth } from "@/contexts/AuthContext";
@@ -207,10 +207,10 @@ export default function DashboardPage() {
             </h2>
             <Badge>{data.tier || "STANDARD"}</Badge>
           </div>
-          <HealthCard3D
+          <PhysicalCardPreview
+            name={data.full_name}
+            healthId={data.health_id}
             bloodGroup={data.blood_group}
-            tier={data.tier || "STANDARD"}
-            activationCode={data.activation_code}
             interactive
           />
         </div>
