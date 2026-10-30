@@ -3,13 +3,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { useRef } from "react";
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  useInView,
-} from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import {
   Shield,
   Zap,
@@ -23,7 +17,7 @@ import {
 import {
   GoldButton,
   OutlineButton,
-  HealthCard3D,
+  PhysicalCardPreview,
   ECGBackground,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -58,58 +52,23 @@ function ShieldPulse() {
 }
 
 function HeroProductCard() {
-  const ref = useRef<HTMLDivElement>(null);
-  const mx = useMotionValue(0);
-  const my = useMotionValue(0);
-  const rotateX = useSpring(useTransform(my, [-0.5, 0.5], [6, -6]), {
-    stiffness: 140,
-    damping: 18,
-  });
-  const rotateY = useSpring(useTransform(mx, [-0.5, 0.5], [-8, 8]), {
-    stiffness: 140,
-    damping: 18,
-  });
-
   return (
     <motion.div
-      ref={ref}
-      onMouseMove={(e) => {
-        const el = ref.current;
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        mx.set((e.clientX - rect.left) / rect.width - 0.5);
-        my.set((e.clientY - rect.top) / rect.height - 0.5);
-      }}
-      onMouseLeave={() => {
-        mx.set(0);
-        my.set(0);
-      }}
-      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
       initial={{ opacity: 0, y: 28 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.7, delay: 0.25 }}
-      className="pointer-events-auto mx-auto mt-10 w-full max-w-[320px] sm:mt-12 sm:max-w-[360px]"
+      className="pointer-events-auto mx-auto mt-10 w-full max-w-[300px] sm:mt-12 sm:max-w-[340px]"
     >
       <motion.div
-        animate={{ y: [0, -12, 0] }}
+        animate={{ y: [0, -10, 0] }}
         transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+        className="rounded-[18px]"
         style={{
-          filter: undefined,
+          boxShadow: "0 16px 40px rgba(0,0,0,0.4)",
         }}
       >
-        <motion.div
-          animate={{
-            boxShadow: [
-              "0 12px 36px rgba(0,0,0,0.35)",
-              "0 20px 48px rgba(212,175,55,0.18)",
-              "0 12px 36px rgba(0,0,0,0.35)",
-            ],
-          }}
-          transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-          className="rounded-[18px]"
-        >
-          <HealthCard3D interactive />
-        </motion.div>
+        {/* Real PVC photo — no nested 3D flip (that mirrored the old mock card) */}
+        <PhysicalCardPreview interactive />
       </motion.div>
     </motion.div>
   );

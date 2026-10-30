@@ -10,26 +10,26 @@ const ECGBackground = dynamic(
   { ssr: false, loading: () => null }
 );
 
-const HealthCard3D = dynamic(
+const PhysicalCardPreview = dynamic(
   () =>
-    import("@/components/ui/HealthCard3D").then((m) => ({
-      default: m.HealthCard3D,
+    import("@/components/ui/PhysicalCardPreview").then((m) => ({
+      default: m.PhysicalCardPreview,
     })),
   {
     ssr: false,
     loading: () => (
       <div
-        className="h-[200px] w-full rounded-2xl border border-gold/25 bg-[#121210]"
+        className="aspect-square w-full max-w-[320px] rounded-2xl border border-gold/25 bg-[#121210]"
         aria-hidden
       />
     ),
   }
 );
 
-/** Client-only hero chrome (ECG + optional 3D card). */
+/** Client-only hero chrome (ECG + optional real product card). */
 export function HomeHeroMedia({ showCard = false }: { showCard?: boolean }) {
   if (showCard) {
-    return <HealthCard3D interactive />;
+    return <PhysicalCardPreview interactive />;
   }
   return <ECGBackground className="opacity-25 max-sm:hidden" />;
 }

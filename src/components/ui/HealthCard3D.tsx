@@ -6,7 +6,6 @@ import { Shield, QrCode } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BloodGroup, CardTier } from "@/lib/types";
 
-/** Fields the 3D card can display (legacy + current schema) */
 type CardDisplayData = {
   user_name?: string;
   blood_group?: BloodGroup | string;
@@ -27,6 +26,15 @@ interface HealthCard3DProps {
   data?: Partial<CardDisplayData>;
 }
 
+const faceStyle: React.CSSProperties = {
+  backfaceVisibility: "hidden",
+  WebkitBackfaceVisibility: "hidden",
+  transformStyle: "preserve-3d",
+};
+
+/**
+ * Flip card mock. Front must use rotateY(0) or browsers show a mirrored face.
+ */
 export function HealthCard3D({
   name = "YOUR NAME",
   bloodGroup = "O+",
@@ -47,21 +55,24 @@ export function HealthCard3D({
 
   return (
     <div
-      className={cn("perspective-[1200px] relative mx-auto w-full max-w-[340px]", className)}
+      className={cn(
+        "relative mx-auto w-full max-w-[340px]",
+        className
+      )}
       style={{ perspective: "1200px" }}
     >
       <motion.div
         className="relative h-[210px] w-full cursor-pointer"
         style={{ transformStyle: "preserve-3d" }}
         animate={{ rotateY: flipped ? 180 : 0 }}
-        transition={{ duration: 0.6, ease: "easeInOut" }}
+        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         onClick={() => interactive && setFlipped((f) => !f)}
         whileHover={interactive ? { scale: 1.02 } : undefined}
       >
-        {/* Front */}
+        {/* Front — explicit rotateY(0) prevents mirrored flash */}
         <div
           className="gold-shimmer absolute inset-0 overflow-hidden rounded-card border border-gold/40 bg-gradient-to-br from-kavach-s2 via-kavach-s1 to-kavach-black p-5 shadow-gold-glow"
-          style={{ backfaceVisibility: "hidden" }}
+          style={{ ...faceStyle, transform: "rotateY(0deg)" }}
         >
           <div className="absolute inset-0 grid-pattern opacity-60" />
           <div className="relative z-10 flex h-full flex-col justify-between">
@@ -106,10 +117,7 @@ export function HealthCard3D({
         {/* Back */}
         <div
           className="absolute inset-0 overflow-hidden rounded-card border border-gold/40 bg-gradient-to-br from-black-2 to-black p-5 shadow-gold-glow"
-          style={{
-            backfaceVisibility: "hidden",
-            transform: "rotateY(180deg)",
-          }}
+          style={{ ...faceStyle, transform: "rotateY(180deg)" }}
         >
           <div className="absolute inset-0 grid-pattern opacity-40" />
           <div className="relative z-10 flex h-full flex-col justify-between">
@@ -120,9 +128,7 @@ export function HealthCard3D({
               <QrCode className="h-8 w-8 text-gold" />
             </div>
             <div className="space-y-2">
-              <p className="font-dm text-xs text-cream-soft">
-                Scan QR or visit
-              </p>
+              <p className="font-dm text-xs text-cream-soft">Scan QR or visit</p>
               <p className="font-mono text-sm text-cream">
                 kavachsaathi.in/e/{code || "XXXX"}
               </p>
