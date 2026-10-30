@@ -39,8 +39,6 @@ export function Pack3ProfileTools({
   medicines = [],
   criticalTags,
   contacts,
-  validFrom,
-  validTill,
   cardStatus,
   defaultAddress = "",
   defaultPhone = "",
